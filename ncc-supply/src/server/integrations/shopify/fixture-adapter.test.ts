@@ -14,13 +14,28 @@ describe('fixture catalogue adapter', () => {
   })
 
   it('getCollection, search, and suggest all resolve without error', async () => {
-    const collection = await adapter.getCollection('chargers', { page: 1, perPage: 10 })
+    const collection = await adapter.getCollection('chargers', { first: 10 })
     expect(collection.products.length).toBeGreaterThan(0)
+    expect(collection.pageInfo.hasNextPage).toBe(false)
 
-    const search = await adapter.search('charger', { page: 1, perPage: 10 })
-    expect(search.totalCount).toBeGreaterThan(0)
+    const search = await adapter.search('charger', { first: 10 })
+    expect(search.products.length).toBeGreaterThan(0)
 
     const suggestions = await adapter.suggest('screen')
     expect(suggestions.products.length).toBeGreaterThan(0)
+  })
+
+  it('paginates via cursor rather than page number', async () => {
+    const firstPage = await adapter.search('fixture', { first: 1 })
+    expect(firstPage.products).toHaveLength(1)
+    expect(firstPage.pageInfo.hasNextPage).toBe(true)
+
+    const secondPage = await adapter.search('fixture', {
+      first: 1,
+      after: firstPage.pageInfo.endCursor,
+    })
+    expect(secondPage.products).toHaveLength(1)
+    expect(secondPage.products[0]?.sku).not.toBe(firstPage.products[0]?.sku)
+    expect(secondPage.pageInfo.hasNextPage).toBe(false)
   })
 })

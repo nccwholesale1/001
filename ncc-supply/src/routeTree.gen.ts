@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
+import { Route as DevShopifyHealthRouteImport } from './routes/dev/shopify-health'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const DevComponentsRoute = DevComponentsRouteImport.update({
   path: '/dev/components',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevShopifyHealthRoute = DevShopifyHealthRouteImport.update({
+  id: '/dev/shopify-health',
+  path: '/dev/shopify-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dev/components': typeof DevComponentsRoute
+  '/dev/shopify-health': typeof DevShopifyHealthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dev/components': typeof DevComponentsRoute
+  '/dev/shopify-health': typeof DevShopifyHealthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dev/components': typeof DevComponentsRoute
+  '/dev/shopify-health': typeof DevShopifyHealthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dev/components'
+  fullPaths: '/' | '/dev/components' | '/dev/shopify-health'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dev/components'
-  id: '__root__' | '/' | '/dev/components'
+  to: '/' | '/dev/components' | '/dev/shopify-health'
+  id: '__root__' | '/' | '/dev/components' | '/dev/shopify-health'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DevComponentsRoute: typeof DevComponentsRoute
+  DevShopifyHealthRoute: typeof DevShopifyHealthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevComponentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/shopify-health': {
+      id: '/dev/shopify-health'
+      path: '/dev/shopify-health'
+      fullPath: '/dev/shopify-health'
+      preLoaderRoute: typeof DevShopifyHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DevComponentsRoute: DevComponentsRoute,
+  DevShopifyHealthRoute: DevShopifyHealthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

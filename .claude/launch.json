@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ncc-supply-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "ncc-supply", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}

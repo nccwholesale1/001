@@ -52,15 +52,16 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 
 ## Phase 3 — Shopify connectivity and catalogue adapter
 
-- [ ] Storefront API client: products, variants, collections, images, prices, metafields/metaobjects, pagination
-- [ ] Customer Account API boundary (for later company-buyer sign-in)
-- [ ] Server-only Admin API boundary (for later draft-order/invoice/refund ops)
-- [ ] Pagination, rate-limit handling, timeouts, retries, error mapping, redacted logs
-- [ ] Catalogue normalization into app Product/Collection view models
-- [ ] Fixture adapter selectable by environment, never mixed with production
-- [ ] Caching/revalidation strategy for a wholesale catalogue
-- [ ] Health diagnostics with no credential exposure
-- [ ] Contract tests + read-only smoke test against dev store (never production)
+- [x] Storefront API client: products, variants, collections, images, prices, pagination — `src/server/integrations/shopify/storefront-client.ts` + `storefront-adapter.ts`, real GraphQL shapes verified against `shopify.dev/docs/api/storefront/2026-07` this session (SKU search syntax, `search`/`predictiveSearch` field shapes, cursor pagination). Metafields/metaobjects deferred — nothing in the PRD's launch scope needs them yet
+- [x] Customer Account API boundary — `src/server/integrations/shopify/customer-account-adapter.ts`; real OIDC discovery + PKCE `login()`/`authorize()`, contract-tested via mocked fetch. Not live-testable until Phase 7 has a real HTTPS callback route (Shopify never accepts localhost redirect URIs) — documented blocker, not silently skipped
+- [x] Server-only Admin API boundary — `src/server/integrations/shopify/admin-client.ts` + `admin-adapter.ts`; `createDraftOrder`/`sendDraftOrderInvoice`/`approveReturn` against real, doc-verified mutations (`draftOrderCreate`, `draftOrderInvoiceSend`, `returnApproveRequest`). No live mutation ever fired this phase — contract-tested only, per the phase's own rule
+- [x] Pagination, rate-limit handling, timeouts, retries, error mapping, redacted logs — `src/server/integrations/shopify/http-client.ts` (shared by both Storefront and Admin clients): `AbortController` timeout, bounded retry-with-backoff on network failure/429/`THROTTLED`, typed `ShopifyApiError`, logs never include headers/tokens/variables
+- [x] Catalogue normalization into app Product/Collection view models — `toSummary`/`toImage`/`toMoneyPence`/`toFacetOptions` in `storefront-adapter.ts` map raw Shopify shapes into the `CatalogueAdapter` types from Phase 2
+- [x] Fixture adapter selectable by environment, never mixed with production — `src/server/integrations/shopify/index.ts`'s `getCatalogueAdapter()` factory, gated by `CATALOGUE_ADAPTER` env var (default `fixture`); test asserts a `live`-configured factory only ever calls the real Storefront endpoint
+- [x] Caching/revalidation strategy for a wholesale catalogue — `src/server/integrations/shopify/cache.ts`, in-memory TTL memoization wrapping the live adapter's `getCollection`/`getProduct` calls
+- [x] Health diagnostics with no credential exposure — `src/server/integrations/shopify/health.ts` (`checkStorefrontHealth`/`checkAdminHealth`) + dev-only `/dev/shopify-health` route (noindex), manually verified in-browser showing `{configured: false, ok: false}` for both in fixture mode
+- [x] Contract tests + read-only smoke test against dev store (never production) — contract tests via mocked fetch for every adapter; `storefront-adapter.smoke.test.ts` is a real read-only call against `nccwholesale.org` that no-ops with a recorded blocker until `SHOPIFY_STOREFRONT_ACCESS_TOKEN` is configured (blocked on a manual Shopify-admin step only the user can do — see DECISIONS.md)
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (26 files / 165 passed, 1 skipped), `pnpm build` all pass
 
 ## Phase 4 — Public shell and homepage
 ## Phase 5 — Catalogue, search and product discovery

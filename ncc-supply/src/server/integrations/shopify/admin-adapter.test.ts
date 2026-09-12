@@ -1,0 +1,130 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { AdminCommerceAdapter } from './types'
+
+/**
+ * `env.ts` evaluates `process.env` once at import time (env is a frozen
+ * singleton, by design — see env.ts), so tests that need different env
+ * configurations per case mock the module directly and re-import fresh via
+ * vi.resetModules() rather than mutating process.env after the fact.
+ */
+async function loadAdapterWithEnv(
+  envOverrides: Record<string, string | undefined>,
+): Promise<AdminCommerceAdapter> {
+  vi.resetModules()
+  vi.doMock('../../env', () => ({
+    env: {
+      DATABASE_FILE: './local.db',
+      SESSION_SECRET: 'x'.repeat(32),
+      NODE_ENV: 'test',
+      CATALOGUE_ADAPTER: 'fixture',
+      SHOPIFY_API_VERSION: '2026-07',
+      SHOPIFY_STORE_DOMAIN: undefined,
+      SHOPIFY_STOREFRONT_ACCESS_TOKEN: undefined,
+      SHOPIFY_ADMIN_ACCESS_TOKEN: undefined,
+      ...envOverrides,
+    },
+  }))
+  const { createAdminCommerceAdapter } = await import('./admin-adapter')
+  return createAdminCommerceAdapter()
+}
+
+function mockFetchOnce(body: unknown) {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+  global.fetch = fetchMock
+  return fetchMock
+}
+
+describe('admin commerce adapter (contract only — no live mutation is ever fired)', () => {
+  const originalFetch = global.fetch
+
+  afterEach(() => {
+    global.fetch = originalFetch
+    vi.doUnmock('../../env')
+  })
+
+  it('createDraftOrder maps a successful response to the DraftOrder shape', async () => {
+    const adapter = await loadAdapterWithEnv({
+      SHOPIFY_STORE_DOMAIN: 'example.myshopify.com',
+      SHOPIFY_ADMIN_ACCESS_TOKEN: 'test-admin-token',
+    })
+    mockFetchOnce({
+      data: {
+        draftOrderCreate: {
+          draftOrder: {
+            id: 'gid://shopify/DraftOrder/1',
+            name: '#D1',
+            status: 'OPEN',
+            invoiceUrl: null,
+            totalPriceSet: { shopMoney: { amount: '19.99', currencyCode: 'GBP' } },
+          },
+          userErrors: [],
+        },
+      },
+    })
+
+    const result = await adapter.createDraftOrder({
+      email: 'buyer@example.com',
+      lines: [{ variantId: 'gid://shopify/ProductVariant/1', quantity: 2 }],
+    })
+
+    expect(result).toEqual({
+      id: 'gid://shopify/DraftOrder/1',
+      name: '#D1',
+      status: 'OPEN',
+      invoiceUrl: null,
+      totalPrice: { amountPence: 1999, currencyCode: 'GBP' },
+    })
+  })
+
+  it('throws when Shopify returns userErrors, instead of returning a partial result', async () => {
+    const adapter = await loadAdapterWithEnv({
+      SHOPIFY_STORE_DOMAIN: 'example.myshopify.com',
+      SHOPIFY_ADMIN_ACCESS_TOKEN: 'test-admin-token',
+    })
+    mockFetchOnce({
+      data: {
+        draftOrderCreate: {
+          draftOrder: null,
+          userErrors: [{ field: ['lineItems'], message: 'Variant not found' }],
+        },
+      },
+    })
+
+    await expect(
+      adapter.createDraftOrder({
+        email: 'buyer@example.com',
+        lines: [{ variantId: 'bad', quantity: 1 }],
+      }),
+    ).rejects.toThrow('Variant not found')
+  })
+
+  it('approveReturn calls returnApproveRequest and maps the return status', async () => {
+    const adapter = await loadAdapterWithEnv({
+      SHOPIFY_STORE_DOMAIN: 'example.myshopify.com',
+      SHOPIFY_ADMIN_ACCESS_TOKEN: 'test-admin-token',
+    })
+    const fetchMock = mockFetchOnce({
+      data: {
+        returnApproveRequest: {
+          return: { id: 'gid://shopify/Return/1', status: 'OPEN' },
+          userErrors: [],
+        },
+      },
+    })
+
+    const result = await adapter.approveReturn('gid://shopify/Return/1')
+
+    expect(result).toEqual({ id: 'gid://shopify/Return/1', status: 'OPEN' })
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(String(requestInit.body)).toContain('returnApproveRequest')
+  })
+
+  it('refuses to call the Admin API at all without credentials configured', async () => {
+    const adapter = await loadAdapterWithEnv({})
+    const fetchMock = vi.fn()
+    global.fetch = fetchMock
+
+    await expect(adapter.approveReturn('gid://shopify/Return/1')).rejects.toThrow(/configured/)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

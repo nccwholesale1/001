@@ -12,6 +12,18 @@ const envSchema = z.object({
     .min(32, 'SESSION_SECRET must be at least 32 characters')
     .default('dev-only-insecure-secret-do-not-use-in-production-xxxxx'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+
+  /** Which CatalogueAdapter getCatalogueAdapter() returns — see integrations/shopify/index.ts. */
+  CATALOGUE_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
+  /** The store's *.myshopify.com domain — NOT its custom storefront domain. Only required when CATALOGUE_ADAPTER=live. */
+  SHOPIFY_STORE_DOMAIN: z.string().min(1).optional(),
+  /** Storefront API access token (public or private) — only required when CATALOGUE_ADAPTER=live. */
+  SHOPIFY_STOREFRONT_ACCESS_TOKEN: z.string().min(1).optional(),
+  /** Admin API access token — not needed until Phase 8's real draft-order/invoice/refund operations. */
+  SHOPIFY_ADMIN_ACCESS_TOKEN: z.string().min(1).optional(),
+  SHOPIFY_API_VERSION: z.string().min(1).default('2026-07'),
+  /** Customer Account API client id from the Headless channel — not usable until Phase 7 has a real HTTPS login callback route. */
+  SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: z.string().min(1).optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -26,6 +38,14 @@ function loadEnv(): Env {
   if (result.data.NODE_ENV === 'production' && result.data.SESSION_SECRET === INSECURE_DEV_SECRET) {
     throw new Error(
       'SESSION_SECRET must be set to a real value in production — refusing to start with the dev default.',
+    )
+  }
+  if (
+    result.data.CATALOGUE_ADAPTER === 'live' &&
+    (!result.data.SHOPIFY_STORE_DOMAIN || !result.data.SHOPIFY_STOREFRONT_ACCESS_TOKEN)
+  ) {
+    throw new Error(
+      'CATALOGUE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_ACCESS_TOKEN to be set.',
     )
   }
   return result.data

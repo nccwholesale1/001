@@ -2,6 +2,7 @@ import type {
   CatalogueAdapter,
   CollectionResult,
   FacetOpts,
+  PageInfo,
   PaginationOpts,
   ProductDetail,
   ProductSummary,
@@ -12,8 +13,8 @@ import type {
 /**
  * Dev-only fixture implementation of CatalogueAdapter (CLAUDE.md rule 20).
  * Every SKU/title/price below is obviously fake placeholder data — never
- * real inventory — for local development and contract tests before Phase 3
- * wires up the real Shopify Storefront API adapter.
+ * real inventory — for local development and contract tests alongside the
+ * real Shopify Storefront API adapter (./storefront-adapter.ts).
  */
 
 const FIXTURE_PRODUCTS: ProductDetail[] = [
@@ -67,9 +68,25 @@ function toSummary(product: ProductDetail): ProductSummary {
   return { sku, title, collectionHandle, collectionTitle, price, thumbnail }
 }
 
-function paginate<T>(items: T[], { page, perPage }: PaginationOpts): T[] {
-  const start = (page - 1) * perPage
-  return items.slice(start, start + perPage)
+/**
+ * Mirrors Shopify's cursor connection model on a plain in-memory array — the
+ * cursor here is just a stringified index, which is fine for a fixture but
+ * would never be exposed as a real Shopify cursor format.
+ */
+function paginate<T>(
+  items: T[],
+  { first, after }: PaginationOpts,
+): { page: T[]; pageInfo: PageInfo } {
+  const startIndex = after ? Number(after) + 1 : 0
+  const page = items.slice(startIndex, startIndex + first)
+  const endIndex = startIndex + page.length - 1
+  return {
+    page,
+    pageInfo: {
+      hasNextPage: startIndex + page.length < items.length,
+      endCursor: page.length > 0 ? String(endIndex) : null,
+    },
+  }
 }
 
 export function createFixtureCatalogueAdapter(): CatalogueAdapter {
@@ -94,12 +111,13 @@ function getCollectionFixture(
   opts: PaginationOpts & FacetOpts,
 ): Promise<CollectionResult> {
   const matches = FIXTURE_PRODUCTS.filter((product) => product.collectionHandle === slug)
+  const { page, pageInfo } = paginate(matches.map(toSummary), opts)
   return Promise.resolve({
     slug,
     title: matches[0]?.collectionTitle ?? slug,
     description: 'Fixture collection for local development only.',
-    totalCount: matches.length,
-    products: paginate(matches.map(toSummary), opts),
+    products: page,
+    pageInfo,
     availableFacets: [],
   })
 }
@@ -109,10 +127,11 @@ function searchFixture(query: string, opts: PaginationOpts & FacetOpts): Promise
   const matches = FIXTURE_PRODUCTS.filter((product) =>
     product.title.toLowerCase().includes(lowerQuery),
   )
+  const { page, pageInfo } = paginate(matches.map(toSummary), opts)
   return Promise.resolve({
     query,
-    totalCount: matches.length,
-    products: paginate(matches.map(toSummary), opts),
+    products: page,
+    pageInfo,
     availableFacets: [],
   })
 }

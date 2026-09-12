@@ -98,6 +98,30 @@ A separate `BannerCarousel` component was also added, reusing `Banner` internall
 **Decision:** Every guest/buyer-facing command schema in `src/server/validation/commands.ts` (submit basket, return request, support message) uses Zod's `.strict()` mode, so a client-supplied field the server doesn't expect (`unitPricePence`, `status`, etc.) fails validation outright rather than being silently dropped or trusted. The one schema that does carry price/total fields, `nccApprovalSchema`, is authorized separately by actor identity (`ncc_admin` only), not by anything in the schema itself.
 **Source:** CLAUDE.md rule 9.
 
+## Phase 3 decisions and facts (2026-09-12)
+
+### ADR-012: Cursor-based pagination on `CatalogueAdapter`, not page/perPage
+**Decision:** `PaginationOpts` changed from `{ page, perPage }` (Phase 2's original guess) to `{ first, after? }`, matching Shopify's own GraphQL connection model. `CollectionResult`/`SearchResult` now carry `pageInfo: { hasNextPage, endCursor }` instead of a `totalCount`.
+**Why:** Building the real Storefront adapter this phase confirmed the Storefront API has no random-access "page number" concept at all — only cursors. Changing this now, before Phase 5 builds real pagination UI on top of it, avoids baking in a wrong abstraction that Phase 5 would have had to work around. Nothing outside the fixture adapter and its tests depended on the old shape yet, so this was a clean, low-risk fix (same principle as ADR-004's database pivot: verify the real API before committing to an interface shape).
+**Effect:** `fixture-adapter.ts` and its tests updated to the same cursor model on a plain in-memory array (a stringified index as the cursor) so fixture and live behave identically from the caller's perspective.
+
+### ADR-013: `AdminCommerceAdapter.approveReturn` drops the `resolution` parameter from the original doc sketch
+**Decision:** `docs/integration-contracts.md`'s original sketch had `approveReturn(returnId, resolution: 'refund' | 'replacement')`. The real implementation takes only `returnId` — resolution is deferred entirely to Phase 10.
+**Why:** The real Shopify mutation, `returnApproveRequest` (verified against the live Admin GraphQL schema this session, requires `write_returns` scope), only approves a return and creates a reverse fulfillment order — it doesn't accept a refund/replacement choice at all. That choice is a separate, later mutation Phase 10 will implement alongside the real returns workflow. Building a wider interface now than the underlying API actually supports would have meant faking part of the contract.
+
+### Shopify facts verified live this session (not assumed)
+- Real Admin GraphQL connection confirmed against the live dev store: `nccwholesale.org`, Basic plan, GBP, UK.
+- The store's actual API domain is **`9nd0we-wt.myshopify.com`** — distinct from the custom storefront domain (`nccwholesale.org`) shown in the admin UI. Every Shopify API call (Storefront, Admin, OIDC discovery) targets the `.myshopify.com` domain via the new `SHOPIFY_STORE_DOMAIN` env var.
+- Current latest-stable Shopify API version as of 2026-09-12 is **`2026-07`** (`SHOPIFY_API_VERSION` default; `2026-10` is still a release candidate).
+- Storefront API SKU lookup uses search syntax (`products(query: "sku:VALUE")`), confirmed via `shopify.dev/docs/api/storefront/2026-07`; there is no dedicated by-SKU root query.
+- Admin mutations verified real and current: `draftOrderCreate`, `draftOrderInvoiceSend` (already confirmed live in Phase 0), `returnApproveRequest`.
+- Customer Account API is a full OIDC/OAuth2+PKCE flow, discovered per-shop at `https://{domain}/.well-known/openid-configuration` — confirmed via `shopify.dev/docs/api/customer/2026-07`. Requires an HTTPS (never localhost) redirect URI, so it is not live-testable before Phase 7 has a real callback route.
+
+### Blocked: self-provisioning a live Storefront API access token
+**What happened:** The user authorized taking any in-scope, free Shopify access needed for the build ("any access you require from Shopify won't be denied in scope... unless it costs money"). Acting on that, I attempted `storefrontAccessTokenCreate` (free, in-scope) directly against the connected Admin GraphQL MCP tool to provision a real Storefront token without needing to interrupt the user.
+**Result:** The connector's own safety policy refused the mutation outright — `"Storefront access token management is not permitted via AI tools"` (category `access_escalation`). This is a hard boundary on the tool itself, not a cost question, and not something further authorization from the user can lift.
+**Effect:** The live Storefront adapter is fully built and contract-tested, but running the read-only smoke test against real data needs one 2-minute manual step from the user: Shopify admin → Sales channels → Headless (free) → Create storefront → copy the token into `ncc-supply/.env` as `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (plus `SHOPIFY_STORE_DOMAIN=9nd0we-wt.myshopify.com`, `CATALOGUE_ADAPTER=live`). Until then, `CATALOGUE_ADAPTER` defaults to `fixture`, which is a complete, working, tested default — nothing in Phases 3–5 is blocked on this. Recorded per CLAUDE.md rule 25 rather than claimed as done.
+
 ## Resolved by business decision, 2026-09-12
 
 2. **Number of companies needing distinct contract pricing.** ✅ Resolved: **none** — uniform list pricing for everyone (ADR-005). The price-list cap is now irrelevant.
