@@ -16,6 +16,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth-callback'
 import { Route as BasketRouteImport } from './routes/basket'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as OrderSubmittedRouteImport } from './routes/order-submitted'
+import { Route as PreviewAccessRouteImport } from './routes/preview-access'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
@@ -62,6 +63,11 @@ const CategoriesRoute = CategoriesRouteImport.update({
 const OrderSubmittedRoute = OrderSubmittedRouteImport.update({
   id: '/order-submitted',
   path: '/order-submitted',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewAccessRoute = PreviewAccessRouteImport.update({
+  id: '/preview-access',
+  path: '/preview-access',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/basket': typeof BasketRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
+  '/preview-access': typeof PreviewAccessRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/account/orders': typeof AccountOrdersRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/basket': typeof BasketRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
+  '/preview-access': typeof PreviewAccessRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/account/orders': typeof AccountOrdersRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/basket': typeof BasketRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
+  '/preview-access': typeof PreviewAccessRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/account/orders': typeof AccountOrdersRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/basket'
     | '/categories'
     | '/order-submitted'
+    | '/preview-access'
     | '/register'
     | '/search'
     | '/account/orders'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/basket'
     | '/categories'
     | '/order-submitted'
+    | '/preview-access'
     | '/register'
     | '/search'
     | '/account/orders'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/basket'
     | '/categories'
     | '/order-submitted'
+    | '/preview-access'
     | '/register'
     | '/search'
     | '/account/orders'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   BasketRoute: typeof BasketRoute
   CategoriesRoute: typeof CategoriesRoute
   OrderSubmittedRoute: typeof OrderSubmittedRoute
+  PreviewAccessRoute: typeof PreviewAccessRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   CategorySlugRoute: typeof CategorySlugRoute
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       path: '/order-submitted'
       fullPath: '/order-submitted'
       preLoaderRoute: typeof OrderSubmittedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-access': {
+      id: '/preview-access'
+      path: '/preview-access'
+      fullPath: '/preview-access'
+      preLoaderRoute: typeof PreviewAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   BasketRoute: BasketRoute,
   CategoriesRoute: CategoriesRoute,
   OrderSubmittedRoute: OrderSubmittedRoute,
+  PreviewAccessRoute: PreviewAccessRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   CategorySlugRoute: CategorySlugRoute,

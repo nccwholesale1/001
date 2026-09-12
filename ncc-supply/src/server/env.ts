@@ -27,6 +27,17 @@ const envSchema = z.object({
 
   /** Which CustomerAccountAdapter getCustomerAccountAdapter() returns — see integrations/shopify/index.ts. */
   CUSTOMER_ACCOUNT_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
+
+  /**
+   * Pre-launch site-wide gate (temporary, operational — not a PRD feature).
+   * When set, every route except /preview-access requires this password
+   * once per browser (server/auth/site-access.ts). Unset entirely to turn
+   * the gate off once the site is ready for its real launch — never gated
+   * by NODE_ENV, since a staging/preview deploy still runs a production
+   * build (CLAUDE.md: "production launch... never inferred from phase
+   * completion").
+   */
+  SITE_ACCESS_PASSWORD: z.string().min(1).default('ncc-preview-2026'),
 })
 
 export type Env = z.infer<typeof envSchema>

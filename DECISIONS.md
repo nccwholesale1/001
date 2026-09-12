@@ -1,5 +1,11 @@
 # NCC Supply — Decisions
 
+## Operational note: temporary site-wide password gate (2026-09-13)
+
+**What:** Every route except `/preview-access` now requires a shared password once per browser (`src/server/auth/site-access.ts`, `SITE_ACCESS_PASSWORD` env var, default `ncc-preview-2026` if unset — see `.env.example`). This is a pre-launch operational measure requested directly by the user ("keep it password protected for now"), not a PRD feature and not numbered as a phase ADR.
+**Design:** A root-route `beforeLoad` (`src/routes/__root.tsx`) redirects to `/preview-access` unless a session cookie (`ncc_site_access`, 30-day, sealed with the existing `SESSION_SECRET`) already marks the browser as granted. The gate page itself renders with no Header/Footer (checked via `useRouterState` in `RootDocument`), so an ungated visitor sees nothing but the password prompt — confirmed in a real browser, not just asserted. Entirely separate from buyer sign-in (`buyers/buyer-session.ts`) and staff auth (`auth/session.ts`) — this is a single shared password, not a per-user credential.
+**Remove before real launch:** delete `SITE_ACCESS_PASSWORD` from the environment (or remove the `beforeLoad` gate in `__root.tsx`) as part of the runbook §18 launch prompt — never left in place past explicit, authorized launch (CLAUDE.md: launch is never inferred from phase completion).
+
 ## Confirmed decisions (ADR-style)
 
 ### ADR-001: Headless TanStack Start, no Shopify theme
