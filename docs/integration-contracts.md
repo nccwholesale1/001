@@ -63,7 +63,7 @@ interface OrderWorkflowService {
 }
 
 interface TokenService {
-  issue(resourceType: 'order' | 'quote' | 'return' | 'support', resourceId: string): Promise<{ token: string; expiresAt: Date }>;
+  issue(resourceType: 'order_request' | 'quote' | 'return' | 'support_ticket', resourceId: string): Promise<{ token: string; expiresAt: Date }>;
   verify(token: string, resourceType: string): Promise<{ resourceId: string } | null>; // never leaks existence on failure
   revoke(token: string): Promise<void>;
 }
@@ -72,6 +72,11 @@ interface AuthorizationService {
   canAccess(actor: Actor, resource: ResourceRef): boolean; // deny-by-default, CLAUDE.md rule 17
 }
 ```
+
+**Implemented in Phase 2:**
+- `TokenService` → `src/server/tokens/token-service.ts` (`issueGuestToken`/`verifyGuestToken`/`revokeGuestToken`, functions taking a `Db` rather than a class) — resource-type names above were aligned to match the actual persisted enum in `schema.ts` (`TOKEN_RESOURCE_TYPES`), not the shorter names originally sketched here.
+- `AuthorizationService` → `src/server/auth/authorization.ts`, as `canViewCompanyResource`/`canMutateCompanyResource`/`canManageStaffTeam` rather than a single `canAccess` — split by read vs. write since the matrix's "Read-only, assigned companies only" cells need to be a hard boundary, not a per-call flag a caller could get wrong.
+- `OrderWorkflowService` — not implemented yet; Phase 2 has no routes to call it from. `domain/status.ts` provides the transition guards it will use internally.
 
 ## 5. Error handling and observability (applies to all four boundaries)
 

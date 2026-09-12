@@ -4,80 +4,76 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 1 — Application scaffold and design-system foundation
+## Last completed phase: Phase 2 — Domain model, persistence, integration boundaries
 
-**Completed scope:**
-- Scaffolded the TanStack Start app into `ncc-supply/` via `npx @tanstack/cli create` (pnpm, no add-ons, no nested git — tracked by this repo's own git).
-- Wired Tailwind v4 (`@tailwindcss/vite`) per current official docs, verified live during planning.
-- Replaced the scaffold's generic placeholder theme/content entirely (`ThemeToggle.tsx`, `Header.tsx`, `Footer.tsx`, `about.tsx` demo route, and the "sea/lagoon" placeholder CSS all removed) with the real NCC design-system tokens in `src/styles.css`.
-- Built 9 accessible primitives in `src/components/ui/`: Button, Link (router + external), Field/TextareaField, Badge, StatusChip, Card, Disclosure, Dialog (Radix-based), Icon, plus Layout (Container/Section/ResponsiveGrid).
-- Built app-level boundaries in `src/components/app-boundaries/`: ErrorBoundary, NotFound, Pending — wired into `src/routes/__root.tsx`.
-- Built the dev-only `/dev/components` preview route (noindex) showing every primitive/state.
-- Added the tooling the default scaffold didn't include: Vitest + Testing Library (`vitest.config.ts`, separate from the main Vite config to avoid the SSR plugin), ESLint flat config with `eslint-plugin-jsx-a11y`, Prettier.
-- **Two real bugs found and fixed during the required visual breakpoint check** (not caught by lint/typecheck/tests, since they were CSS token wiring issues): see DECISIONS.md ADR-008. Summary: (1) the site was auto-switching to dark mode from OS preference, which the user flagged immediately and which also contradicts the design system's own "light... no dark hero" principle — fixed to render light unconditionally; (2) as part of the same fix, `--gradient-surface`/`--gradient-hero` were found to be hardcoded light-only literals that would have made card titles unreadable had dark mode ever activated — now derived from theme tokens instead.
+**Completed scope:** the full custom-backend foundation under `ncc-supply/src/server/`, no routes or UI (none needed this phase — everything is testable directly via Vitest). Continued in the same session as Phase 1 at the user's explicit direction ("GO for next phase immediately here only"), on a new branch `phase/2-domain-backend`.
 
-**Files created/changed:** see `TASKS.md` Phase 1 checklist for the full list; headline additions are `ncc-supply/src/styles.css`, `ncc-supply/src/components/ui/*`, `ncc-supply/src/components/app-boundaries/*`, `ncc-supply/src/routes/__root.tsx`, `ncc-supply/src/routes/index.tsx`, `ncc-supply/src/routes/dev/components.tsx`, `ncc-supply/vitest.config.ts`, `ncc-supply/vitest.setup.ts`, `ncc-supply/eslint.config.js`, `ncc-supply/.prettierrc.json`.
+- **`db/schema.ts`** — 19 Drizzle tables for every app-owned entity in `docs/domain-model.md`: companies, company locations, buyer users, staff users, sales-rep assignments, staff sessions, baskets/basket lines, order requests/lines, quotes/lines, returns/lines, support tickets/messages, guest tokens, idempotency keys, audit events.
+- **Database driver changed from the ADR-004 Postgres default to SQLite via `@libsql/client` + `drizzle-orm/libsql`** — this build machine has neither Postgres nor Docker, and `better-sqlite3` (the obvious alternative) needs a native compile step this machine has no Python/build tools for at all. See `DECISIONS.md` ADR-004 revision for the full chain of verification (each candidate was actually checked against the installed environment, not assumed).
+- **`domain/status.ts`** — pure transition-guard functions for all five status machines (order request, quote, return, support ticket, buyer, staff), throwing `InvalidTransitionError` on an invalid move; `assertConfirmedQuantityAllowed` (rule 2/15) and `assertCanActivateOnFirstLogin` (ADR-007 — a sales rep needs an employee ID on file before first-login activation, an NCC admin doesn't) as separate guards alongside the transitions.
+- **`auth/password.ts`** — scrypt (Node's built-in `node:crypto`) hash/verify, no native-binding dependency.
+- **`auth/session.ts`** — opaque bearer session tokens for staff; only the SHA-256 hash is persisted (`staff_sessions.token_hash`), never the raw token (ADR-011 — this was originally a plain-id session table, caught and fixed before the first migration was generated).
+- **`auth/authorization.ts`** — `Actor` discriminated union (guest/buyer/sales_rep/ncc_admin) and deny-by-default `canViewCompanyResource`/`canMutateCompanyResource`/`canManageStaffTeam`, matching `docs/route-permissions-matrix.md` exactly, including the "sales rep is read-only everywhere, even in an assigned company" rule.
+- **`tokens/token-service.ts`** — guest resource tokens (order/quote/return/support), same hash-only pattern as staff sessions, via a shared `shared/opaque-token.ts` helper.
+- **`idempotency/idempotency.ts`** — `withIdempotency(db, scope, key, run)`, backed by a unique `(scope, key)` DB constraint so a concurrent duplicate call replays the first result rather than double-running.
+- **`audit/audit-log.ts`** — `recordAuditEvent` is the only exported function (no update/delete), enforcing append-only by API surface.
+- **`validation/commands.ts`** — Zod schemas for submit-basket, company-approval-decision, NCC-approval, return-request, support-ticket-message. Every guest/buyer-facing schema is `.strict()`, so a client-supplied price/total field fails validation outright (the concrete enforcement of CLAUDE.md rule 9) rather than being silently ignored.
+- **`integrations/shopify/types.ts`** + **`fixture-adapter.ts`** — `CatalogueAdapter` interface promoted from `docs/integration-contracts.md`, plus a fixture implementation with every SKU/title prefixed `[Fixture]`.
+- **`env.ts`** + **`.env.example`** — Zod-validated env (`DATABASE_FILE`, `SESSION_SECRET`, `NODE_ENV`); refuses to boot in production with the built-in insecure dev secret.
+- **`seed.ts`** — dev-only, refuses to run when `NODE_ENV=production`, every seeded name/email prefixed `[Fixture]`.
 
-**Added mid-phase at explicit user request (still Phase 1 scope — component library, not a new page):** `Banner.tsx` (hero/compact variants, gradient-only background — ADR-010) and `BannerCarousel.tsx` (separate component wrapping Banner slides; whether it's actually used anywhere is an open decision for Phase 4). 63 tests total after these (up from 47), including a jsdom `matchMedia` polyfill added to `vitest.setup.ts` since BannerCarousel's reduced-motion check needs it.
+**Files created:** see `TASKS.md` Phase 2 checklist for the exhaustive list with per-item evidence. Also touched: `docs/integration-contracts.md` (aligned `TokenService`/`AuthorizationService` sketches to what was actually built), `IMPLEMENTATION_PLAN.md` (Postgres → SQLite in the environments section), `DECISIONS.md` (ADR-004 revision, ADR-011, plus notes on the staff-auth and authorization/validation design choices).
 
 **Verification performed (actual output, not inspection-only):**
 ```
+$ pnpm test        → Test Files 19 passed (19), Tests 141 passed (141)
 $ pnpm typecheck   → tsc --noEmit, no output, exit 0
 $ pnpm lint        → eslint ., no output, exit 0
-$ pnpm test        → Test Files 8 passed (8), Tests 63 passed (63)
 $ pnpm build       → client + SSR bundles both built successfully
 ```
-Manual: `pnpm dev` run, checked via the Browser tool at 375×812, 768×1024, 1024×800, and 1440×900 on both `/` and `/dev/components`; keyboard Tab reached every interactive element with a visible focus ring; Dialog opened on click, trapped focus, closed on Escape, and returned focus to its trigger; Disclosure open/closed and chevron rotation confirmed visually (native `<details>` Enter/Space-to-toggle is a browser guarantee jsdom doesn't simulate, noted in the test file rather than skipped silently).
+Migration: `drizzle-kit generate` produced `src/server/db/migrations/0000_curious_calypso.sql`; applied it with `pnpm db:migrate` against a real throwaway file, confirmed all 19 tables present via a direct SQL query, then deleted the file. Seed script: ran `pnpm db:migrate` + `pnpm db:seed` against a second throwaway file, inspected the resulting rows directly (fixture company, two fixture buyers, an active fixture NCC admin, a `pending_id_verification` fixture sales rep), then deleted the file. Neither throwaway file was committed.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 1 decisions and facts" section (ADR-008, ADR-009, and the scaffold-tooling facts).
+**Testing approach note:** mid-phase the user asked to keep tests minimal/essential going forward rather than exhaustive matrices — later modules in this phase (token-service, idempotency, validation, fixture adapter, audit-log) accordingly carry only the required security-property tests and one happy-path check each, not full edge-case coverage. Earlier modules (status transitions, password, session, authorization) were already written more thoroughly before that request landed; they weren't retroactively trimmed since they were already correct and passing.
 
-**Unresolved blockers / risks carried forward:** unchanged from Phase 0 — PRD §13 Questions 1 (growth trajectory), 4, 5, 6. None block Phase 2.
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 2 decisions and facts" section (ADR-004 revision, ADR-011, staff-auth/authorization/validation design notes).
 
-**Database migrations / environment variables:** none yet — Phase 2's job.
+**Unresolved blockers / risks carried forward:** unchanged — PRD §13 Questions 1 (growth trajectory), 4, 5, 6. None block Phase 3. Question 1 (target catalogue size) is the one to watch during Phase 3 itself, since the live store's actual 321 SKUs / 12 collections now become directly relevant to catalogue-adapter pagination/facet design.
+
+**Database migrations / environment variables:**
+- Migration: `src/server/db/migrations/0000_curious_calypso.sql` (generated, not yet applied to any persistent dev database — Phase 3+ will run `pnpm db:migrate` against whatever `DATABASE_FILE` the next session's `.env` points to).
+- Env vars: `DATABASE_FILE`, `SESSION_SECRET`, `NODE_ENV` — all documented in `.env.example` with no values.
 
 ---
 
-## Next phase: Phase 2 — Domain model, persistence, integration boundaries
+## Next phase: Phase 3 — Shopify connectivity and catalogue adapter
 
-**Entry criteria (Phase 1 exit gate, satisfied):**
-- The application runs locally and builds successfully. ✅
-- Semantic tokens and reusable primitives match the design-system specification. ✅ (and one real drift was caught and corrected, not just assumed correct)
-- Keyboard focus and reduced motion work. ✅
-- No hardcoded component colours. ✅ (enforced by an automated test, not just a manual claim)
-- There are no product/business fixtures masquerading as live data. ✅ (index route is explicitly a placeholder, dev-marked)
+**Entry criteria (Phase 2 exit gate, satisfied):**
+- Database schema/migrations exist and are verified applying cleanly. ✅
+- Status/transition guards, authorization, tokens, idempotency, and validation all exist with passing tests naming the required security properties. ✅
+- Typed `CatalogueAdapter` interface and a fixture implementation exist for Phase 3 to build against/alongside. ✅
+- No routes or UI were built — scope stayed to the backend foundation only. ✅
+- `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
 
-**Exact next-phase prompt** (paste into a **fresh** Claude Code session):
+**Exact next-phase prompt** (paste into a **fresh** Claude Code session, unless directed otherwise):
 
 ```text
-Read CLAUDE.md, the two NCC source documents, the plan, tasks, decisions and last handoff. Inspect git status. Implement only Phase 2.
+Read CLAUDE.md, the two NCC source documents, the plan, tasks, decisions and last handoff. Inspect git status. Implement only Phase 3.
 
-Implement the agreed custom-backend foundation and typed service boundaries before building feature pages.
+Build the real Shopify connectivity behind the typed boundaries Phase 2 already defined (src/server/integrations/shopify/types.ts, docs/integration-contracts.md) — do not change those interfaces without a documented reason.
 
 Required work:
-- database schema and migrations for only the app-owned concepts in PRD §7.2 (as revised by DECISIONS.md ADR-006 — companies/buyers/locations are now app-owned too, not Shopify B2B);
-- explicit order, quote, return and support status enums/state transitions (per docs/domain-model.md);
-- immutable audit-event records for approvals, status changes, pricing changes and staff actions;
-- tenant and role authorization helpers with deny-by-default behaviour;
-- secure guest-token generation, hashing, expiry/revocation and lookup;
-- idempotency support for order submission and external Shopify mutations;
-- validation schemas for all domain commands;
-- typed Shopify Storefront, Customer and Admin service interfaces (per docs/integration-contracts.md, as revised — no B2B-specific Admin API surface needed);
-- mock/fixture adapters for local development and contract tests;
-- environment validation and .env.example without values;
-- seed data that is unmistakably development-only.
+- a Storefront API client implementing CatalogueAdapter: products, variants, collections, images, prices, pagination, facets, search, typeahead, against the real nccwholesale.org dev store (Basic plan, 321 SKUs / 12 collections);
+- the Customer Account API boundary sketch (login/authorize/return-eligibility) — implement to whatever depth is realistic without a real company-buyer flow to test yet (Phase 7 owns that flow);
+- a server-only Admin API boundary (draft order create/update, invoice send, return approval) — never reachable from browser code (CLAUDE.md rule 8); do not perform a live mutation against nccwholesale.org without an explicit environment safety check first, and never in a way that could affect the real 321-SKU catalogue;
+- pagination, rate-limit handling, bounded timeouts/retries, typed error mapping, and redacted logging for every outbound call;
+- normalization from raw Shopify shapes into the CatalogueAdapter view models already defined;
+- keep the fixture adapter selectable by environment variable, never mixed with the live adapter in the same running process;
+- a caching/revalidation strategy appropriate for a wholesale catalogue (PRD §7.5);
+- a health-diagnostics surface reporting adapter connectivity only, no credentials or raw API responses (CLAUDE.md rule 22).
 
 Do not build the full UI. A minimal diagnostic route is acceptable only if it contains no secrets and is disabled in production.
 
-Write tests proving:
-- cross-company access is denied;
-- sales reps cannot escape assigned-company scope;
-- company buyers cannot perform admin actions;
-- only NCC admins can approve orders or mutate protected staff records;
-- invalid status transitions fail;
-- tokens cannot be enumerated and raw tokens are not stored;
-- duplicate submissions are idempotent;
-- totals and privileged prices are never accepted from client input;
-- a sales-rep account cannot activate before an employee ID is on file, and activates automatically on first successful email sign-in (ADR-007).
+Write contract tests against the fixture adapter (fast, no network) plus a read-only smoke test against the real dev store (never a mutation, never production). Keep new tests to what's actually required to prove correctness — the user asked mid-Phase-2 to favor minimal, essential test coverage over exhaustive matrices going forward.
 
-Run migrations in the local/test environment, lint, type-check, test and build. Update tracking documents with evidence and stop after Phase 2.
+Run lint, type-check, test and build. Update tracking documents with evidence and stop after Phase 3.
 ```

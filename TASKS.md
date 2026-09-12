@@ -36,18 +36,19 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 
 ## Phase 2 — Domain model, persistence, integration boundaries
 
-- [ ] Database schema/migrations for app-owned concepts only (PRD §7.2)
-- [ ] Order/quote/return/support status enums + transition guards
-- [ ] Immutable audit-event records
-- [ ] Tenant/role authorization helpers (deny-by-default)
-- [ ] Guest-token generation/hashing/expiry/revocation
-- [ ] Idempotency support for order submission + Shopify mutations
-- [ ] Validation schemas for all domain commands
-- [ ] Typed Shopify Storefront/Customer/Admin service interfaces
-- [ ] Mock/fixture adapters for local dev + contract tests
-- [ ] Environment validation + `.env.example`
-- [ ] Dev-only seed data, unmistakably marked
-- [ ] Security tests: cross-company denial, sales-rep scope, buyer-vs-admin, invalid transitions, token enumeration, duplicate-submission idempotency, no client-trusted totals/pricing
+- [x] Database schema/migrations for app-owned concepts only (PRD §7.2) — `src/server/db/schema.ts`, 19 tables; SQLite via libSQL, not Postgres (DECISIONS.md ADR-004 revision); migration generated and verified applying cleanly to a real file (`pnpm db:migrate`, tables confirmed via direct query, artifact deleted)
+- [x] Order/quote/return/support status enums + transition guards — `src/server/domain/status.ts`, enums re-exported from `schema.ts`, pure `transition*` functions throwing `InvalidTransitionError` on an invalid move; `assertConfirmedQuantityAllowed` enforces PRD rule 2/15 (never silently increased)
+- [x] Immutable audit-event records — `src/server/audit/audit-log.ts`; `recordAuditEvent` is the only exported function (no update/delete), backed by the indexed `audit_events` table
+- [x] Tenant/role authorization helpers (deny-by-default) — `src/server/auth/authorization.ts`; `Actor` discriminated union + `canViewCompanyResource`/`canMutateCompanyResource`/`canManageStaffTeam` matching `docs/route-permissions-matrix.md` exactly
+- [x] Guest-token generation/hashing/expiry/revocation — `src/server/tokens/token-service.ts` (`issueGuestToken`/`verifyGuestToken`/`revokeGuestToken`), hash-only storage via shared `src/server/shared/opaque-token.ts`
+- [x] Idempotency support for order submission + Shopify mutations — `src/server/idempotency/idempotency.ts`, `withIdempotency(db, scope, key, run)`, unique `(scope, key)` constraint backs concurrent-call safety
+- [x] Validation schemas for all domain commands — `src/server/validation/commands.ts`; guest/buyer-facing schemas are `.strict()` so an unexpected field (e.g. a client-supplied price) fails validation rather than being silently dropped
+- [x] Typed Shopify Storefront/Customer/Admin service interfaces — `src/server/integrations/shopify/types.ts` (`CatalogueAdapter` + supporting types promoted from `docs/integration-contracts.md`); Customer Account / Admin adapters left as the doc-sketch interfaces for Phase 3 to implement, since Phase 2 has no routes to call them from yet
+- [x] Mock/fixture adapters for local dev + contract tests — `src/server/integrations/shopify/fixture-adapter.ts`, every fixture SKU/title prefixed `[Fixture]` (CLAUDE.md rule 20)
+- [x] Environment validation + `.env.example` — `src/server/env.ts` (Zod, refuses the insecure default `SESSION_SECRET` in production), `.env.example` at the `ncc-supply/` root
+- [x] Dev-only seed data, unmistakably marked — `src/server/seed.ts` (`pnpm db:seed`), refuses to run when `NODE_ENV=production`; every seeded name/email prefixed `[Fixture]`; verified end-to-end against a throwaway DB file, rows inspected, file deleted
+- [x] Security tests: cross-company denial, sales-rep scope, buyer-vs-admin, invalid transitions, token enumeration, duplicate-submission idempotency, no client-trusted totals/pricing, sales-rep first-login activation gated on employee ID (ADR-007) — all covered by name in `authorization.test.ts`, `status.test.ts`, `token-service.test.ts`, `idempotency.test.ts`, `commands.test.ts`
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (19 files / 141 tests), `pnpm build` all pass — see PHASE_HANDOFF.md for the exact commands and output
 
 ## Phase 3 — Shopify connectivity and catalogue adapter
 

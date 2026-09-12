@@ -38,10 +38,10 @@ The PRD deliberately leaves several implementation choices open. Per the build r
 | Item | Default | Why |
 |---|---|---|
 | Package manager | pnpm | Fast, disk-efficient, standard in the TanStack ecosystem |
-| Database | Postgres | Works on every likely host; strong fit for the relational approval/audit model in §7.2 |
+| Database | ~~Postgres~~ **SQLite via libSQL** (revised Phase 2, 2026-09-12 — see note below) | Works on every likely host; strong fit for the relational approval/audit model in §7.2 |
 | ORM | Drizzle | Typed, lightweight, integrates cleanly with TanStack Start server functions |
 | Deployment target | Not yet chosen (Vercel or a Node-friendly host) | No cost/ops implication until nearer Phase 14 — deliberately deferred, not defaulted |
-| Staff auth | Credentials-based session (e.g. Lucia/Auth.js, credentials provider) | Internal tool only; company buyers already use Shopify's flow (ADR-003) |
+| Staff auth | Hand-rolled scrypt password + opaque session token (revised Phase 2 — see note below) | Internal tool only; company buyers already use Shopify's flow (ADR-003) |
 | File storage | S3-compatible (e.g. Cloudflare R2) | Private objects, expiring authorized access, needed for return/support attachments |
 | Email delivery | Resend | Transactional guest-token links and staff notifications |
 | Test tooling | Vitest + Testing Library (unit/component), Playwright (E2E) | Matches TanStack Start's usual toolchain; Playwright suits the multi-role acceptance matrix in Phase 14 |
@@ -72,6 +72,31 @@ The PRD deliberately leaves several implementation choices open. Per the build r
 A separate `BannerCarousel` component was also added, reusing `Banner` internally for each slide so the visual language stays identical between a single static banner and a rotating one ("keep the same UI"). Per the request, **whether anything actually uses the carousel (vs. a single Banner) is an explicit open design decision for a later phase** — most likely Phase 4 when the real homepage is built. Both components exist, are tested, and are visible in `/dev/components`, but neither is wired into any real page yet (there is no real page yet to wire it into).
 
 **Carousel implementation notes:** hand-rolled rather than a library dependency (e.g. embla) — the requirement (fixed slide set, prev/next, dot nav, optional autoplay, keyboard arrows) didn't justify a new dependency. Accessible per the WAI-ARIA APG carousel pattern: `role="region"` + `aria-roledescription="carousel"`, each slide `aria-roledescription="slide"`, a visually-hidden live region announcing slide position, autoplay pauses on hover/focus and is skipped entirely under `prefers-reduced-motion`. jsdom has no `window.matchMedia` implementation at all, which the reduced-motion check depends on — a minimal stub was added to `vitest.setup.ts` (defaults to "no preference") rather than working around it per-test.
+
+## Phase 2 decisions and facts (2026-09-12)
+
+### ADR-004 revision: Database moved from Postgres to SQLite via libSQL
+**Decision:** The app database is SQLite, accessed through `@libsql/client` + `drizzle-orm/libsql`, a single local file (`DATABASE_FILE` env var).
+**Why:** ADR-004's original Postgres default assumed a locally runnable Postgres or Docker; this build machine has neither. The dependency chain was checked in order, not assumed: `better-sqlite3` (the obvious Drizzle-native choice) requires a native compile step and this machine has no Python/build tools at all, so that path is not just blocked by policy but physically impossible here; Node's built-in `node:sqlite` works standalone but Drizzle's current stable release (0.45.x on npm's `latest` tag) has no `node-sqlite` export — that binding only exists on Drizzle's pre-1.0 beta/rc tags, not something to pin a foundational dependency to. `@libsql/client` ships prebuilt native bindings (no compile step) and is present in Drizzle's stable exports, and works identically as a local file via a `file:` URL — no server or hosted account required for dev, with a real path to a hosted libSQL/Turso instance later if ever needed.
+**Effect:** No behavior change to the schema or domain logic — Drizzle's SQLite dialect is used either way. Revisit at Phase 14 (deployment) only if a concrete hosting reason favors Postgres; nothing in the current design depends on a Postgres-specific feature.
+**Verified:** `drizzle-kit generate` produced a clean migration; `pnpm db:migrate` applied it to a real file and all 19 tables were confirmed present via a direct query before the test artifact was deleted.
+
+### ADR-011: Staff sessions and guest tokens both store only a hashed bearer credential
+**Decision:** `staff_sessions` stores `token_hash` (SHA-256 of a random 32-byte token), not the raw token itself as its primary key — the same non-enumerable, hash-only pattern already planned for `guest_tokens` (CLAUDE.md rule 16). A shared helper (`src/server/shared/opaque-token.ts`) generates and hashes tokens for both.
+**Why:** The initial schema draft gave `staff_sessions` a plain random `id` used directly as the bearer credential — functionally fine, but inconsistent with the guest-token design and one degree less defensive (a leaked row would be directly replayable, not just a lookup key). Caught and fixed before the first migration was generated, so no data migration was needed.
+**Effect:** `verifySession`/`invalidateSession` (`src/server/auth/session.ts`) and `verifyGuestToken`/`revokeGuestToken` (`src/server/tokens/token-service.ts`) all look sessions/tokens up by hash only; the raw value is returned to the caller exactly once, at issuance.
+
+### Staff auth: hand-rolled scrypt + opaque sessions, no auth library
+**Decision:** `src/server/auth/password.ts` (Node's built-in `node:crypto` scrypt, self-describing `scrypt:<salt>:<hash>` stored format) and `src/server/auth/session.ts` (opaque bearer token, hash stored, 12-hour TTL) replace the ADR-004 placeholder of "e.g. Lucia/Auth.js."
+**Why:** Lucia's own maintainers discontinued it as a library in favor of copy-paste reference code; given that, and that the actual requirement (password hash + a sessions table) is small and fully unit-testable, owning it directly avoids both a dependency with an uncertain future and another native-binding risk on this machine.
+
+### Authorization model
+**Decision:** `src/server/auth/authorization.ts` defines `Actor` as a discriminated union (`guest | buyer | sales_rep | ncc_admin`, where `buyer` carries its own `role: 'buyer' | 'company_admin'`) with deny-by-default `canViewCompanyResource`/`canMutateCompanyResource` functions, matching `docs/route-permissions-matrix.md` exactly: a plain buyer sees only their own resources, a company admin sees their whole company, a sales rep is read-only even within an assigned company, and a guest is never granted access this way at all — guest access is entirely mediated by `token-service.ts` instead, never by actor identity.
+**Source:** `docs/route-permissions-matrix.md`, CLAUDE.md rule 17.
+
+### Domain validation: `.strict()` Zod schemas as the rule-9 enforcement mechanism
+**Decision:** Every guest/buyer-facing command schema in `src/server/validation/commands.ts` (submit basket, return request, support message) uses Zod's `.strict()` mode, so a client-supplied field the server doesn't expect (`unitPricePence`, `status`, etc.) fails validation outright rather than being silently dropped or trusted. The one schema that does carry price/total fields, `nccApprovalSchema`, is authorized separately by actor identity (`ncc_admin` only), not by anything in the schema itself.
+**Source:** CLAUDE.md rule 9.
 
 ## Resolved by business decision, 2026-09-12
 

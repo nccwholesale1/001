@@ -1,3 +1,10 @@
+# better-sqlite3 is a transitive dependency of drizzle-kit's own CLI tooling
+# (not something this app imports — the app uses @libsql/client instead, see
+# DECISIONS.md ADR-004 revision). Its native addon can't build on this
+# machine (no Python/build tools), and isn't needed for `drizzle-kit
+# generate` (pure schema-diff, no live DB connection) — set to false so pnpm
+# leaves it uncompiled instead of failing the install.
 allowBuilds:
+  better-sqlite3: false
   esbuild: true
   lightningcss: true
