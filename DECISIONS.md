@@ -48,6 +48,24 @@ The PRD deliberately leaves several implementation choices open. Per the build r
 
 ---
 
+## Phase 1 decisions and facts (2026-09-12)
+
+### ADR-008: Light mode only, no automatic OS dark-mode switching
+**Decision:** Both light and dark tokens are defined in `src/styles.css` (per the design system's own §2 "Dark" spec and the Phase 1 prompt's instruction to define both), but only light tokens render, unconditionally. There is no `@media (prefers-color-scheme: dark)` auto-switch and no `.dark` class is ever set by any code in this codebase.
+**Why this needed a fix mid-phase:** My first pass *did* auto-apply dark tokens when the visitor's OS/browser preferred dark, reasoning that "define both, don't add a public toggle" implied respecting system preference automatically. The user caught this immediately when their own dark-mode OS setting made the site render dark. The design system's actual stated principle (§1: "Light, tech-forward, high clarity... white and near-white surfaces... **no dark hero**") means light is the product's actual look, not a default awaiting a toggle. Corrected: dark tokens stay defined and ready (so a future manual toggle, if ever requested, has tokens to switch to) but nothing activates them today. `color-scheme: light` is also set explicitly so browser-native chrome (scrollbars, form controls) doesn't follow the OS preference either.
+**Also fixed in the same pass:** `--gradient-surface` and `--gradient-hero` were hardcoded to light-only OKLCH literals, so — before this fix — if dark mode ever *had* activated, card titles would have rendered near-invisible (light text on a gradient that stayed light-coloured). Now derived from `var(--card)`/`var(--background)`/`var(--sky-soft)`/`var(--accent)` so they'd track the active theme correctly if dark mode is ever turned on later. Found via the required visual breakpoint check, not by inspection.
+
+### ADR-009: No Storybook — dev-only in-app preview route
+**Decision:** `/dev/components` (noindex) renders every primitive in every state for human visual review. No Storybook or similar tool was added.
+**Why:** The Phase 1 prompt only asks for a preview surface "if Phase 0 selected it" (it didn't) and instructs adding "only dependencies justified by this phase." Storybook is a materially heavier addition than a single dev-only route, which TanStack Start's own file-based routing already provides for free. Automated behavioural assertions (focus, disabled state, aria attributes) live in Vitest/Testing Library component tests instead, per-primitive.
+
+### Facts recorded from the actual scaffold (not pre-guessed in Phase 0)
+- Scaffolding tool: `npx @tanstack/cli create` (current, verified against official docs — not an older `create-tsrouter-app` invocation).
+- The default scaffold did **not** include a test stack or linting despite general TanStack docs suggesting it might — Vitest, Testing Library, ESLint (flat config, with `eslint-plugin-jsx-a11y` for accessibility linting), and Prettier were all added explicitly in Phase 1, matching the ADR-004 recommendation.
+- Radix UI (`@radix-ui/react-dialog`, `@radix-ui/react-slot`) was added for the Dialog/Sheet primitive specifically — hand-rolling accessible focus-trap/restore behaviour correctly is exactly the kind of thing a battle-tested primitive is worth a small dependency for; no other Radix packages were added (Disclosure uses native `<details>/<summary>` per the design doc, no library needed).
+- `class-variance-authority`, `clsx`, `tailwind-merge` added as small, standard variant/class-composition utilities used across every primitive.
+- pnpm itself was not installed on the build machine and had to be installed globally first (`npm install -g pnpm`).
+
 ## Resolved by business decision, 2026-09-12
 
 2. **Number of companies needing distinct contract pricing.** ✅ Resolved: **none** — uniform list pricing for everyone (ADR-005). The price-list cap is now irrelevant.

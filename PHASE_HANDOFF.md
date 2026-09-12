@@ -4,83 +4,78 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 0 — Discovery, architecture, project memory
+## Last completed phase: Phase 1 — Application scaffold and design-system foundation
 
 **Completed scope:**
-- Read PRD, Design System, and build runbook in full.
-- Visually cross-checked the reference site (`gleam-grid-shop.lovable.app`) against the Design System doc — consistent, no conflicts found.
-- Verified two Shopify platform claims against current documentation/live API rather than trusting the PRD's wording as-is:
-  - `draftOrderInvoiceSend` confirmed as a real, current Admin GraphQL mutation.
-  - B2B Admin API `companies` resource confirmed reachable against the current dev store (`nccwholesale.org`, Basic plan) — flagged as store-type-dependent, not proof for a production Basic-plan store (see `DECISIONS.md` Question 8).
-- Created the full Phase 0 documentation package (see "Files changed" below).
+- Scaffolded the TanStack Start app into `ncc-supply/` via `npx @tanstack/cli create` (pnpm, no add-ons, no nested git — tracked by this repo's own git).
+- Wired Tailwind v4 (`@tailwindcss/vite`) per current official docs, verified live during planning.
+- Replaced the scaffold's generic placeholder theme/content entirely (`ThemeToggle.tsx`, `Header.tsx`, `Footer.tsx`, `about.tsx` demo route, and the "sea/lagoon" placeholder CSS all removed) with the real NCC design-system tokens in `src/styles.css`.
+- Built 9 accessible primitives in `src/components/ui/`: Button, Link (router + external), Field/TextareaField, Badge, StatusChip, Card, Disclosure, Dialog (Radix-based), Icon, plus Layout (Container/Section/ResponsiveGrid).
+- Built app-level boundaries in `src/components/app-boundaries/`: ErrorBoundary, NotFound, Pending — wired into `src/routes/__root.tsx`.
+- Built the dev-only `/dev/components` preview route (noindex) showing every primitive/state.
+- Added the tooling the default scaffold didn't include: Vitest + Testing Library (`vitest.config.ts`, separate from the main Vite config to avoid the SSR plugin), ESLint flat config with `eslint-plugin-jsx-a11y`, Prettier.
+- **Two real bugs found and fixed during the required visual breakpoint check** (not caught by lint/typecheck/tests, since they were CSS token wiring issues): see DECISIONS.md ADR-008. Summary: (1) the site was auto-switching to dark mode from OS preference, which the user flagged immediately and which also contradicts the design system's own "light... no dark hero" principle — fixed to render light unconditionally; (2) as part of the same fix, `--gradient-surface`/`--gradient-hero` were found to be hardcoded light-only literals that would have made card titles unreadable had dark mode ever activated — now derived from theme tokens instead.
 
-**Files created:**
-- `CLAUDE.md`
-- `IMPLEMENTATION_PLAN.md`
-- `TASKS.md`
-- `DECISIONS.md`
-- `PHASE_HANDOFF.md` (this file)
-- `docs/domain-model.md`
-- `docs/route-permissions-matrix.md`
-- `docs/integration-contracts.md`
-- `docs/NCC-Supply-PRD.md`, `docs/NCC-Supply-Design-System.md`, `docs/NCC-Supply-Claude-Code-Phased-Prompt-Plan.md` (source docs, copied in)
+**Files created/changed:** see `TASKS.md` Phase 1 checklist for the full list; headline additions are `ncc-supply/src/styles.css`, `ncc-supply/src/components/ui/*`, `ncc-supply/src/components/app-boundaries/*`, `ncc-supply/src/routes/__root.tsx`, `ncc-supply/src/routes/index.tsx`, `ncc-supply/src/routes/dev/components.tsx`, `ncc-supply/vitest.config.ts`, `ncc-supply/vitest.setup.ts`, `ncc-supply/eslint.config.js`, `ncc-supply/.prettierrc.json`.
 
-**Verification performed:**
-- Manual read-through of all three source documents in full.
-- Live read-only Shopify Admin GraphQL query (`companies(first: 1)`) against `nccwholesale.org` — succeeded, no plan-restriction error. Read-only; no mutation performed.
-- Docs search against current Shopify developer documentation for B2B API access limits, price-list caps, and native-returns requirements.
-- No code exists yet, so no lint/type-check/test/build run applies to this phase.
+**Verification performed (actual output, not inspection-only):**
+```
+$ pnpm typecheck   → tsc --noEmit, no output, exit 0
+$ pnpm lint        → eslint ., no output, exit 0
+$ pnpm test        → Test Files 6 passed (6), Tests 47 passed (47)
+$ pnpm build       → client + SSR bundles both built successfully
+```
+Manual: `pnpm dev` run, checked via the Browser tool at 375×812, 768×1024, 1024×800, and 1440×900 on both `/` and `/dev/components`; keyboard Tab reached every interactive element with a visible focus ring; Dialog opened on click, trapped focus, closed on Escape, and returned focus to its trigger; Disclosure open/closed and chevron rotation confirmed visually (native `<details>` Enter/Space-to-toggle is a browser guarantee jsdom doesn't simulate, noted in the test file rather than skipped silently).
 
-**Assumptions recorded (not business decisions):** see `DECISIONS.md` ADR-004 (package manager, DB, ORM, staff auth, file storage, email, test tooling).
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 1 decisions and facts" section (ADR-008, ADR-009, and the scaffold-tooling facts).
 
-**Update, 2026-09-12 (same phase, before Phase 1 started):** Business resolved four of the eight open questions:
-- No contract/tier pricing anywhere — uniform list pricing for all buyers (ADR-005).
-- Consequently, no Shopify B2B "Companies" object — companies/buyers/approval are entirely app-DB owned (ADR-006). This also **resolves the Question 8 plan-tier risk**: Shopify **Basic plan is confirmed sufficient**, since the only feature that risked needing Plus/dev-store-level Admin API access is no longer used.
-- Sales-rep verification: admin creates the account with employee ID; activation triggers on the rep's first successful email login (ADR-007).
-`DECISIONS.md`, `docs/domain-model.md`, and `docs/integration-contracts.md` were updated in place to reflect this — re-read them, not just this summary, before Phase 1.
+**Unresolved blockers / risks carried forward:** unchanged from Phase 0 — PRD §13 Questions 1 (growth trajectory), 4, 5, 6. None block Phase 2.
 
-**Unresolved blockers / risks carried forward:**
-- PRD §13 Questions 1 (growth trajectory only), 4, 5, 6 — see `DECISIONS.md` → "Still awaiting business confirmation." None block Phase 1.
-- No database, deployment target, or staff-auth provider has been installed or configured — those are Phase 1/2 work, currently only recommended defaults.
-
-**Database migrations / environment variables:** none yet — no code exists.
+**Database migrations / environment variables:** none yet — Phase 2's job.
 
 ---
 
-## Next phase: Phase 1 — Application scaffold and design-system foundation
+## Next phase: Phase 2 — Domain model, persistence, integration boundaries
 
-**Entry criteria (from `IMPLEMENTATION_PLAN.md` / runbook §4 exit gate for the *previous* phase, satisfied):**
-- Both source documents read in full. ✅
-- Shopify-owned and application-owned data clearly separated. ✅ (`IMPLEMENTATION_PLAN.md` §3, `docs/domain-model.md`)
-- Status machines and approval boundaries explicit. ✅ (`docs/domain-model.md`)
-- No application implementation begun. ✅
-- Open questions remain visible, not silently guessed. ✅ (`DECISIONS.md`)
+**Entry criteria (Phase 1 exit gate, satisfied):**
+- The application runs locally and builds successfully. ✅
+- Semantic tokens and reusable primitives match the design-system specification. ✅ (and one real drift was caught and corrected, not just assumed correct)
+- Keyboard focus and reduced motion work. ✅
+- No hardcoded component colours. ✅ (enforced by an automated test, not just a manual claim)
+- There are no product/business fixtures masquerading as live data. ✅ (index route is explicitly a placeholder, dev-marked)
 
-**Exact next-phase prompt** (paste into a **fresh** Claude Code session, per the one-phase-per-session rule):
+**Exact next-phase prompt** (paste into a **fresh** Claude Code session):
 
 ```text
-Read CLAUDE.md and all project planning/source documents first. Inspect git status. Implement only Phase 1 from IMPLEMENTATION_PLAN.md.
+Read CLAUDE.md, the two NCC source documents, the plan, tasks, decisions and last handoff. Inspect git status. Implement only Phase 2.
 
-Create the production application scaffold for the PRD's adopted headless TanStack Start architecture using the agreed package manager and strict TypeScript. Add only dependencies justified by this phase.
+Implement the agreed custom-backend foundation and typed service boundaries before building feature pages.
 
-Build the NCC design-system foundation exactly from docs/NCC-Supply-Design-System.md:
-- Tailwind v4 CSS-first semantic tokens under @theme inline;
-- light and dark token definitions, but do not add a public dark-mode control unless required;
-- Inter loaded in the document head;
-- named gradient, surface, mesh and rise-in utilities;
-- radii, shadows, typography, spacing and reduced-motion behaviour;
-- foundational accessible primitives for buttons, links, fields, badges, status chips, cards, dialogs/sheets and disclosures;
-- shared max-width container and responsive layout primitives;
-- Lucide icon wrapper with decorative/accessibility handling;
-- application error boundary, not-found boundary and loading patterns.
+Required work:
+- database schema and migrations for only the app-owned concepts in PRD §7.2 (as revised by DECISIONS.md ADR-006 — companies/buyers/locations are now app-owned too, not Shopify B2B);
+- explicit order, quote, return and support status enums/state transitions (per docs/domain-model.md);
+- immutable audit-event records for approvals, status changes, pricing changes and staff actions;
+- tenant and role authorization helpers with deny-by-default behaviour;
+- secure guest-token generation, hashing, expiry/revocation and lookup;
+- idempotency support for order submission and external Shopify mutations;
+- validation schemas for all domain commands;
+- typed Shopify Storefront, Customer and Admin service interfaces (per docs/integration-contracts.md, as revised — no B2B-specific Admin API surface needed);
+- mock/fixture adapters for local development and contract tests;
+- environment validation and .env.example without values;
+- seed data that is unmistakably development-only.
 
-Create Storybook or the agreed isolated component-preview/test surface only if Phase 0 selected it. Add representative states for every primitive, including focus, disabled, error and reduced-motion states.
+Do not build the full UI. A minimal diagnostic route is acceptable only if it contains no secrets and is disabled in production.
 
-Add automated checks for token use and the most important primitive behaviours. Components must not use hardcoded colour utilities or raw hex values outside the token stylesheet.
+Write tests proving:
+- cross-company access is denied;
+- sales reps cannot escape assigned-company scope;
+- company buyers cannot perform admin actions;
+- only NCC admins can approve orders or mutate protected staff records;
+- invalid status transitions fail;
+- tokens cannot be enumerated and raw tokens are not stored;
+- duplicate submissions are idempotent;
+- totals and privileged prices are never accepted from client input;
+- a sales-rep account cannot activate before an employee ID is on file, and activates automatically on first successful email sign-in (ADR-007).
 
-Run formatting, linting, type checks, component tests and a production build. Inspect at 375, 768, 1024 and 1440 px. Fix issues found.
-
-Update TASKS.md, DECISIONS.md and PHASE_HANDOFF.md with evidence. Stop after Phase 1; do not build pages, Shopify integration or business workflows yet.
+Run migrations in the local/test environment, lint, type-check, test and build. Update tracking documents with evidence and stop after Phase 2.
 ```
-
-Note: Phase 0 did not select a component-preview tool (no code exists yet to select one against) — Phase 1 should make and record that call itself, consistent with "recommend a default, record the assumption."

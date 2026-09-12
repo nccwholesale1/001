@@ -20,18 +20,18 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 
 ## Phase 1 — Application scaffold and design-system foundation
 
-- [ ] TanStack Start project scaffold, strict TypeScript, agreed package manager
-- [ ] Tailwind v4 CSS-first tokens under `@theme inline` (light + dark values, no public dark-mode toggle unless required)
-- [ ] Inter loaded via `<link>` in document head
-- [ ] Named utilities: `surface-card`, `hero-gradient`, `sky-gradient`, `text-gradient`, `grid-mesh`, `rise-in`
-- [ ] Accessible primitives: buttons, links, fields, badges, status chips, cards, dialogs/sheets, disclosures
-- [ ] Shared container + responsive layout primitives
-- [ ] Lucide icon wrapper (decorative/accessible variants)
-- [ ] App error boundary, not-found boundary, loading patterns
-- [ ] Component-preview surface (if selected) with focus/disabled/error/reduced-motion states
-- [ ] Automated token-usage + primitive-behaviour checks
-- [ ] Lint, type-check, test, production build all pass
-- [ ] Visual check at 375/768/1024/1440px
+- [x] TanStack Start project scaffold, strict TypeScript, agreed package manager (pnpm) — `ncc-supply/`
+- [x] Tailwind v4 CSS-first tokens under `@theme inline` (light + dark values defined; light is the only one that renders — see DECISIONS.md)
+- [x] Inter loaded via `<link>` in document head (`src/routes/__root.tsx`)
+- [x] Named utilities: `surface-card`, `hero-gradient`, `sky-gradient`, `text-gradient`, `grid-mesh`, `rise-in`
+- [x] Accessible primitives: Button, Link (router + external), Field/TextareaField, Badge, StatusChip, Card, Dialog (Radix-based sheet/modal), Disclosure
+- [x] Shared container + responsive layout primitives (`Container`, `Section`, `ResponsiveGrid`)
+- [x] Lucide icon wrapper (decorative/accessible variants) — `src/components/ui/Icon.tsx`
+- [x] App error boundary, not-found boundary, loading patterns — `src/components/app-boundaries/*`
+- [x] Component-preview surface: dev-only `/dev/components` route (no Storybook — see DECISIONS.md)
+- [x] Automated token-usage + primitive-behaviour checks — 47 Vitest/Testing Library tests incl. a hardcoded-colour static scan
+- [x] Lint, type-check, test, production build all pass — evidence in PHASE_HANDOFF.md
+- [x] Visual check at 375/768/1024/1440px — via Browser tool, one real bug found and fixed (see PHASE_HANDOFF.md)
 
 ## Phase 2 — Domain model, persistence, integration boundaries
 
