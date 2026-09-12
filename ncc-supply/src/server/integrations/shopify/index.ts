@@ -5,6 +5,7 @@ import { createStorefrontCatalogueAdapter } from './storefront-adapter'
 import type {
   CatalogueAdapter,
   CollectionResult,
+  CollectionSummary,
   FacetOpts,
   PaginationOpts,
   ProductDetail,
@@ -12,11 +13,14 @@ import type {
   TypeaheadResult,
 } from './types'
 
+const COLLECTION_LIST_CACHE_TTL_MS = 60_000
 const COLLECTION_CACHE_TTL_MS = 60_000
 const PRODUCT_CACHE_TTL_MS = 60_000
 
 function withCatalogueCache(adapter: CatalogueAdapter): CatalogueAdapter {
   return {
+    listCollections: (): Promise<CollectionSummary[]> =>
+      withCache('collections:all', COLLECTION_LIST_CACHE_TTL_MS, () => adapter.listCollections()),
     getCollection: (slug: string, opts: PaginationOpts & FacetOpts): Promise<CollectionResult> =>
       withCache(`collection:${slug}:${JSON.stringify(opts)}`, COLLECTION_CACHE_TTL_MS, () =>
         adapter.getCollection(slug, opts),

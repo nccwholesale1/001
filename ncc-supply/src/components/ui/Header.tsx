@@ -1,0 +1,152 @@
+import { LifeBuoy, Menu, Search, ShoppingBasket, User, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Icon } from './Icon'
+import { Container } from './Layout'
+import { cn } from '../../lib/cn'
+
+export interface HeaderCategory {
+  slug: string
+  title: string
+}
+
+export interface HeaderProps {
+  categories: HeaderCategory[]
+}
+
+/**
+ * Internal nav destinations that don't have a real route yet in this phase
+ * use plain anchors rather than the type-safe RouterLink (which requires
+ * the target to already exist in the generated route tree). `/categories`
+ * and `/search` get built for real immediately after this phase in the
+ * same session; the rest (`/how-to-order`, `/contact`, `/account`,
+ * `/basket`, `/support`, `/auth`) are later phases' own scope.
+ */
+const PRIMARY_NAV = [
+  { label: 'Categories', href: '/categories' },
+  { label: 'How to Order', href: '/how-to-order' },
+  { label: 'Contact', href: '/contact' },
+]
+
+const iconLinkClasses =
+  'rounded-lg p-2 text-foreground/80 transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+
+export function Header({ categories }: HeaderProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen])
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+      <div className="sky-gradient py-1.5 text-center text-xs font-medium text-ink-foreground">
+        Trade pricing on chargers, batteries, screens and repair parts — Available to order.
+      </div>
+
+      <Container className="flex h-16 items-center justify-between gap-4">
+        <a
+          href="/"
+          className="rounded-sm text-lg font-semibold text-foreground no-underline hover:no-underline"
+        >
+          NCC <span className="text-primary">Supply</span>
+        </a>
+
+        <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
+          {PRIMARY_NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1">
+          <a href="/search" aria-label="Search" className={iconLinkClasses}>
+            <Icon icon={Search} />
+          </a>
+          <a
+            href="/support"
+            aria-label="Help / Report an issue"
+            className={cn(iconLinkClasses, 'flex items-center gap-1.5')}
+          >
+            <Icon icon={LifeBuoy} />
+            <span className="hidden text-sm font-medium sm:inline">Help</span>
+          </a>
+          <a href="/basket" aria-label="Basket" className={iconLinkClasses}>
+            <Icon icon={ShoppingBasket} />
+          </a>
+          <a
+            href="/account"
+            aria-label="Account"
+            className={cn(iconLinkClasses, 'hidden sm:inline-flex')}
+          >
+            <Icon icon={User} />
+          </a>
+          <button
+            ref={menuButtonRef}
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            className={cn(iconLinkClasses, 'md:hidden')}
+          >
+            <Icon icon={mobileOpen ? X : Menu} />
+          </button>
+        </div>
+      </Container>
+
+      {categories.length > 0 ? (
+        <div className="hidden border-t border-border/60 md:block">
+          <Container>
+            <nav aria-label="Categories" className="flex gap-1 overflow-x-auto py-2">
+              {categories.map((category) => (
+                <a
+                  key={category.slug}
+                  href={`/category/${category.slug}`}
+                  className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-sky-soft hover:text-primary"
+                >
+                  {category.title}
+                </a>
+              ))}
+            </nav>
+          </Container>
+        </div>
+      ) : null}
+
+      {mobileOpen ? (
+        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-border/60 md:hidden">
+          <Container className="flex flex-col gap-1 py-3">
+            {PRIMARY_NAV.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+              >
+                {item.label}
+              </a>
+            ))}
+            <a
+              href="/account"
+              className="rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+            >
+              Account
+            </a>
+          </Container>
+        </nav>
+      ) : null}
+    </header>
+  )
+}

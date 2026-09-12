@@ -13,6 +13,11 @@ describe('fixture catalogue adapter', () => {
     expect(await adapter.getProduct('NOT-A-REAL-SKU')).toBeNull()
   })
 
+  it('listCollections returns every fixture collection with a real line count', async () => {
+    const collections = await adapter.listCollections()
+    expect(collections.find((c) => c.slug === 'chargers')).toMatchObject({ lineCount: 1 })
+  })
+
   it('getCollection, search, and suggest all resolve without error', async () => {
     const collection = await adapter.getCollection('chargers', { first: 10 })
     expect(collection.products.length).toBeGreaterThan(0)

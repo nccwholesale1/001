@@ -4,68 +4,54 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 3 — Shopify connectivity and catalogue adapter
+## Last completed phase: Phase 4 — Public shell and homepage
 
-**Completed scope:** real Shopify connectivity behind the typed boundaries Phase 2 defined, under `ncc-supply/src/server/integrations/shopify/`, on branch `phase/3-shopify-catalogue`. Continued in the same session as Phase 2 at the user's explicit direction to build quickly and take any in-scope free Shopify access needed. No routes/UI beyond one dev-only diagnostic route.
+**Completed scope:** the public application shell (Header/Footer) and the real homepage from PRD §§3, 5, 6.1, on branch `phase/4-public-home`. Continued in the same session as Phase 3, per the user's standing "build quickly, merge phases" direction.
 
-- **`http-client.ts`** — one shared low-level GraphQL requester for both Storefront and Admin clients: `AbortController` timeout, bounded retry-with-backoff on network failure/429/`THROTTLED`, typed `ShopifyApiError` (`errors.ts`), logs that never include headers/tokens/variables.
-- **`storefront-client.ts`** + **`storefront-adapter.ts`** — real `CatalogueAdapter`, GraphQL shapes verified against `shopify.dev/docs/api/storefront/2026-07` this session (not guessed): `getCollection`, `getProduct` (SKU search syntax), `search`, `suggest` (`predictiveSearch`). Never selects inventory/stock fields.
-- **`cache.ts`** — in-memory TTL memoization wrapping the live adapter's collection/product calls.
-- **`admin-client.ts`** + **`admin-adapter.ts`** — real `AdminCommerceAdapter`: `createDraftOrder`/`sendDraftOrderInvoice`/`approveReturn`, all three mutations verified against the live Admin GraphQL schema this session. No live mutation is ever fired in this phase — contract-tested via mocked fetch only.
-- **`customer-account-adapter.ts`** — real OIDC discovery + PKCE `login()`/`authorize()`; `getReturnEligibility`/`requestReturn` explicitly deferred to Phase 10 (need a real authenticated session to mean anything).
-- **`health.ts`** + **`/dev/shopify-health`** — connectivity-only diagnostics, no credential exposure; manually verified in-browser (`pnpm dev`), showing `{configured: false, ok: false}` for both adapters since no live token is configured yet.
-- **`index.ts`** — `getCatalogueAdapter()` factory, gated by the new `CATALOGUE_ADAPTER` env var (`fixture` default / `live`); the single import point every later phase should use.
-- **`types.ts` additions** — `AdminCommerceAdapter`/`CustomerAccountAdapter` promoted from doc-sketch to real TypeScript (see ADR-013 for one intentional divergence from the original sketch); `PaginationOpts` changed from `{page, perPage}` to cursor-based `{first, after?}` (ADR-012 — Shopify has no page-number concept, and nothing outside the fixture adapter depended on the old shape yet).
+- **`components/ui/Header.tsx`** — sticky, announcement strip, logo, primary nav, icon row (search/help/basket/account — Help always visible, never hidden behind the mobile menu), a real category rail sourced from `listCollections()` via a root-route loader, and a mobile hamburger menu with Escape-to-close + focus-return, all plain anchors (no typed route yet exists for most destinations — intentional, documented in-file).
+- **`components/ui/Footer.tsx`** — `bg-ink`/`text-ink-foreground`, 4-column link grid, no staff-facing link anywhere.
+- **`components/ui/ProductCard.tsx`**, **`CategoryCard.tsx`**, **`CategoryGrid.tsx`** (searchable/filterable), **`OrderSteps.tsx`**, **`FAQ.tsx`** — all new, all consuming real `CatalogueAdapter` types, not invented shapes.
+- **`routes/index.tsx`** — the real homepage: hero (reusing Phase 1's `Banner`), four trust stats, Shop By Category, Popular This Month (explicitly documented as a real-data sample, not a fabricated popularity ranking — no such analytics source exists), How It Works, FAQ + CTA banner, Organization/WebSite-SearchAction/FAQPage structured data. A server function (`getHomeData`) fetches everything through `getCatalogueAdapter()` with explicit try/catch → distinct error state, never a crash.
+- **`routes/__root.tsx`** — now renders `<Header>`/`<Footer>` around every route via a root-level loader for the category rail.
+- **ADR-014**: added `CatalogueAdapter.listCollections()` — a real gap in the Phase 2/3 interface (there was no way to list all collections at all) discovered while building this phase, not scope creep. Implemented for both fixture and live adapters; the Storefront API's `Collection` type turned out to have no product-count field at all (verified against the real docs, not assumed) so the live implementation counts real products directly.
 
-**Files created/changed:** see `TASKS.md` Phase 3 checklist for the exhaustive list with per-item evidence. Also touched: `fixture-adapter.ts`/`.test.ts` (updated to cursor pagination), `env.ts` + `.env.example` (5 new Shopify env vars, all optional so the app still boots with zero Shopify credentials), `docs/integration-contracts.md` (aligned to what was actually built), `DECISIONS.md` (ADR-012, ADR-013, verified-facts list, the blocked-token-provisioning note), `.claude/launch.json` (new — lets the Browser tool preview `pnpm dev` on port 3000).
+**Files created/changed:** see `TASKS.md` Phase 4 checklist for the exhaustive list with per-item evidence. Also touched: `types.ts`/`fixture-adapter.ts`/`storefront-adapter.ts`/`index.ts` (the `listCollections` addition), `DECISIONS.md` (ADR-014 + a manual-verification note about a dev-only tooling artifact).
 
 **Verification performed (actual output, not inspection-only):**
 ```
-$ pnpm test        → Test Files 26 passed (26), Tests 165 passed | 1 skipped (166)
+$ pnpm test        → Test Files 29 passed (29), Tests 197 passed | 1 skipped (198)
 $ pnpm typecheck   → tsc --noEmit, no output, exit 0
 $ pnpm lint        → eslint ., no output, exit 0
-$ pnpm build       → client + SSR bundles both built successfully, /dev/shopify-health included
+$ pnpm build       → client + SSR bundles both built successfully
 ```
-The one skipped test is `storefront-adapter.smoke.test.ts`'s real-network case — it no-ops with a logged reason rather than failing, since no live Storefront token is configured (see blocker below). Manually verified `/dev/shopify-health` in a real browser via `pnpm dev`: renders `{"storefront":{"configured":false,"ok":false},"admin":{"configured":false,"ok":false}}`, matching fixture-mode expectations exactly.
+Manual: ran `pnpm dev` via the Browser tool, confirmed real fixture data end-to-end (category rail shows Chargers/Screen Protectors with correct "1 LINE" counts, Popular This Month shows the real fixture charger at £12.99, all 6 FAQ items render) at 375×812, 1024×900, and 1440×900. Confirmed keyboard Tab order reaches the mobile-menu toggle correctly and `document.activeElement` matched the "Open menu" button. Confirmed the homepage's JSON-LD (`Organization`/`WebSite`/`FAQPage`) via `document.querySelectorAll('script[type="application/ld+json"]')` in the live page — content matched exactly.
 
-**Blocker, recorded precisely per CLAUDE.md rule 25:** the user authorized taking any free, in-scope Shopify access needed. I attempted to self-provision a live Storefront API access token via the `storefrontAccessTokenCreate` Admin mutation — the connected MCP tool's own safety policy refused it outright (`access_escalation`, not a cost question). This doesn't block anything: `CATALOGUE_ADAPTER` defaults to `fixture`, a complete and fully tested path. To switch on live data: Shopify admin → Sales channels → Headless (free) → Create storefront → copy the token into `ncc-supply/.env` as `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, plus `SHOPIFY_STORE_DOMAIN=9nd0we-wt.myshopify.com` and `CATALOGUE_ADAPTER=live`. See `DECISIONS.md` for the full writeup.
+One caveat: the dev-only TanStack Devtools trigger visually overlapped the hamburger button in the mobile-viewport preview, blocking a couple of mouse-click checks — confirmed as a dev-only artifact (production build log shows devtools code is stripped entirely), so the toggle/Escape/focus-return behavior was verified via keyboard + `Header.test.tsx` instead. See `DECISIONS.md` for the full note.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 3 decisions and facts" section (ADR-012, ADR-013, the verified Shopify facts list, the blocked-provisioning note).
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 4 decisions and facts" (ADR-014, the devtools-overlay note).
 
-**Unresolved blockers / risks carried forward:** the Storefront token blocker above (not blocking, just not yet live). PRD §13 Questions 1, 4, 5, 6 unchanged — none block Phases 4/5.
+**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged (still fixture-mode by default, not blocking). PRD §13 Questions 1, 4, 5, 6 unchanged — none block Phase 5.
 
-**Database migrations / environment variables:**
-- No new migrations this phase.
-- New env vars (all optional, `.env.example` updated): `CATALOGUE_ADAPTER`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_ADMIN_ACCESS_TOKEN`, `SHOPIFY_API_VERSION`, `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID`.
+**Database migrations / environment variables:** none new this phase.
 
 ---
 
-## Next: Phase 4 (public shell/homepage) then Phase 5 (catalogue/search) — same session, per the user's "merge phases for speed" direction
+## Next: Phase 5 (catalogue/search/discovery) — same session, continuing per the user's merge-phases direction
 
-Per the user's explicit instruction this session, Phases 4 and 5 are being built immediately following Phase 3 without stopping for a fresh session — separate commits per phase (`phase/4-public-home`, `phase/5-product-discovery`) keep the work reviewable. This file will be updated again once both are complete. The runbook's standard prompts for those phases (for reference, or if a fresh session ever needs to resume this work):
-
-**Phase 4 entry criteria (Phase 3 exit gate, satisfied):** typed Storefront/Admin/Customer-Account boundaries exist and are contract-tested; fixture adapter remains the safe default; no live mutation was ever fired; health diagnostics exist with no credential exposure; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
+**Phase 5 entry criteria (Phase 4 exit gate, satisfied):** public shell renders on every route; homepage is real, data-driven, no fake content; keyboard/focus/reduced-motion behavior confirmed; structured data confirmed correct; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
 
 ```text
-Read CLAUDE.md, the two NCC source documents, the plan, tasks, decisions and last handoff. Inspect git status. Implement only Phase 4.
+Read CLAUDE.md, the two NCC source documents, the plan, tasks, decisions and last handoff. Inspect git status. Implement only Phase 5.
 
-Build the public application shell and homepage from PRD §§3, 5 and 6.1 and the complete NCC design system, using getCatalogueAdapter() from src/server/integrations/shopify/index.ts for any real data.
+Build the catalogue discovery routes and reusable search/filter system from PRD §§3, 6.2–6.4, 7.5 and 9, using getCatalogueAdapter() from src/server/integrations/shopify/index.ts:
+- /categories — full catalogue index, using the same listCollections() data as the homepage's Shop By Category;
+- /category/:slug — collection listing with facet filters, sort, cursor-based pagination (ADR-012 — no page numbers);
+- /search — server-backed full-catalogue search with the same facet/sort/pagination machinery, typeahead suggestions (suggest());
+- /product/:sku — product detail, gallery, specs, quantity input (no add-to-basket wiring yet — Phase 6's job, keep it visually inert like the homepage's ProductCard).
 
-Implement:
-- sticky announcement/header/navigation/category rail;
-- global search entry, basket indicator, account entry and always-visible Help / Report an issue action;
-- responsive mobile navigation with focus management and keyboard support;
-- footer with no exposed staff login link;
-- homepage hero, trust stats, Shop By Category, Popular This Month, How It Works and FAQ/CTA sections;
-- reusable Header, Footer, ProductCard, CategoryCard, CategoryGrid, OrderSteps and FAQ components;
-- explicit empty/error/loading states for every adapter-backed section;
-- the gradient/mesh placeholder treatment where real imagery is unavailable;
-- responsive layout at all required breakpoints;
-- home metadata plus Organization, WebSite/SearchAction and FAQ structured data where valid.
+Implement brand/category/compatibility/grade facets, shareable URL state, result counts, applied-filter chips, clear-all, mobile full-screen filter sheet, breadcrumbs, and correct empty states without fake products. "Available to order" only — never stock counts or delivery promises; no contract-pricing UI (ADR-005 — uniform pricing for everyone).
 
-Do not invent testimonials, reviews, stock claims, delivery promises or real product content. Keep placeholder copy clearly non-production and data-driven.
+Add canonical tags for filtered pages, noindex for empty-result facet combinations, and Product/ItemList/BreadcrumbList structured data.
 
-Test keyboard navigation, mobile menu behaviour, focus states, reduced motion, no-data behaviour and structured-data output. Perform visual checks at 375, 768, 1024 and 1440 px. Run all checks, update handoff files and stop (or continue directly into Phase 5 if the session's standing instruction to merge phases still applies).
+Test URL round-tripping, filtering, sorting, pagination boundaries (cursor-based), empty/error states, typeahead keyboard behaviour, and mobile filter-sheet focus trapping. Visually verify all four breakpoints. Run all checks, update tracking documents and stop — or continue directly into Phase 6 only if explicitly told to; Phase 6 (basket/guest order-request) is a larger, security-sensitive vertical slice worth a fresh check-in first.
 ```
-
-**Phase 5 prompt** (runbook §8, unchanged) follows immediately after Phase 4 in this session: `/categories`, `/category/:slug`, `/search`, `/product/:sku` — collection browsing, typeahead, facets, sort, pagination (cursor-based, per ADR-012), mobile filter sheet, breadcrumbs, canonical/noindex rules, Product/ItemList/Breadcrumb structured data.

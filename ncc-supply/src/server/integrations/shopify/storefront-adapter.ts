@@ -2,6 +2,7 @@ import { storefrontRequest } from './storefront-client'
 import type {
   CatalogueAdapter,
   CollectionResult,
+  CollectionSummary,
   FacetOpts,
   FacetOption,
   PageInfo,
@@ -134,11 +135,59 @@ function toSearchSortKey(sort: FacetOpts['sort']): { sortKey: string; reverse: b
 
 export function createStorefrontCatalogueAdapter(): CatalogueAdapter {
   return {
+    listCollections: listCollectionsLive,
     getCollection: getCollectionLive,
     getProduct: getProductLive,
     search: searchLive,
     suggest: suggestLive,
   }
+}
+
+/**
+ * The Storefront API's Collection type has no product-count field at all
+ * (verified against shopify.dev/docs/api/storefront/2026-07/objects/Collection
+ * this session — counting products is genuinely only possible by fetching
+ * them). `first: 250` covers every realistic NCC collection size at launch
+ * (321 SKUs across ~12 collections total); revisit if a single collection
+ * ever approaches that cap.
+ */
+async function listCollectionsLive(): Promise<CollectionSummary[]> {
+  const query = `
+    query ListCollections {
+      collections(first: 250) {
+        edges {
+          node {
+            handle
+            title
+            description
+            image { url altText width height }
+            products(first: 250) { edges { node { id } } }
+          }
+        }
+      }
+    }
+  `
+  const data = await storefrontRequest<{
+    collections: {
+      edges: Array<{
+        node: {
+          handle: string
+          title: string
+          description: string
+          image: StorefrontImage | null
+          products: { edges: unknown[] }
+        }
+      }>
+    }
+  }>('listCollections', query)
+
+  return data.collections.edges.map(({ node }) => ({
+    slug: node.handle,
+    title: node.title,
+    description: node.description,
+    lineCount: node.products.edges.length,
+    thumbnail: node.image ? toImage(node.image, node.title) : null,
+  }))
 }
 
 async function getCollectionLive(

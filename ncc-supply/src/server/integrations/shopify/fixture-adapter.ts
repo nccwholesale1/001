@@ -1,6 +1,7 @@
 import type {
   CatalogueAdapter,
   CollectionResult,
+  CollectionSummary,
   FacetOpts,
   PageInfo,
   PaginationOpts,
@@ -91,6 +92,9 @@ function paginate<T>(
 
 export function createFixtureCatalogueAdapter(): CatalogueAdapter {
   return {
+    async listCollections() {
+      return listCollectionsFixture()
+    },
     async getCollection(slug, opts) {
       return getCollectionFixture(slug, opts)
     },
@@ -104,6 +108,24 @@ export function createFixtureCatalogueAdapter(): CatalogueAdapter {
       return suggestFixture(query)
     },
   }
+}
+
+function listCollectionsFixture(): Promise<CollectionSummary[]> {
+  const byHandle = new Map<string, ProductDetail[]>()
+  for (const product of FIXTURE_PRODUCTS) {
+    const existing = byHandle.get(product.collectionHandle) ?? []
+    existing.push(product)
+    byHandle.set(product.collectionHandle, existing)
+  }
+  return Promise.resolve(
+    Array.from(byHandle.entries()).map(([slug, products]) => ({
+      slug,
+      title: products[0]!.collectionTitle,
+      description: 'Fixture collection for local development only.',
+      lineCount: products.length,
+      thumbnail: products[0]!.thumbnail,
+    })),
+  )
 }
 
 function getCollectionFixture(

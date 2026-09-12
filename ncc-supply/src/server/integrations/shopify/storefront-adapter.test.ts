@@ -88,6 +88,49 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
     expect(result.availableFacets).toEqual([{ attribute: 'Brand', value: 'Anker', count: 3 }])
   })
 
+  it('listCollections maps handle/title/description and counts real products', async () => {
+    const adapter = await loadAdapterWithEnv({})
+    mockFetchOnce({
+      data: {
+        collections: {
+          edges: [
+            {
+              node: {
+                handle: 'chargers',
+                title: 'Chargers',
+                description: 'All chargers',
+                image: {
+                  url: 'https://cdn.shopify.com/collection.jpg',
+                  altText: null,
+                  width: 400,
+                  height: 400,
+                },
+                products: { edges: [{ node: { id: '1' } }, { node: { id: '2' } }] },
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    const collections = await adapter.listCollections()
+
+    expect(collections).toEqual([
+      {
+        slug: 'chargers',
+        title: 'Chargers',
+        description: 'All chargers',
+        lineCount: 2,
+        thumbnail: {
+          url: 'https://cdn.shopify.com/collection.jpg',
+          altText: 'Chargers',
+          width: 400,
+          height: 400,
+        },
+      },
+    ])
+  })
+
   it('getProduct returns null when no product matches the SKU', async () => {
     const adapter = await loadAdapterWithEnv({})
     mockFetchOnce({ data: { products: { edges: [] } } })

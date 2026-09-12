@@ -89,13 +89,27 @@ export interface TypeaheadResult {
   collections: Array<{ slug: string; title: string }>
 }
 
+export interface CollectionSummary {
+  slug: string
+  title: string
+  description: string
+  /** Real product count, not a live stock quantity (CLAUDE.md rule 10 is about inventory, not catalogue size). */
+  lineCount: number
+  thumbnail: ProductImage | null
+}
+
 /**
  * Owns: products, variants, collections, images, pricing, pagination
  * (PRD §7.1). The fixture adapter and the real Storefront-API-backed
  * adapter both implement this — selected by environment variable, never
  * mixed in the same running process (CLAUDE.md rule 20).
+ *
+ * `listCollections` was added in Phase 4 — the original Phase 2 doc sketch
+ * missed it, but both the homepage's "Shop By Category" and `/categories`
+ * need a full collection index, and there's no other way to get one.
  */
 export interface CatalogueAdapter {
+  listCollections(): Promise<CollectionSummary[]>
   getCollection(slug: string, opts: PaginationOpts & FacetOpts): Promise<CollectionResult>
   getProduct(sku: string): Promise<ProductDetail | null>
   search(query: string, opts: PaginationOpts & FacetOpts): Promise<SearchResult>

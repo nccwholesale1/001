@@ -64,6 +64,18 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (26 files / 165 passed, 1 skipped), `pnpm build` all pass
 
 ## Phase 4 — Public shell and homepage
+
+- [x] Sticky header: announcement strip, logo, primary nav, category rail (real `listCollections()` data via a root-route loader), basket/account/search icon row, always-visible Help entry point — `src/components/ui/Header.tsx`
+- [x] Responsive mobile navigation with focus management and keyboard support — hamburger toggle, Escape closes and returns focus to the toggle button (tested in `Header.test.tsx`); category rail and desktop nav correctly hidden below `md`
+- [x] Footer — `src/components/ui/Footer.tsx`, `bg-ink`/`text-ink-foreground`, 4-column grid, no staff-facing link anywhere
+- [x] Homepage sections built from PRD §6.1: Hero (reusing Phase 1's `Banner`), four trust stats, Shop By Category (`CategoryGrid`/`CategoryCard`, real collection data), Popular This Month (`ProductCard`, real fixture product data — explicitly documented as a data sample, not a fabricated "popularity" ranking), How It Works (`OrderSteps`, copy grounded in PRD §4's actual flow), FAQ (`FAQ`/`Disclosure`, content grounded only in confirmed PRD facts, no invented policy numbers) + CTA banner — `src/routes/index.tsx`
+- [x] Explicit empty/error states for every adapter-backed section (tested: `CategoryGrid.test.tsx` "no categories found"; `index.tsx`'s `getHomeData` server function catches adapter failures and the route renders a distinct error message rather than crashing)
+- [x] Organization, WebSite/SearchAction, and FAQPage structured data — verified present and correctly shaped by inspecting the live page's `<script type="application/ld+json">` output in a real browser
+- [x] Responsive checks at 375/1024/1440px via the Browser tool — real fixture data confirmed rendering end-to-end at each breakpoint; keyboard Tab order and Escape-to-close confirmed via `document.activeElement` inspection (a dev-only TanStack Devtools overlay obstructed a couple of mouse-click checks in the live preview — not a production issue, confirmed by the build log stripping devtools code entirely — so those specific interactions were verified via keyboard/DOM inspection and `Header.test.tsx` instead)
+- [x] `CatalogueAdapter.listCollections()` added — a real gap in the Phase 2/3 interface (no way to list all collections at all) surfaced while building this phase; implemented for both fixture and live adapters, cache-wrapped in `index.ts` (ADR-014)
+- [x] No copied tutorial-video layout/content; no invented testimonials, reviews, stock claims, or delivery promises
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (29 files / 197 passed, 1 skipped), `pnpm build` all pass
+
 ## Phase 5 — Catalogue, search and product discovery
 ## Phase 6 — Basket and guest order-request vertical slice
 ## Phase 7 — Company accounts, buyer identity, company approval

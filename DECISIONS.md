@@ -122,6 +122,16 @@ A separate `BannerCarousel` component was also added, reusing `Banner` internall
 **Result:** The connector's own safety policy refused the mutation outright — `"Storefront access token management is not permitted via AI tools"` (category `access_escalation`). This is a hard boundary on the tool itself, not a cost question, and not something further authorization from the user can lift.
 **Effect:** The live Storefront adapter is fully built and contract-tested, but running the read-only smoke test against real data needs one 2-minute manual step from the user: Shopify admin → Sales channels → Headless (free) → Create storefront → copy the token into `ncc-supply/.env` as `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (plus `SHOPIFY_STORE_DOMAIN=9nd0we-wt.myshopify.com`, `CATALOGUE_ADAPTER=live`). Until then, `CATALOGUE_ADAPTER` defaults to `fixture`, which is a complete, working, tested default — nothing in Phases 3–5 is blocked on this. Recorded per CLAUDE.md rule 25 rather than claimed as done.
 
+## Phase 4 decisions and facts (2026-09-12)
+
+### ADR-014: `CatalogueAdapter.listCollections()` added — a genuine interface gap, not scope creep
+**Decision:** Added `listCollections(): Promise<CollectionSummary[]>` to `CatalogueAdapter`, implemented for both the fixture and live (Storefront) adapters and wrapped in the same `withCache` layer as `getCollection`/`getProduct`.
+**Why:** Neither the original `docs/integration-contracts.md` sketch nor the Phase 2/3 implementation had any way to list all collections — every method took a specific `slug` or `query`. Building the homepage's "Shop By Category" section (and `/categories`, Phase 5's very next task) surfaced that this was simply missing, not a deliberate omission. The Storefront API's `Collection` type also turned out to have **no product-count field at all** (verified against `shopify.dev/docs/api/storefront/2026-07/objects/Collection` — confirmed by fetching the full field list, not assumed); the real implementation counts real products via `products(first: 250) { edges }`, capped at a value that comfortably covers the entire 321-SKU catalogue.
+**Effect:** `fixture-adapter.ts` derives its collection list from the fixture products themselves (so line counts are always real, never fabricated); `storefront-adapter.ts`'s `listCollectionsLive()` does the real Storefront query. Both are exercised by name-matching contract tests.
+
+### Manual verification note: dev-only TanStack Devtools overlay
+While visually checking the homepage in the Browser tool at a mobile viewport, the TanStack Devtools floating trigger rendered on top of the Header's hamburger-menu button, intercepting a couple of mouse-click checks. This is a dev-only artifact — the production build log confirms `[@tanstack/devtools-vite] Removed devtools code from: /src/routes/__root.tsx` — so it has no bearing on production behavior. The mobile-menu toggle/Escape/focus-return behavior was instead verified via keyboard navigation (`Tab` to the button, confirmed via `document.activeElement`) and via `Header.test.tsx`'s jsdom tests, which don't have devtools mounted at all.
+
 ## Resolved by business decision, 2026-09-12
 
 2. **Number of companies needing distinct contract pricing.** ✅ Resolved: **none** — uniform list pricing for everyone (ADR-005). The price-list cap is now irrelevant.
