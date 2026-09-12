@@ -204,6 +204,9 @@ async function getCollectionLive(
           pageInfo { hasNextPage endCursor }
           filters { ${FILTER_FIELDS} }
         }
+        allProducts: products(first: 250) {
+          edges { node { id } }
+        }
       }
     }
   `
@@ -216,6 +219,7 @@ async function getCollectionLive(
         pageInfo: PageInfo
         filters: StorefrontFilterGroup[]
       }
+      allProducts: { edges: unknown[] }
     } | null
   }>('getCollection', query, {
     handle: slug,
@@ -232,6 +236,7 @@ async function getCollectionLive(
       products: [],
       pageInfo: { hasNextPage: false, endCursor: null },
       availableFacets: [],
+      lineCount: 0,
     }
   }
 
@@ -245,6 +250,7 @@ async function getCollectionLive(
     ),
     pageInfo: collection.products.pageInfo,
     availableFacets: toFacetOptions(collection.products.filters),
+    lineCount: collection.allProducts.edges.length,
   }
 }
 
@@ -302,6 +308,7 @@ async function searchLive(
         }
         pageInfo { hasNextPage endCursor }
         productFilters { ${FILTER_FIELDS} }
+        totalCount
       }
     }
   `
@@ -310,6 +317,7 @@ async function searchLive(
       edges: Array<{ node: StorefrontProductNode }>
       pageInfo: PageInfo
       productFilters: StorefrontFilterGroup[]
+      totalCount: number
     }
   }>('search', query, {
     query: searchQuery,
@@ -325,6 +333,7 @@ async function searchLive(
     products: data.search.edges.map((edge) => toSummary(edge.node)),
     pageInfo: data.search.pageInfo,
     availableFacets: toFacetOptions(data.search.productFilters),
+    totalCount: data.search.totalCount,
   }
 }
 

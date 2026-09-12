@@ -63,6 +63,7 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
               { id: 'f1', label: 'Brand', values: [{ id: 'v1', label: 'Anker', count: 3 }] },
             ],
           },
+          allProducts: { edges: [{ node: { id: '1' } }, { node: { id: '2' } }] },
         },
       },
     })
@@ -70,6 +71,7 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
     const result = await adapter.getCollection('chargers', { first: 10 })
 
     expect(result.title).toBe('Chargers')
+    expect(result.lineCount).toBe(2)
     expect(result.products).toEqual([
       {
         sku: 'NCC-CHG-001',
@@ -131,6 +133,25 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
     ])
   })
 
+  it('search maps the real totalCount rather than the current page length', async () => {
+    const adapter = await loadAdapterWithEnv({})
+    mockFetchOnce({
+      data: {
+        search: {
+          edges: [{ node: PRODUCT_NODE }],
+          pageInfo: { hasNextPage: true, endCursor: 'abc' },
+          productFilters: [],
+          totalCount: 47,
+        },
+      },
+    })
+
+    const result = await adapter.search('charger', { first: 1 })
+
+    expect(result.products).toHaveLength(1)
+    expect(result.totalCount).toBe(47)
+  })
+
   it('getProduct returns null when no product matches the SKU', async () => {
     const adapter = await loadAdapterWithEnv({})
     mockFetchOnce({ data: { products: { edges: [] } } })
@@ -177,6 +198,7 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
           title: '',
           description: '',
           products: { edges: [], pageInfo: { hasNextPage: false, endCursor: null }, filters: [] },
+          allProducts: { edges: [] },
         },
       },
     })

@@ -132,6 +132,25 @@ A separate `BannerCarousel` component was also added, reusing `Banner` internall
 ### Manual verification note: dev-only TanStack Devtools overlay
 While visually checking the homepage in the Browser tool at a mobile viewport, the TanStack Devtools floating trigger rendered on top of the Header's hamburger-menu button, intercepting a couple of mouse-click checks. This is a dev-only artifact — the production build log confirms `[@tanstack/devtools-vite] Removed devtools code from: /src/routes/__root.tsx` — so it has no bearing on production behavior. The mobile-menu toggle/Escape/focus-return behavior was instead verified via keyboard navigation (`Tab` to the button, confirmed via `document.activeElement`) and via `Header.test.tsx`'s jsdom tests, which don't have devtools mounted at all.
 
+## Phase 5 decisions and facts (2026-09-12)
+
+### ADR-015: Facet/sort/pagination state lives entirely in plain URL query params, not client-side router state
+**Decision:** `/category/:slug` and `/search` read/write filters, sort, and pagination as plain query-string params (`?sort=`, `?filters=Attr:Val,Attr:Val2`, `?after=`), rendered as ordinary `<a href>` links — no client-side `Link`/`navigate` calls, no JS required for any of it to work.
+**Why:** PRD §6.3 explicitly requires this state to be "shareable and crawlable." Plain hrefs are the most direct way to guarantee that — a crawler or a pasted URL works identically to a real click, with zero dependency on hydration succeeding. `filters` is deliberately one comma-joined string, not a repeated `?filter=a&filter=b` param or an array — TanStack Router's default search serializer's handling of arrays wasn't verified, so a single unambiguous string sidesteps the question entirely rather than risking a subtly-wrong round-trip.
+**Effect:** Facet checkboxes, sort tabs, and Previous/Next are all real links (`FacetSidebar.tsx`, `Pagination.tsx`), not controlled form inputs.
+
+### ADR-016: Previous/Next pagination (not numbered), and facet sidebar stacks inline on mobile rather than a "Filters" sheet
+**Decision:** Two intentional simplifications from the design system's literal spec, given the current catalogue's modest size (321 SKUs) and the session's "move quickly" direction:
+1. **Pagination is Previous/Next**, not numbered. Shopify's Storefront connections are forward-cursor-only with no total page count (ADR-012) — a numbered control would have to either lie about page counts or walk every prior page just to render page numbers. "Previous" links back to the unpaginated first page (not a true bidirectional cursor walk) — a reasonable simplification at this catalogue size.
+2. **The facet sidebar always renders inline** above the product grid on mobile, rather than being hidden behind a "Filters" button that opens a full-screen sheet. It's fully usable (confirmed at 375px width), just not the more polished collapsed-by-default pattern.
+Both are documented, deliberate scope reductions, not oversights — revisit if/when the catalogue grows enough that either limitation becomes a real usability problem.
+
+### Real counts added where Shopify's API actually provides them
+`CollectionResult.lineCount` (via an aliased second `products` field in the same GraphQL request — `allProducts: products(first: 250) { edges { node { id } } }` — so it costs one request, not two) and `SearchResult.totalCount` (the Storefront API's `search` query has a real `totalCount` field, confirmed via `shopify.dev/docs/api/storefront/2026-07/connections/SearchResultItemConnection` — unlike `Collection.products`, which has none). Both are real computed/returned values, never fabricated.
+
+### Manual verification note: browser-automation tool sends a non-standard `Enter` key event
+While testing `SearchBar`'s typeahead keyboard navigation in the Browser tool, `ArrowDown` correctly updated `aria-selected`, but the automated "Return" keypress didn't trigger the Enter-to-navigate handler. Added a temporary debug marker and confirmed the tool's synthetic key event reports `event.key === "Unidentified"` rather than `"Enter"` — a limitation of that specific automation tool, not an app bug (all application state — `activeIndex`, the anchor ref — was exactly correct at the moment of the keypress). Verified the actual behavior instead with a proper Testing-Library `userEvent.keyboard('{Enter}')` test (`SearchBar.test.tsx`), which dispatches a spec-correct `KeyboardEvent` and passes.
+
 ## Resolved by business decision, 2026-09-12
 
 2. **Number of companies needing distinct contract pricing.** ✅ Resolved: **none** — uniform list pricing for everyone (ADR-005). The price-list cap is now irrelevant.

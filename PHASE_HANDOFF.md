@@ -4,54 +4,67 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 4 — Public shell and homepage
+## Last completed phase: Phase 5 — Catalogue, search and product discovery
 
-**Completed scope:** the public application shell (Header/Footer) and the real homepage from PRD §§3, 5, 6.1, on branch `phase/4-public-home`. Continued in the same session as Phase 3, per the user's standing "build quickly, merge phases" direction.
+**Completed scope:** the four catalogue-discovery routes from PRD §§3, 6.2–6.4, on branch `phase/5-product-discovery`. Continued in the same session as Phases 3–4, per the user's standing "build quickly, merge phases" direction — this was the last phase in that batch; Phase 6 (basket/guest order-request) is a bigger, security-sensitive vertical slice, so this session stops here to check in rather than silently continuing, per the plan agreed at the start of Phase 3.
 
-- **`components/ui/Header.tsx`** — sticky, announcement strip, logo, primary nav, icon row (search/help/basket/account — Help always visible, never hidden behind the mobile menu), a real category rail sourced from `listCollections()` via a root-route loader, and a mobile hamburger menu with Escape-to-close + focus-return, all plain anchors (no typed route yet exists for most destinations — intentional, documented in-file).
-- **`components/ui/Footer.tsx`** — `bg-ink`/`text-ink-foreground`, 4-column link grid, no staff-facing link anywhere.
-- **`components/ui/ProductCard.tsx`**, **`CategoryCard.tsx`**, **`CategoryGrid.tsx`** (searchable/filterable), **`OrderSteps.tsx`**, **`FAQ.tsx`** — all new, all consuming real `CatalogueAdapter` types, not invented shapes.
-- **`routes/index.tsx`** — the real homepage: hero (reusing Phase 1's `Banner`), four trust stats, Shop By Category, Popular This Month (explicitly documented as a real-data sample, not a fabricated popularity ranking — no such analytics source exists), How It Works, FAQ + CTA banner, Organization/WebSite-SearchAction/FAQPage structured data. A server function (`getHomeData`) fetches everything through `getCatalogueAdapter()` with explicit try/catch → distinct error state, never a crash.
-- **`routes/__root.tsx`** — now renders `<Header>`/`<Footer>` around every route via a root-level loader for the category rail.
-- **ADR-014**: added `CatalogueAdapter.listCollections()` — a real gap in the Phase 2/3 interface (there was no way to list all collections at all) discovered while building this phase, not scope creep. Implemented for both fixture and live adapters; the Storefront API's `Collection` type turned out to have no product-count field at all (verified against the real docs, not assumed) so the live implementation counts real products directly.
+- **`routes/categories.tsx`** — full catalogue index, real `listCollections()` data, ItemList structured data.
+- **`routes/category/$slug.tsx`** — collection listing: breadcrumb, real line count + "all available to order" header, facet sidebar, sort, cursor-based pagination, product grid, honest empty state, canonical always pointing to the unfiltered URL, `noindex` on zero results, BreadcrumbList + ItemList structured data.
+- **`routes/search.tsx`** — full-catalogue search with the same facet/sort/pagination machinery, real `totalCount` from Shopify (not the current page length), typeahead, same SEO treatment as collections.
+- **`routes/product/$sku.tsx`** — gallery, specs, real price, inert quantity/Add-to-basket control (Phase 6's job to wire up for real), `notFound()` for an unknown SKU, `Product` structured data with `PreOrder` availability.
+- **New shared components:** `FacetSidebar`, `Pagination`, `Breadcrumbs`, `SearchBar` (typeahead with full keyboard support).
+- **ADR-015/016:** facet/sort/pagination state lives entirely in plain, crawlable URL query params (no client JS required for filtering to work); pagination is Previous/Next rather than numbered, and the facet sidebar stacks inline on mobile rather than behind a "Filters" sheet — both documented, deliberate simplifications given the catalogue's current size, not oversights.
+- Added real `lineCount`/`totalCount` to `CollectionResult`/`SearchResult` — computed via an aliased GraphQL field (collections, which have no native count) or Shopify's actual `totalCount` field (search, which does) — never fabricated.
 
-**Files created/changed:** see `TASKS.md` Phase 4 checklist for the exhaustive list with per-item evidence. Also touched: `types.ts`/`fixture-adapter.ts`/`storefront-adapter.ts`/`index.ts` (the `listCollections` addition), `DECISIONS.md` (ADR-014 + a manual-verification note about a dev-only tooling artifact).
+**Files created/changed:** see `TASKS.md` Phase 5 checklist for the exhaustive list with per-item evidence. Also touched: `types.ts`/`fixture-adapter.ts`/`storefront-adapter.ts` (`lineCount`/`totalCount`), `DECISIONS.md` (ADR-015, ADR-016, two verification notes).
 
 **Verification performed (actual output, not inspection-only):**
 ```
-$ pnpm test        → Test Files 29 passed (29), Tests 197 passed | 1 skipped (198)
+$ pnpm test        → Test Files 30 passed (30), Tests 214 passed | 1 skipped (215)
 $ pnpm typecheck   → tsc --noEmit, no output, exit 0
 $ pnpm lint        → eslint ., no output, exit 0
 $ pnpm build       → client + SSR bundles both built successfully
 ```
-Manual: ran `pnpm dev` via the Browser tool, confirmed real fixture data end-to-end (category rail shows Chargers/Screen Protectors with correct "1 LINE" counts, Popular This Month shows the real fixture charger at £12.99, all 6 FAQ items render) at 375×812, 1024×900, and 1440×900. Confirmed keyboard Tab order reaches the mobile-menu toggle correctly and `document.activeElement` matched the "Open menu" button. Confirmed the homepage's JSON-LD (`Organization`/`WebSite`/`FAQPage`) via `document.querySelectorAll('script[type="application/ld+json"]')` in the live page — content matched exactly.
+Manual, via the Browser tool against `pnpm dev` with real fixture data: `/categories` (real line counts), `/category/chargers` (sort links change the URL and re-render without error, facet sidebar correctly shows "No filters available" honestly rather than fabricating any), `/search?q=fixture` (2 real results, correct `totalCount`), `/search?q=<nonsense>` (confirmed `noindex` meta tag present), `/product/FIXTURE-CHG-001` (real data + correct `Product` JSON-LD, confirmed via `document.querySelector`), `/product/NOT-A-REAL-SKU` (confirmed the app's NotFound boundary renders), canonical tag on a filtered category URL confirmed pointing back to the bare `/category/chargers`, mobile (375px) layout confirmed usable end-to-end.
 
-One caveat: the dev-only TanStack Devtools trigger visually overlapped the hamburger button in the mobile-viewport preview, blocking a couple of mouse-click checks — confirmed as a dev-only artifact (production build log shows devtools code is stripped entirely), so the toggle/Escape/focus-return behavior was verified via keyboard + `Header.test.tsx` instead. See `DECISIONS.md` for the full note.
+One interaction (`SearchBar`'s Enter-to-navigate-to-highlighted-suggestion) couldn't be confirmed via the Browser tool's synthetic keyboard event — traced to that tool sending a non-standard `KeyboardEvent` (`event.key === "Unidentified"` instead of `"Enter"`), confirmed via a temporary debug marker showing all application state was correct at the moment of the keypress. Verified instead with a real `@testing-library/user-event` test, which dispatches a spec-correct event and passes. See `DECISIONS.md` for the full note.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 4 decisions and facts" (ADR-014, the devtools-overlay note).
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 5 decisions and facts" (ADR-015, ADR-016, the two verification notes).
 
-**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged (still fixture-mode by default, not blocking). PRD §13 Questions 1, 4, 5, 6 unchanged — none block Phase 5.
+**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged (still fixture-mode by default). PRD §13 Questions 1, 4, 5, 6 unchanged. Question 1 (catalogue growth) is the one to watch if it ever makes ADR-016's pagination/facet-sheet simplifications feel cramped.
 
 **Database migrations / environment variables:** none new this phase.
 
 ---
 
-## Next: Phase 5 (catalogue/search/discovery) — same session, continuing per the user's merge-phases direction
+## Next phase: Phase 6 — Basket and guest order-request vertical slice
 
-**Phase 5 entry criteria (Phase 4 exit gate, satisfied):** public shell renders on every route; homepage is real, data-driven, no fake content; keyboard/focus/reduced-motion behavior confirmed; structured data confirmed correct; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
+This is a genuinely bigger, security-sensitive vertical slice (real mutations, idempotency, token-gated guest access, server-side price trust) rather than UI composition over an existing adapter — per the plan agreed at the start of Phase 3, the session stops here for a check-in rather than continuing automatically.
+
+**Phase 6 entry criteria (Phase 5 exit gate, satisfied):** all four discovery routes are real and data-driven; facet/sort/pagination state is shareable and crawlable; structured data and canonical/noindex rules are correct; empty states never fabricate products; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
+
+**Exact next-phase prompt** (runbook §9, unchanged — paste when ready to proceed, fresh session or continuing this one):
 
 ```text
-Read CLAUDE.md, the two NCC source documents, the plan, tasks, decisions and last handoff. Inspect git status. Implement only Phase 5.
+Read all context and the Phase 5 handoff. Inspect git status. Implement only Phase 6.
 
-Build the catalogue discovery routes and reusable search/filter system from PRD §§3, 6.2–6.4, 7.5 and 9, using getCatalogueAdapter() from src/server/integrations/shopify/index.ts:
-- /categories — full catalogue index, using the same listCollections() data as the homepage's Shop By Category;
-- /category/:slug — collection listing with facet filters, sort, cursor-based pagination (ADR-012 — no page numbers);
-- /search — server-backed full-catalogue search with the same facet/sort/pagination machinery, typeahead suggestions (suggest());
-- /product/:sku — product detail, gallery, specs, quantity input (no add-to-basket wiring yet — Phase 6's job, keep it visually inert like the homepage's ProductCard).
+Build a complete guest basket-to-order-request vertical slice from PRD §§4, 6.5 and 6.7, stopping before real payment.
 
-Implement brand/category/compatibility/grade facets, shareable URL state, result counts, applied-filter chips, clear-all, mobile full-screen filter sheet, breadcrumbs, and correct empty states without fake products. "Available to order" only — never stock counts or delivery promises; no contract-pricing UI (ADR-005 — uniform pricing for everyone).
+Implement:
+- add/update/remove basket lines;
+- persistent guest basket using the agreed safe approach;
+- any-positive-integer quantity validation with no MOQ or maximum business limit;
+- server-side product/price lookup and total calculation (never trust a client-supplied price — CLAUDE.md rule 9, and the .strict() Zod schemas already in src/server/validation/commands.ts);
+- ex-VAT subtotal plus clear copy that delivery and VAT are confirmed later;
+- contact details and accessible validation;
+- idempotent "Submit basket" action (src/server/idempotency/idempotency.ts already exists) whose copy never says Pay or Checkout;
+- an app-owned submitted order request in awaiting_ncc_review state (src/server/domain/status.ts's transitionOrderRequest already exists);
+- a secure guest status URL (src/server/tokens/token-service.ts already exists) and /order-submitted confirmation;
+- token-gated /order/:id status/detail view;
+- original-versus-confirmed quantity model, even though approval comes later;
+- noindex/security headers appropriate to private routes.
 
-Add canonical tags for filtered pages, noindex for empty-result facet combinations, and Product/ItemList/BreadcrumbList structured data.
+Do not create a payable Shopify order, capture card data, send a payment link or expose checkout. Do not accept prices/totals/status from browser state.
 
-Test URL round-tripping, filtering, sorting, pagination boundaries (cursor-based), empty/error states, typeahead keyboard behaviour, and mobile filter-sheet focus trapping. Visually verify all four breakpoints. Run all checks, update tracking documents and stop — or continue directly into Phase 6 only if explicitly told to; Phase 6 (basket/guest order-request) is a larger, security-sensitive vertical slice worth a fresh check-in first.
+Test tampered prices, invalid quantities, repeated submit, token failure, ID enumeration, expired/revoked token, basket restoration, and responsive/keyboard behaviour. Run all checks, update tracking documents and stop.
 ```

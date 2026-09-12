@@ -77,6 +77,18 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (29 files / 197 passed, 1 skipped), `pnpm build` all pass
 
 ## Phase 5 — Catalogue, search and product discovery
+
+- [x] `/categories` — full catalogue index using real `listCollections()` data, ItemList structured data — `src/routes/categories.tsx`
+- [x] `/category/:slug` — collection listing: breadcrumb, real "N lines · all available to order" header, facet sidebar, sort, cursor-based pagination, 2/3/4-up responsive product grid, honest "No products found" empty state, canonical always pointing to the unfiltered URL, `noindex` on zero-result facet combinations, BreadcrumbList + ItemList structured data — `src/routes/category/$slug.tsx`
+- [x] `/search` — server-backed full-catalogue search with the same facet/sort/pagination machinery, `q` reflected in the URL, real `totalCount` from Shopify (not the current page length), typeahead suggestions, same canonical/noindex/structured-data treatment — `src/routes/search.tsx`
+- [x] `/product/:sku` — gallery, spec list, real price ("Available to order", no VAT label, matching cards), inert quantity + Add-to-basket control (Phase 6 wires it up for real), `notFound()` for an unknown SKU, Product structured data with `PreOrder` availability, no reviews/ratings UI — `src/routes/product/$sku.tsx`
+- [x] Shared components: `FacetSidebar` (grouped checkboxes, applied chips, clear-all — all plain links, no client JS required), `Pagination` (Previous/Next — ADR-016), `Breadcrumbs`, `SearchBar` (typeahead with keyboard Up/Down/Enter/Escape, debounced, progressive-enhancement `<form method="get">` base)
+- [x] Facet/sort/pagination state lives entirely in shareable, crawlable URL query params (ADR-015) — ProductCard/CategoryCard/Header links stay plain anchors for routes that exist as of this phase too, consistent with the pattern established in Phase 4
+- [x] `CatalogueAdapter.lineCount`/`totalCount` added where Shopify's API actually provides real values (aliased query for collections, native `totalCount` for search) — never fabricated
+- [x] "Available to order" only everywhere — no stock counts, no delivery promises, no contract-pricing UI (ADR-005)
+- [x] Manual verification via the Browser tool: `/categories`, `/category/chargers` (sort links, real facet-empty state), `/search?q=...` (real results + real totalCount + zero-result `noindex`), `/product/:sku` (real data + structured data + 404 for an unknown SKU), typeahead dropdown with real suggestions, keyboard Up/Down/Enter/Escape (Enter verified via a proper `userEvent` test after the Browser tool's own synthetic key event proved non-standard — see DECISIONS.md), canonical tags confirmed stripping facet/sort/pagination params, mobile (375px) layout confirmed usable
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (30 files / 214 passed, 1 skipped), `pnpm build` all pass
+
 ## Phase 6 — Basket and guest order-request vertical slice
 ## Phase 7 — Company accounts, buyer identity, company approval
 ## Phase 8 — NCC order console, Shopify draft order, confirmed checkout

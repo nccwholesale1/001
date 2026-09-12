@@ -141,6 +141,7 @@ function getCollectionFixture(
     products: page,
     pageInfo,
     availableFacets: [],
+    lineCount: matches.length,
   })
 }
 
@@ -155,6 +156,7 @@ function searchFixture(query: string, opts: PaginationOpts & FacetOpts): Promise
     products: page,
     pageInfo,
     availableFacets: [],
+    totalCount: matches.length,
   })
 }
 

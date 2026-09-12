@@ -10,12 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as CategorySlugRouteImport } from './routes/category/$slug'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
 import { Route as DevShopifyHealthRouteImport } from './routes/dev/shopify-health'
+import { Route as ProductSkuRouteImport } from './routes/product/$sku'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesRoute = CategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategorySlugRoute = CategorySlugRouteImport.update({
+  id: '/category/$slug',
+  path: '/category/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevComponentsRoute = DevComponentsRouteImport.update({
@@ -28,35 +47,78 @@ const DevShopifyHealthRoute = DevShopifyHealthRouteImport.update({
   path: '/dev/shopify-health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductSkuRoute = ProductSkuRouteImport.update({
+  id: '/product/$sku',
+  path: '/product/$sku',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/categories': typeof CategoriesRoute
+  '/search': typeof SearchRoute
+  '/category/$slug': typeof CategorySlugRoute
   '/dev/components': typeof DevComponentsRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
+  '/product/$sku': typeof ProductSkuRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/categories': typeof CategoriesRoute
+  '/search': typeof SearchRoute
+  '/category/$slug': typeof CategorySlugRoute
   '/dev/components': typeof DevComponentsRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
+  '/product/$sku': typeof ProductSkuRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/categories': typeof CategoriesRoute
+  '/search': typeof SearchRoute
+  '/category/$slug': typeof CategorySlugRoute
   '/dev/components': typeof DevComponentsRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
+  '/product/$sku': typeof ProductSkuRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dev/components' | '/dev/shopify-health'
+  fullPaths:
+    | '/'
+    | '/categories'
+    | '/search'
+    | '/category/$slug'
+    | '/dev/components'
+    | '/dev/shopify-health'
+    | '/product/$sku'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dev/components' | '/dev/shopify-health'
-  id: '__root__' | '/' | '/dev/components' | '/dev/shopify-health'
+  to:
+    | '/'
+    | '/categories'
+    | '/search'
+    | '/category/$slug'
+    | '/dev/components'
+    | '/dev/shopify-health'
+    | '/product/$sku'
+  id:
+    | '__root__'
+    | '/'
+    | '/categories'
+    | '/search'
+    | '/category/$slug'
+    | '/dev/components'
+    | '/dev/shopify-health'
+    | '/product/$sku'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CategoriesRoute: typeof CategoriesRoute
+  SearchRoute: typeof SearchRoute
+  CategorySlugRoute: typeof CategorySlugRoute
   DevComponentsRoute: typeof DevComponentsRoute
   DevShopifyHealthRoute: typeof DevShopifyHealthRoute
+  ProductSkuRoute: typeof ProductSkuRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +128,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories': {
+      id: '/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof CategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/category/$slug': {
+      id: '/category/$slug'
+      path: '/category/$slug'
+      fullPath: '/category/$slug'
+      preLoaderRoute: typeof CategorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/components': {
@@ -82,13 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevShopifyHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/product/$sku': {
+      id: '/product/$sku'
+      path: '/product/$sku'
+      fullPath: '/product/$sku'
+      preLoaderRoute: typeof ProductSkuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CategoriesRoute: CategoriesRoute,
+  SearchRoute: SearchRoute,
+  CategorySlugRoute: CategorySlugRoute,
   DevComponentsRoute: DevComponentsRoute,
   DevShopifyHealthRoute: DevShopifyHealthRoute,
+  ProductSkuRoute: ProductSkuRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

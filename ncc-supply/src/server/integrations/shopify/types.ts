@@ -75,6 +75,8 @@ export interface CollectionResult {
   products: ProductSummary[]
   pageInfo: PageInfo
   availableFacets: FacetOption[]
+  /** Real count (Shopify's Collection type has no aggregate field for this — see ADR-014/ADR-015). */
+  lineCount: number
 }
 
 export interface SearchResult {
@@ -82,6 +84,7 @@ export interface SearchResult {
   products: ProductSummary[]
   pageInfo: PageInfo
   availableFacets: FacetOption[]
+  totalCount: number
 }
 
 export interface TypeaheadResult {
