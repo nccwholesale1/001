@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Info, Mail, Trash2 } from 'lucide-react'
+import { Banner } from '../../components/ui/Banner'
+import { BannerCarousel } from '../../components/ui/BannerCarousel'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { StatusChip } from '../../components/ui/StatusChip'
@@ -156,10 +158,56 @@ function ComponentPreviewRoute() {
         </Dialog>
       </PreviewSection>
 
+      <PreviewSection title="Banner (hero + compact) — gradient only, no grid-mesh">
+        <div className="flex flex-col gap-6">
+          <Banner
+            eyebrow="Lorem ipsum · Available to order"
+            title={<>Trade parts, ordered right — <span className="text-gradient">confirmed before you pay</span></>}
+            description="Browse the full catalogue, submit a basket with no payment, and NCC confirms exactly what ships."
+            primaryCta={{ label: 'Shop chargers', href: '#' }}
+            secondaryCta={{ label: 'How it works', href: '#' }}
+          />
+          <Banner
+            variant="compact"
+            eyebrow="Category"
+            title="Screens"
+            description="107 lines available to order."
+            primaryCta={{ label: 'View products', href: '#' }}
+          />
+        </div>
+      </PreviewSection>
+
+      <PreviewSection title="Banner carousel — separate component, usage TBD">
+        <BannerCarousel
+          label="Homepage banner carousel example"
+          autoplayInterval={4000}
+          slides={[
+            {
+              eyebrow: 'Slide 1',
+              title: 'Chargers, cables & power banks',
+              description: 'The most-ordered lines this month.',
+              primaryCta: { label: 'Shop now', href: '#' },
+            },
+            {
+              eyebrow: 'Slide 2',
+              title: <>Screens & <span className="text-gradient">repair parts</span></>,
+              description: 'Prime, Colorx and Soft OLED — all available to order.',
+              primaryCta: { label: 'Browse screens', href: '#' },
+            },
+            {
+              eyebrow: 'Slide 3',
+              title: 'Bulk ordering, made fast',
+              description: 'Upload a CSV or paste SKUs and quantities.',
+              primaryCta: { label: 'Learn more', href: '#' },
+            },
+          ]}
+        />
+      </PreviewSection>
+
       <Section tinted className="rounded-xl px-6 py-10">
-        <h2 className="text-lg font-semibold text-foreground">Section / grid-mesh / gradients</h2>
-        <div className="hero-gradient grid-mesh mt-4 rounded-xl p-8">
-          <p className="text-gradient text-2xl font-semibold">Gradient text on hero-gradient + grid-mesh</p>
+        <h2 className="text-lg font-semibold text-foreground">grid-mesh utility (available, not used in banners)</h2>
+        <div className="grid-mesh mt-4 rounded-xl border border-border bg-card p-8">
+          <p className="text-gradient text-2xl font-semibold">Gradient text over a plain grid-mesh surface</p>
         </div>
       </Section>
     </Container>

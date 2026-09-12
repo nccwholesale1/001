@@ -18,11 +18,13 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 **Files created/changed:** see `TASKS.md` Phase 1 checklist for the full list; headline additions are `ncc-supply/src/styles.css`, `ncc-supply/src/components/ui/*`, `ncc-supply/src/components/app-boundaries/*`, `ncc-supply/src/routes/__root.tsx`, `ncc-supply/src/routes/index.tsx`, `ncc-supply/src/routes/dev/components.tsx`, `ncc-supply/vitest.config.ts`, `ncc-supply/vitest.setup.ts`, `ncc-supply/eslint.config.js`, `ncc-supply/.prettierrc.json`.
 
+**Added mid-phase at explicit user request (still Phase 1 scope — component library, not a new page):** `Banner.tsx` (hero/compact variants, gradient-only background — ADR-010) and `BannerCarousel.tsx` (separate component wrapping Banner slides; whether it's actually used anywhere is an open decision for Phase 4). 63 tests total after these (up from 47), including a jsdom `matchMedia` polyfill added to `vitest.setup.ts` since BannerCarousel's reduced-motion check needs it.
+
 **Verification performed (actual output, not inspection-only):**
 ```
 $ pnpm typecheck   → tsc --noEmit, no output, exit 0
 $ pnpm lint        → eslint ., no output, exit 0
-$ pnpm test        → Test Files 6 passed (6), Tests 47 passed (47)
+$ pnpm test        → Test Files 8 passed (8), Tests 63 passed (63)
 $ pnpm build       → client + SSR bundles both built successfully
 ```
 Manual: `pnpm dev` run, checked via the Browser tool at 375×812, 768×1024, 1024×800, and 1440×900 on both `/` and `/dev/components`; keyboard Tab reached every interactive element with a visible focus ring; Dialog opened on click, trapped focus, closed on Escape, and returned focus to its trigger; Disclosure open/closed and chevron rotation confirmed visually (native `<details>` Enter/Space-to-toggle is a browser guarantee jsdom doesn't simulate, noted in the test file rather than skipped silently).

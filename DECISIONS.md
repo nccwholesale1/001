@@ -66,6 +66,13 @@ The PRD deliberately leaves several implementation choices open. Per the build r
 - `class-variance-authority`, `clsx`, `tailwind-merge` added as small, standard variant/class-composition utilities used across every primitive.
 - pnpm itself was not installed on the build machine and had to be installed globally first (`npm install -g pnpm`).
 
+### ADR-010: Banner uses gradient only, no grid-mesh; separate BannerCarousel added
+**Decision:** The design system's original "Product banner" spec (§7) called for `hero-gradient` + a `grid-mesh` overlay at 40% opacity. Per explicit business direction 2026-09-12, the `Banner` primitive's background is gradient-only — no mesh overlay. `grid-mesh` remains a defined, available utility for other decorative use (demonstrated on its own in `/dev/components`); it's just not part of the banner treatment.
+
+A separate `BannerCarousel` component was also added, reusing `Banner` internally for each slide so the visual language stays identical between a single static banner and a rotating one ("keep the same UI"). Per the request, **whether anything actually uses the carousel (vs. a single Banner) is an explicit open design decision for a later phase** — most likely Phase 4 when the real homepage is built. Both components exist, are tested, and are visible in `/dev/components`, but neither is wired into any real page yet (there is no real page yet to wire it into).
+
+**Carousel implementation notes:** hand-rolled rather than a library dependency (e.g. embla) — the requirement (fixed slide set, prev/next, dot nav, optional autoplay, keyboard arrows) didn't justify a new dependency. Accessible per the WAI-ARIA APG carousel pattern: `role="region"` + `aria-roledescription="carousel"`, each slide `aria-roledescription="slide"`, a visually-hidden live region announcing slide position, autoplay pauses on hover/focus and is skipped entirely under `prefers-reduced-motion`. jsdom has no `window.matchMedia` implementation at all, which the reduced-motion check depends on — a minimal stub was added to `vitest.setup.ts` (defaults to "no preference") rather than working around it per-test.
+
 ## Resolved by business decision, 2026-09-12
 
 2. **Number of companies needing distinct contract pricing.** ✅ Resolved: **none** — uniform list pricing for everyone (ADR-005). The price-list cap is now irrelevant.

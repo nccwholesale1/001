@@ -32,6 +32,7 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [x] Automated token-usage + primitive-behaviour checks — 47 Vitest/Testing Library tests incl. a hardcoded-colour static scan
 - [x] Lint, type-check, test, production build all pass — evidence in PHASE_HANDOFF.md
 - [x] Visual check at 375/768/1024/1440px — via Browser tool, one real bug found and fixed (see PHASE_HANDOFF.md)
+- [x] Banner primitive (hero + compact variants, gradient-only background per 2026-09-12 direction — no grid-mesh) + BannerCarousel (separate component, usage decision deferred) — added mid-Phase-1 at explicit user request, both in `/dev/components` and covered by tests
 
 ## Phase 2 — Domain model, persistence, integration boundaries
 
