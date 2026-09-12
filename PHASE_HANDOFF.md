@@ -4,67 +4,65 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 5 — Catalogue, search and product discovery
+## Last completed phase: Phase 6 — Basket and guest order-request vertical slice
 
-**Completed scope:** the four catalogue-discovery routes from PRD §§3, 6.2–6.4, on branch `phase/5-product-discovery`. Continued in the same session as Phases 3–4, per the user's standing "build quickly, merge phases" direction — this was the last phase in that batch; Phase 6 (basket/guest order-request) is a bigger, security-sensitive vertical slice, so this session stops here to check in rather than silently continuing, per the plan agreed at the start of Phase 3.
+**Completed scope:** the guest-only path from PRD §§4, 6.5, 6.7 (runbook §9), on branch `phase/6-guest-orders`. Company-buyer basket/approval is Phase 7's job, not touched here.
 
-- **`routes/categories.tsx`** — full catalogue index, real `listCollections()` data, ItemList structured data.
-- **`routes/category/$slug.tsx`** — collection listing: breadcrumb, real line count + "all available to order" header, facet sidebar, sort, cursor-based pagination, product grid, honest empty state, canonical always pointing to the unfiltered URL, `noindex` on zero results, BreadcrumbList + ItemList structured data.
-- **`routes/search.tsx`** — full-catalogue search with the same facet/sort/pagination machinery, real `totalCount` from Shopify (not the current page length), typeahead, same SEO treatment as collections.
-- **`routes/product/$sku.tsx`** — gallery, specs, real price, inert quantity/Add-to-basket control (Phase 6's job to wire up for real), `notFound()` for an unknown SKU, `Product` structured data with `PreOrder` availability.
-- **New shared components:** `FacetSidebar`, `Pagination`, `Breadcrumbs`, `SearchBar` (typeahead with full keyboard support).
-- **ADR-015/016:** facet/sort/pagination state lives entirely in plain, crawlable URL query params (no client JS required for filtering to work); pagination is Previous/Next rather than numbered, and the facet sidebar stacks inline on mobile rather than behind a "Filters" sheet — both documented, deliberate simplifications given the catalogue's current size, not oversights.
-- Added real `lineCount`/`totalCount` to `CollectionResult`/`SearchResult` — computed via an aliased GraphQL field (collections, which have no native count) or Shopify's actual `totalCount` field (search, which does) — never fabricated.
+- **`server/basket/session.ts`** — the persistent guest basket mechanism: TanStack Start's `useSession` (encrypted, httpOnly, sealed with `env.SESSION_SECRET`) holds only a pointer to a server-side basket row (ADR-017).
+- **`server/basket/basket.ts`** — add/update/remove lines, each re-resolving real price/product via `getCatalogueAdapter()` — never a stored or client-supplied price. A line whose product has since become unavailable stays visible with a clear reason rather than being silently dropped.
+- **`server/basket/submit-order-request.ts`** — the guest submission: re-resolves every price one more time at this exact moment, creates the order request directly at `awaiting_ncc_review` (guests skip company approval — rule 6), issues a guest token, records an audit event. Wrapped in `withIdempotency` keyed on the basket id, so a duplicate/retried submission always replays the exact same result rather than creating a second order — proven by a test asserting exactly one `order_requests` row after submitting twice.
+- **`server/basket/server-functions.ts`** — the `createServerFn` layer every route/component calls; every mutation resolves the basket id from the session cookie itself, never from client input.
+- **New routes:** `/basket` (editable line list, ex-VAT subtotal, contact fields, "Submit basket" — copy never says Pay/Checkout), `/order-submitted` (confirmation + the one-time private link), `/order/:id` (token-gated; a missing/wrong/expired/revoked token and a nonexistent id all render the identical "we couldn't find that order" state — verified in a real browser for all four cases, not just asserted).
+- **`ProductCard`** and **`/product/:sku`** — the "Add to Basket" control is real now (was deliberately inert since Phase 4/5, since there was nothing to add to yet), with the design system's confirm-then-revert visual state.
+- **ADR-018**: `submitBasketSchema` revised — basket id and lines are never client input anymore, only optional contact fields.
+- **Schema gap fixes** (same pattern as ADR-012/014): `baskets.status`/`orderRequestId`, `basket_lines.sku`, `order_request_lines.sku` — none of these existed even though the domain model and the adapter's SKU-only lookup already required them. Migration `0001_clear_switch.sql`.
 
-**Files created/changed:** see `TASKS.md` Phase 5 checklist for the exhaustive list with per-item evidence. Also touched: `types.ts`/`fixture-adapter.ts`/`storefront-adapter.ts` (`lineCount`/`totalCount`), `DECISIONS.md` (ADR-015, ADR-016, two verification notes).
+**Files created/changed:** see `TASKS.md` Phase 6 checklist for the exhaustive list with per-item evidence. Also touched: `validation/commands.ts` (new basket-line schemas, revised `submitBasketSchema`), `DECISIONS.md` (ADR-017, ADR-018, the schema-gap note, and a real process-gap finding below).
 
 **Verification performed (actual output, not inspection-only):**
 ```
-$ pnpm test        → Test Files 30 passed (30), Tests 214 passed | 1 skipped (215)
+$ pnpm test        → Test Files 33 passed (33), Tests 231 passed | 1 skipped (232)
 $ pnpm typecheck   → tsc --noEmit, no output, exit 0
 $ pnpm lint        → eslint ., no output, exit 0
 $ pnpm build       → client + SSR bundles both built successfully
 ```
-Manual, via the Browser tool against `pnpm dev` with real fixture data: `/categories` (real line counts), `/category/chargers` (sort links change the URL and re-render without error, facet sidebar correctly shows "No filters available" honestly rather than fabricating any), `/search?q=fixture` (2 real results, correct `totalCount`), `/search?q=<nonsense>` (confirmed `noindex` meta tag present), `/product/FIXTURE-CHG-001` (real data + correct `Product` JSON-LD, confirmed via `document.querySelector`), `/product/NOT-A-REAL-SKU` (confirmed the app's NotFound boundary renders), canonical tag on a filtered category URL confirmed pointing back to the bare `/category/chargers`, mobile (375px) layout confirmed usable end-to-end.
+Also inspected the build output specifically for this phase: confirmed `createServerFn`'s server/client code-splitting works correctly even when a server function is called from a shared component (`ProductCard`, used on the homepage/category/search, not just from a route loader) — the client chunk stayed small while the server chunk carried the real `db`/adapter logic, with no `@libsql/client` leakage into the browser bundle.
 
-One interaction (`SearchBar`'s Enter-to-navigate-to-highlighted-suggestion) couldn't be confirmed via the Browser tool's synthetic keyboard event — traced to that tool sending a non-standard `KeyboardEvent` (`event.key === "Unidentified"` instead of `"Enter"`), confirmed via a temporary debug marker showing all application state was correct at the moment of the keypress. Verified instead with a real `@testing-library/user-event` test, which dispatches a spec-correct event and passes. See `DECISIONS.md` for the full note.
+Manual, via the Browser tool against `pnpm dev` with the real (migrated) dev database: added a real fixture product to the basket from its product page, confirmed it appeared on `/basket` with the correct live price, increased its quantity and watched the subtotal update, submitted, landed on `/order-submitted` with a real private link, followed it to a fully populated `/order/:id`, then confirmed a tampered token, a missing token, and a nonexistent order id all render the identical "we couldn't find that order" message. Confirmed that reloading `/basket` after a successful submission issues a fresh empty basket rather than resurfacing the completed one. Checked both 375px and desktop layouts.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 5 decisions and facts" (ADR-015, ADR-016, the two verification notes).
+**A real bug the manual verification caught:** the first add-to-basket attempt failed with a genuine SQL error — the migration had only ever been applied to throwaway test files in every prior phase, never to the actual `local.db` the running dev server uses. Fixed by running `pnpm db:migrate` against it directly. See `DECISIONS.md` for the full note; this is a real process gap worth remembering for future phases, not just a one-off fix.
 
-**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged (still fixture-mode by default). PRD §13 Questions 1, 4, 5, 6 unchanged. Question 1 (catalogue growth) is the one to watch if it ever makes ADR-016's pagination/facet-sheet simplifications feel cramped.
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 6 decisions and facts" (ADR-017, ADR-018, the schema-gap note, the dev-database migration finding).
 
-**Database migrations / environment variables:** none new this phase.
+**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged (fixture-mode by default, not blocking). PRD §13 Questions 1, 4, 5, 6 unchanged.
+
+**Database migrations / environment variables:** new migration `src/server/db/migrations/0001_clear_switch.sql` (baskets status/orderRequestId, basket_lines.sku, order_request_lines.sku) — applied to the local dev database as part of this phase's own verification. No new environment variables.
 
 ---
 
-## Next phase: Phase 6 — Basket and guest order-request vertical slice
+## Next phase: Phase 7 — Company accounts, buyer identity, company approval
 
-This is a genuinely bigger, security-sensitive vertical slice (real mutations, idempotency, token-gated guest access, server-side price trust) rather than UI composition over an existing adapter — per the plan agreed at the start of Phase 3, the session stops here for a check-in rather than continuing automatically.
-
-**Phase 6 entry criteria (Phase 5 exit gate, satisfied):** all four discovery routes are real and data-driven; facet/sort/pagination state is shareable and crawlable; structured data and canonical/noindex rules are correct; empty states never fabricate products; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
-
-**Exact next-phase prompt** (runbook §9, unchanged — paste when ready to proceed, fresh session or continuing this one):
+**Phase 7 entry criteria (Phase 6 exit gate, satisfied):** the full guest vertical slice works end-to-end against real data; every price is server-resolved; guest access is token-gated with no enumeration; duplicate submission is idempotent; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
 
 ```text
-Read all context and the Phase 5 handoff. Inspect git status. Implement only Phase 6.
+Read all context and the Phase 6 handoff. Inspect git status. Implement only Phase 7.
 
-Build a complete guest basket-to-order-request vertical slice from PRD §§4, 6.5 and 6.7, stopping before real payment.
+Implement company buyer identity and company-side approval according to PRD §§2, 4, 6.10–6.13 and 7.4.
 
-Implement:
-- add/update/remove basket lines;
-- persistent guest basket using the agreed safe approach;
-- any-positive-integer quantity validation with no MOQ or maximum business limit;
-- server-side product/price lookup and total calculation (never trust a client-supplied price — CLAUDE.md rule 9, and the .strict() Zod schemas already in src/server/validation/commands.ts);
-- ex-VAT subtotal plus clear copy that delivery and VAT are confirmed later;
-- contact details and accessible validation;
-- idempotent "Submit basket" action (src/server/idempotency/idempotency.ts already exists) whose copy never says Pay or Checkout;
-- an app-owned submitted order request in awaiting_ncc_review state (src/server/domain/status.ts's transitionOrderRequest already exists);
-- a secure guest status URL (src/server/tokens/token-service.ts already exists) and /order-submitted confirmation;
-- token-gated /order/:id status/detail view;
-- original-versus-confirmed quantity model, even though approval comes later;
-- noindex/security headers appropriate to private routes.
+Use Shopify's current customer-account flow for company buyers as decided in the architecture (src/server/integrations/shopify/customer-account-adapter.ts already exists from Phase 3 — real OIDC/PKCE construction, contract-tested, not yet live-tested since it needs a real HTTPS callback route, which this phase provides). Do not create a separate buyer password system. Implement server-side mapping from Shopify customer/company identity to the app-owned workflow records already defined in src/server/db/schema.ts (companies, buyer_users).
 
-Do not create a payable Shopify order, capture card data, send a payment link or expose checkout. Do not accept prices/totals/status from browser state.
+Build:
+- /auth and /register buyer/invite paths as specified;
+- /account shell and dashboard;
+- /account/orders with buyer-own vs company-admin-all visibility (src/server/auth/authorization.ts's canViewCompanyResource/canMutateCompanyResource already implement this distinction — reuse them, don't re-derive);
+- reorder action that creates a new basket (src/server/basket/basket.ts's addLine, reused);
+- /account/users for invites, roles, spend limits and removal;
+- /account/pricing as read-only server-resolved entitlement data (uniform list pricing only — ADR-005, no contract tiers to look up);
+- buyer order submission into awaiting_company_approval (src/server/domain/status.ts's transitionOrderRequest already has this transition — guest submission in Phase 6 bypassed it entirely by creating straight at awaiting_ncc_review; a signed-in buyer's submission needs to actually start at awaiting_company_approval and use the guarded transition to advance);
+- company-admin approve/reject actions and clear pending states;
+- audit events for every approval, role, limit and user-state change (src/server/audit/audit-log.ts already exists).
 
-Test tampered prices, invalid quantities, repeated submit, token failure, ID enumeration, expired/revoked token, basket restoration, and responsive/keyboard behaviour. Run all checks, update tracking documents and stop.
+Every company buyer order requires company-admin approval regardless of spend limit. Spend limits are informational context only. A company-admin approval advances the request to NCC review; it never confirms the order or unlocks payment.
+
+Test cross-company isolation, buyer/admin visibility, removed-user behaviour, pending invites, replayed approval, unauthorized price access and all status transitions. Run all checks, update tracking documents and stop.
 ```

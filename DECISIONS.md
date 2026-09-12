@@ -151,6 +151,25 @@ Both are documented, deliberate scope reductions, not oversights — revisit if/
 ### Manual verification note: browser-automation tool sends a non-standard `Enter` key event
 While testing `SearchBar`'s typeahead keyboard navigation in the Browser tool, `ArrowDown` correctly updated `aria-selected`, but the automated "Return" keypress didn't trigger the Enter-to-navigate handler. Added a temporary debug marker and confirmed the tool's synthetic key event reports `event.key === "Unidentified"` rather than `"Enter"` — a limitation of that specific automation tool, not an app bug (all application state — `activeIndex`, the anchor ref — was exactly correct at the moment of the keypress). Verified the actual behavior instead with a proper Testing-Library `userEvent.keyboard('{Enter}')` test (`SearchBar.test.tsx`), which dispatches a spec-correct `KeyboardEvent` and passes.
 
+## Phase 6 decisions and facts (2026-09-12)
+
+### ADR-017: Guest basket persistence via TanStack Start's `useSession`, not a hand-rolled cookie
+**Decision:** The guest basket is identified by an encrypted, httpOnly session cookie (`@tanstack/react-start/server`'s `useSession`, sealed with the existing `env.SESSION_SECRET`) holding only the basket's own id — never contents. `getOrCreateBasketId()` (`src/server/basket/session.ts`) is the only place that touches it.
+**Why:** `@tanstack/react-start/server` (backed by `@tanstack/start-server-core`, confirmed present in `node_modules` by reading its own `.d.ts` files, not assumed) ships a complete `getCookie`/`setCookie`/`useSession` surface — a proper sealed-session mechanism, not just raw cookie access. `env.SESSION_SECRET` (Phase 2) was validated from day one but never actually consumed by anything until now; using it here is exactly the use it was reserved for, not a new secret.
+**Effect:** A submitted basket is never reused — once its `status` leaves `open`, the next visit gets a fresh basket rather than resurfacing a completed one as editable. This made the "already submitted" UI branch originally written into `/basket` provably unreachable; it was removed rather than left as dead code once the browser verification confirmed the design worked as intended.
+
+### ADR-018: `submitBasketSchema` revised — basket id and lines are never client input
+**Decision:** Phase 2's original guess for `submitBasketSchema` took `{ basketId, lines }` from the client. The real implementation reads the basket id from the session cookie and its lines from the database (each already price-validated when added — `src/server/basket/basket.ts`), so the schema now accepts only the optional contact fields.
+**Why:** Once the basket is server-persisted, resubmitting the full line list at submit time is both redundant and a needlessly larger attack surface — a client could otherwise claim a `basketId` or line list inconsistent with what the guest's own session actually points to. Dropping both fields removes the possibility entirely rather than just validating it away.
+
+### Schema gaps fixed before building on them (same pattern as ADR-012/014)
+Three columns the Phase 2 schema was missing, discovered while implementing the real basket/order-submission flow, added via migration `0001_clear_switch.sql` (verified applying cleanly to a real file before use, same as every prior migration):
+- `baskets.status` / `baskets.orderRequestId` — `docs/domain-model.md` already documented a Basket `open → submitted` status machine that the original table had no column for at all.
+- `basket_lines.sku` and `order_request_lines.sku` — both tables only stored `shopifyVariantId`, but `CatalogueAdapter.getProduct()` looks up by SKU, not variant id, and has no by-variant-id alternative. Without a stored SKU, there was no way to re-resolve a line's current price/title at all.
+
+### Manual verification caught a real bug: the running dev database was never migrated
+Testing the add-to-basket flow in the Browser tool against `pnpm dev` initially failed with a real SQL error (`Failed query: insert into "baskets"...`) — the migration had only ever been verified against throwaway files in every prior phase, never applied to the actual `local.db` the dev server uses. Fixed by running `pnpm db:migrate` against it directly (safe: dev-only, no real content). Recorded because it's a genuine process gap worth carrying forward: "verify the migration applies" and "verify the running dev server's own database has it" are not the same check, and only the browser-based end-to-end test caught the second one.
+
 ## Resolved by business decision, 2026-09-12
 
 2. **Number of companies needing distinct contract pricing.** ✅ Resolved: **none** — uniform list pricing for everyone (ADR-005). The price-list cap is now irrelevant.

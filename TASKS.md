@@ -90,6 +90,18 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (30 files / 214 passed, 1 skipped), `pnpm build` all pass
 
 ## Phase 6 — Basket and guest order-request vertical slice
+
+- [x] Persistent guest basket — TanStack Start's `useSession` (encrypted, httpOnly, sealed with the existing `SESSION_SECRET`) holds only a pointer to a server-persisted basket row, never contents — `src/server/basket/session.ts`
+- [x] Add/update/remove basket lines, any positive integer quantity (rule 12), same-SKU adds bump quantity rather than duplicating — `src/server/basket/basket.ts`
+- [x] Server-side product/price lookup for every line, on every read and again at submission — never a stored or client-supplied price (rule 9); a line whose product has since become unavailable is kept visible with a clear reason, not silently dropped
+- [x] Idempotent "submit basket" — a duplicate/retried submission always replays the exact same `{orderRequestId, token}` rather than creating a second order or erroring — `src/server/basket/submit-order-request.ts`, proven by a test that submits the same basket twice and asserts exactly one `order_requests` row exists
+- [x] Guest order request created directly at `awaiting_ncc_review` (guests skip company approval — rule 6); copy never says "Pay" or "Checkout" anywhere in the basket/submission flow
+- [x] Secure guest status link (`issueGuestToken`) + `/order-submitted` confirmation + token-gated `/order/:id` — a missing, wrong, expired, or revoked token and a nonexistent order id all render the identical "we couldn't find that order" state (no enumeration, rule 16) — verified in a real browser for all four cases
+- [x] `noindex` on `/basket`, `/order-submitted`, `/order/:id`
+- [x] Schema gap fixes discovered while building this phase (ADR-017): `baskets.status`/`orderRequestId`, `basket_lines.sku`, `order_request_lines.sku` — none of these existed even though the domain model and the adapter's by-SKU-only lookup already required them
+- [x] Manual verification via the Browser tool against the real (migrated) dev database: added a real fixture product to the basket from the product page, edited its quantity, submitted, landed on `/order-submitted`, followed the private link to a fully populated `/order/:id`, confirmed the identical not-found state for a tampered token/wrong id/missing token, confirmed a fresh basket is issued after submission rather than resurfacing the completed one, confirmed mobile (375px) and desktop layouts both work
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` (33 files / 231 passed, 1 skipped), `pnpm build` all pass — and, distinctly from every prior phase, the production build was inspected to confirm `createServerFn` correctly splits server-only code (db client, adapters) out of the client bundle even when called from a shared component (`ProductCard`) rather than only from route loaders
+
 ## Phase 7 — Company accounts, buyer identity, company approval
 ## Phase 8 — NCC order console, Shopify draft order, confirmed checkout
 ## Phase 9 — Bulk ordering, quotes, reorder completion

@@ -1,7 +1,12 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import { ProductCard } from './ProductCard'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import type { ProductSummary } from '../../server/integrations/shopify/types'
+import { ProductCard } from './ProductCard'
+import { addBasketLine } from '../../server/basket/server-functions'
+
+vi.mock('@tanstack/react-start', () => ({ useServerFn: (fn: unknown) => fn }))
+vi.mock('../../server/basket/server-functions', () => ({ addBasketLine: vi.fn() }))
 
 const PRODUCT: ProductSummary = {
   sku: 'NCC-CHG-001',
@@ -21,8 +26,33 @@ describe('ProductCard', () => {
     expect(screen.queryByText(/in stock|left in stock/i)).not.toBeInTheDocument()
   })
 
-  it('renders the Add-to-basket control as inert rather than faking a success state', () => {
+  it('adds one real unit to the basket and shows a confirm state, never faking success before the call resolves', async () => {
+    vi.mocked(addBasketLine).mockResolvedValueOnce({
+      id: 'basket_1',
+      status: 'open',
+      lines: [],
+      subtotalPence: 0,
+    })
+    const user = userEvent.setup()
     render(<ProductCard product={PRODUCT} />)
-    expect(screen.getByRole('button', { name: /coming soon/i })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /add.*to basket/i }))
+
+    expect(addBasketLine).toHaveBeenCalledWith({ data: { sku: 'NCC-CHG-001', quantity: 1 } })
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /added to basket/i })).toBeInTheDocument(),
+    )
+  })
+
+  it('shows a retry state rather than a silent failure when the add fails', async () => {
+    vi.mocked(addBasketLine).mockRejectedValueOnce(new Error('network error'))
+    const user = userEvent.setup()
+    render(<ProductCard product={PRODUCT} />)
+
+    await user.click(screen.getByRole('button', { name: /add.*to basket/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument(),
+    )
   })
 })

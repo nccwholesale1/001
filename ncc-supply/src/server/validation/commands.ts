@@ -8,19 +8,38 @@ import { z } from 'zod'
  * outright instead of the server having to remember to ignore those fields.
  */
 
-const basketLineInputSchema = z
+export const addBasketLineSchema = z
   .object({
-    shopifyVariantId: z.string().min(1),
+    sku: z.string().min(1),
     quantity: z.number().int().positive(),
   })
   .strict()
+export type AddBasketLineInput = z.infer<typeof addBasketLineSchema>
 
+export const updateBasketLineQuantitySchema = z
+  .object({
+    lineId: z.string().min(1),
+    quantity: z.number().int().positive(),
+  })
+  .strict()
+export type UpdateBasketLineQuantityInput = z.infer<typeof updateBasketLineQuantitySchema>
+
+export const removeBasketLineSchema = z.object({ lineId: z.string().min(1) }).strict()
+export type RemoveBasketLineInput = z.infer<typeof removeBasketLineSchema>
+
+/**
+ * Phase 2 originally guessed `{ basketId, lines }` here — a client-supplied
+ * line list to submit. Phase 6's real implementation persists the basket
+ * server-side (lines added one at a time, each already price-validated —
+ * see src/server/basket/basket.ts) and reads it via the session cookie, so
+ * resubmitting the full line list at submit time is both unnecessary and a
+ * needlessly larger attack surface. Submission now only needs the optional
+ * contact fields; basket id and contents are never client input at all.
+ */
 export const submitBasketSchema = z
   .object({
-    basketId: z.string().min(1),
     contactEmail: z.string().email().optional(),
     contactName: z.string().min(1).optional(),
-    lines: z.array(basketLineInputSchema).min(1),
   })
   .strict()
 export type SubmitBasketInput = z.infer<typeof submitBasketSchema>

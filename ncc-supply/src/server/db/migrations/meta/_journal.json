@@ -8,6 +8,13 @@
       "when": 1789198048218,
       "tag": "0000_curious_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789234890727,
+      "tag": "0001_clear_switch",
+      "breakpoints": true
     }
   ]
 }

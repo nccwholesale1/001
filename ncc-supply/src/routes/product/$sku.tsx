@@ -1,12 +1,16 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { Plus } from 'lucide-react'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
+import { addBasketLine } from '../../server/basket/server-functions'
 import { getCatalogueAdapter } from '../../server/integrations/shopify'
 import type { ProductDetail } from '../../server/integrations/shopify/types'
 import { Breadcrumbs } from '../../components/ui/Breadcrumbs'
 import { Icon } from '../../components/ui/Icon'
 import { Container, Section } from '../../components/ui/Layout'
+
+type AddStatus = 'idle' | 'adding' | 'added' | 'error'
+const CONFIRM_DURATION_MS = 1400
 
 const getProductData = createServerFn({ method: 'GET' })
   .validator((sku: string) => sku)
@@ -67,7 +71,21 @@ export const Route = createFileRoute('/product/$sku')({
 function ProductRoute() {
   const product = Route.useLoaderData()
   const [quantity, setQuantity] = useState(1)
+  const [status, setStatus] = useState<AddStatus>('idle')
+  const addLine = useServerFn(addBasketLine)
   const images = product.images.length > 0 ? product.images : [product.thumbnail]
+
+  async function handleAdd() {
+    setStatus('adding')
+    try {
+      await addLine({ data: { sku: product.sku, quantity } })
+      setStatus('added')
+    } catch {
+      setStatus('error')
+    } finally {
+      setTimeout(() => setStatus('idle'), CONFIRM_DURATION_MS)
+    }
+  }
 
   return (
     <Section>
@@ -143,12 +161,25 @@ function ProductRoute() {
               </label>
               <button
                 type="button"
-                disabled
-                aria-label={`Add ${product.title} to basket — coming soon`}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground/60"
+                onClick={handleAdd}
+                disabled={status === 'adding'}
+                aria-label={
+                  status === 'added'
+                    ? `${product.title} added to basket`
+                    : status === 'error'
+                      ? `Could not add ${product.title} to basket — try again`
+                      : `Add ${product.title} to basket`
+                }
+                className={
+                  status === 'added'
+                    ? 'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary/40 bg-secondary px-5 py-3 text-sm font-semibold text-primary'
+                    : status === 'error'
+                      ? 'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-destructive/40 px-5 py-3 text-sm font-semibold text-destructive'
+                      : 'sky-gradient inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-5 py-3 text-sm font-semibold transition-transform hover:scale-[1.02] active:scale-95 motion-reduce:hover:scale-100'
+                }
               >
-                <Icon icon={Plus} size="sm" />
-                Add to Basket
+                <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
+                {status === 'added' ? 'Added' : status === 'error' ? 'Retry' : 'Add to Basket'}
               </button>
             </div>
             <p className="text-xs text-muted-foreground">

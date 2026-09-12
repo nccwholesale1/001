@@ -1,4 +1,7 @@
-import { Plus } from 'lucide-react'
+import { Check, Plus, X } from 'lucide-react'
+import { useState } from 'react'
+import { useServerFn } from '@tanstack/react-start'
+import { addBasketLine } from '../../server/basket/server-functions'
 import type { ProductSummary } from '../../server/integrations/shopify/types'
 import { Icon } from './Icon'
 import { cn } from '../../lib/cn'
@@ -8,19 +11,37 @@ export interface ProductCardProps {
   className?: string
 }
 
+type AddStatus = 'idle' | 'adding' | 'added' | 'error'
+
+const CONFIRM_DURATION_MS = 1400
+
 function formatPrice(pence: number): string {
   return `£${(pence / 100).toFixed(2)}`
 }
 
 /**
  * Design system §7 "Product card". Links use plain anchors, not the typed
- * RouterLink — /product/:sku doesn't exist until Phase 5 (built immediately
- * after this phase in the same session). The Add-to-basket control is
- * visual chrome only for now — there's no basket yet to add to (Phase 6
- * builds it) — so it renders inert rather than faking a success state.
+ * RouterLink — see Header.tsx for why. The Add-to-basket control is real as
+ * of Phase 6: adds one unit via the server-truth-priced basket module,
+ * confirms with a check for 1.4s per the design spec.
  */
 export function ProductCard({ product, className }: ProductCardProps) {
   const href = `/product/${product.sku}`
+  const [status, setStatus] = useState<AddStatus>('idle')
+  const addLine = useServerFn(addBasketLine)
+
+  async function handleAdd() {
+    setStatus('adding')
+    try {
+      await addLine({ data: { sku: product.sku, quantity: 1 } })
+      setStatus('added')
+    } catch {
+      setStatus('error')
+    } finally {
+      setTimeout(() => setStatus('idle'), CONFIRM_DURATION_MS)
+    }
+  }
+
   return (
     <div className={cn('surface-card rise-in flex flex-col rounded-xl p-4', className)}>
       <a href={href} className="rounded-lg no-underline hover:no-underline">
@@ -51,12 +72,26 @@ export function ProductCard({ product, className }: ProductCardProps) {
         </div>
         <button
           type="button"
-          disabled
-          aria-label={`Add ${product.title} to basket — coming soon`}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground/60"
+          onClick={handleAdd}
+          disabled={status === 'adding'}
+          aria-label={
+            status === 'added'
+              ? `${product.title} added to basket`
+              : status === 'error'
+                ? `Could not add ${product.title} to basket — try again`
+                : `Add ${product.title} to basket`
+          }
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
+            status === 'added'
+              ? 'border-primary/40 bg-secondary text-primary'
+              : status === 'error'
+                ? 'border-destructive/40 text-destructive'
+                : 'border-border text-foreground hover:bg-secondary',
+          )}
         >
-          <Icon icon={Plus} size="sm" />
-          Add
+          <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
+          {status === 'added' ? 'Added' : status === 'error' ? 'Retry' : 'Add'}
         </button>
       </div>
     </div>

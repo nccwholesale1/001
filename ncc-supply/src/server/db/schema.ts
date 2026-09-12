@@ -137,12 +137,18 @@ export const staffSessions = sqliteTable(
 // Baskets (pre-submission; guest or buyer-owned)
 // ---------------------------------------------------------------------------
 
+export const BASKET_STATUSES = ['open', 'submitted'] as const
+export type BasketStatus = (typeof BASKET_STATUSES)[number]
+
 export const baskets = sqliteTable('baskets', {
   id: text('id').primaryKey(),
-  /** Null for a guest basket — guest identity is the basket id itself, held client-side. */
+  /** Null for a guest basket — guest identity is a session-cookie pointer to this row (Phase 6), never held client-side. */
   buyerUserId: text('buyer_user_id').references(() => buyerUsers.id),
   contactEmail: text('contact_email'),
   contactName: text('contact_name'),
+  status: text('status', { enum: BASKET_STATUSES }).notNull().default('open'),
+  /** Set once the basket becomes an order request (Phase 6) — a submitted basket is never editable again. */
+  orderRequestId: text('order_request_id').references(() => orderRequests.id),
   ...timestamps,
 })
 
@@ -151,7 +157,9 @@ export const basketLines = sqliteTable('basket_lines', {
   basketId: text('basket_id')
     .notNull()
     .references(() => baskets.id),
-  /** Shopify variant GID — quantities are validated server-side against the live catalogue, never trusted as-is (CLAUDE.md rule 9). */
+  /** Catalogue SKU — how the app re-resolves current price/product truth (CatalogueAdapter.getProduct has no by-variant-id lookup). */
+  sku: text('sku').notNull(),
+  /** Shopify variant GID — carried through to the eventual Shopify draft order line (Phase 8). */
   shopifyVariantId: text('shopify_variant_id').notNull(),
   quantity: integer('quantity').notNull(),
   ...timestamps,
@@ -197,6 +205,8 @@ export const orderRequestLines = sqliteTable('order_request_lines', {
   orderRequestId: text('order_request_id')
     .notNull()
     .references(() => orderRequests.id),
+  /** Catalogue SKU — how the app re-resolves current product title/image for display (CatalogueAdapter.getProduct has no by-variant-id lookup). */
+  sku: text('sku').notNull(),
   shopifyVariantId: text('shopify_variant_id').notNull(),
   requestedQuantity: integer('requested_quantity').notNull(),
   /** Null until NCC review. May only be <= requestedQuantity, never greater (rule 2/15) — enforced in domain/status.ts, not the DB layer alone. */
