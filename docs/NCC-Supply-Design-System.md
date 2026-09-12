@@ -187,13 +187,13 @@ Active link: `text-foreground bg-secondary`.
 - **Secondary:** `border border-border px-5 py-3 rounded-lg font-semibold hover:bg-secondary`.
 - **Tertiary/link:** `text-foreground/80 underline-offset-4 hover:underline`.
 
-### Product card
-`surface-card rise-in flex flex-col rounded-xl p-4`.
-Media block: `sky-gradient grid-mesh h-32 rounded-lg p-3`, grade badge bottom-left (`bg-black/25 text-[11px] uppercase tracking-wider rounded-md`).
-Body: category eyebrow (primary, uppercase) → title (`text-base font-semibold`, hover primary) → SKU (muted `text-xs`) → footer row with price (`font-display text-xl font-semibold`), `ex VAT · Available to order` micro-copy, and an icon+label Add button that swaps to a check for 1.4s.
+### Product card (corrected 2026-09-13 to match the reference site's actual card layout)
+`surface-card rise-in flex flex-col overflow-hidden rounded-xl p-0`.
+Media block: the real `product.thumbnail` image, full-bleed (`h-40 w-full object-cover`), no padding — falls back to `sky-gradient grid-mesh` only if the image fails to load (never a blank box). No fabricated "grade" badge — there is no grade field in the data model; a repair-parts grade UI can be added once that data exists.
+Body (`p-4`): category eyebrow (primary, uppercase) → title (`text-base font-semibold`, hover primary) → SKU (muted `text-xs`) → footer row (`p-4 pt-0`) with price (`font-display text-xl font-semibold`), `ex VAT · Available to order` micro-copy, and an icon+label Add button that swaps to a check for 1.4s.
 
-### Category card
-Image with `hover:scale-105` inside `overflow-hidden rounded-xl`, gradient scrim, name + live line count, whole card is a link with visible focus ring (`ring-2 ring-ring ring-offset-2`).
+### Category card (corrected 2026-09-13 — see DECISIONS.md)
+White `surface-card` shell, not a dark image-overlay tile: the real `category.thumbnail` image at top (`h-32 w-full object-cover`, `hover:scale-105`), a line-count pill badge (`bg-card/90`, top-left over the image), then a `p-4` body with a short primary accent bar, title, `category.description`, and a "View products →" link in `text-primary` with an arrow icon that nudges right on hover. Falls back to `sky-gradient grid-mesh` only when no thumbnail exists. Whole card is a link with visible focus ring (`ring-2 ring-ring ring-offset-2`).
 
 ### Product banner (hero / promo / category top)
 Full-width banner block used for the homepage hero, category page tops, and promotional callouts.

@@ -97,11 +97,12 @@ const TRUST_STATS = [
 
 function IndexRoute() {
   const { collections, popularProducts, error } = Route.useLoaderData()
+  const totalLines = collections.reduce((sum, collection) => sum + collection.lineCount, 0)
 
   return (
     <>
       <Banner
-        eyebrow="Lorem ipsum · Available to order"
+        eyebrow={`${totalLines}+ lines · Available to order`}
         title={
           <>
             Trade pricing on mobile accessories,{' '}
@@ -130,6 +131,42 @@ function IndexRoute() {
                 <span className="text-xs text-muted-foreground">{stat.description}</span>
               </div>
             ))}
+          </div>
+        </Container>
+      </Section>
+
+      <Section>
+        <Container>
+          <div className="surface-card grid grid-cols-1 overflow-hidden rounded-2xl p-0 md:grid-cols-2">
+            <div className="flex flex-col justify-center gap-5 p-8 sm:p-12">
+              <span className="w-fit rounded-full bg-sky-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                Confirmed before you pay
+              </span>
+              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                Build one basket, let NCC confirm the rest
+              </h2>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Submit lines from any category with no payment up front — NCC checks stock,
+                confirms delivery and VAT, and you approve the final total before anything is
+                charged.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a
+                  href="/categories"
+                  className="sky-gradient inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
+                >
+                  Browse Catalogue
+                </a>
+                <a
+                  href="/how-to-order"
+                  className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+                >
+                  How Ordering Works
+                </a>
+              </div>
+            </div>
+            {/* Image slot — placeholder until real product photography is supplied (design system §7's placeholder rule); never left blank. */}
+            <div className="sky-gradient grid-mesh min-h-[220px]" role="img" aria-label="NCC Supply product range" />
           </div>
         </Container>
       </Section>

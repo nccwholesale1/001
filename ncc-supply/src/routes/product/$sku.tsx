@@ -4,13 +4,32 @@ import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { addBasketLine } from '../../server/basket/server-functions'
 import { getCatalogueAdapter } from '../../server/integrations/shopify'
-import type { ProductDetail } from '../../server/integrations/shopify/types'
+import type { ProductDetail, ProductImage } from '../../server/integrations/shopify/types'
 import { Breadcrumbs } from '../../components/ui/Breadcrumbs'
 import { Icon } from '../../components/ui/Icon'
 import { Container, Section } from '../../components/ui/Layout'
+import { cn } from '../../lib/cn'
 
 type AddStatus = 'idle' | 'adding' | 'added' | 'error'
 const CONFIRM_DURATION_MS = 1400
+
+/** Real image when one exists (live Shopify data always will); the design system's gradient/mesh placeholder otherwise — never a blank box. */
+function GalleryImage({ image, className }: { image: ProductImage; className: string }) {
+  const [failed, setFailed] = useState(false)
+  if (!image.url || failed) {
+    return (
+      <div className={cn('sky-gradient grid-mesh flex items-center justify-center', className)} role="img" aria-label={image.altText} />
+    )
+  }
+  return (
+    <img
+      src={image.url}
+      alt={image.altText}
+      onError={() => setFailed(true)}
+      className={cn('object-cover', className)}
+    />
+  )
+}
 
 const getProductData = createServerFn({ method: 'GET' })
   .validator((sku: string) => sku)
@@ -100,19 +119,16 @@ function ProductRoute() {
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           <div className="flex flex-col gap-3">
-            <div
-              className="sky-gradient grid-mesh flex aspect-square items-center justify-center rounded-xl"
-              role="img"
-              aria-label={images[0]?.altText}
-            />
+            {images[0] ? (
+              <GalleryImage image={images[0]} className="aspect-square w-full rounded-xl" />
+            ) : null}
             {images.length > 1 ? (
               <div className="flex gap-2">
-                {images.slice(1, 5).map((image) => (
-                  <div
-                    key={image.url || image.altText}
-                    className="sky-gradient grid-mesh h-16 w-16 rounded-lg"
-                    role="img"
-                    aria-label={image.altText}
+                {images.slice(1, 5).map((image, index) => (
+                  <GalleryImage
+                    key={image.url || `${image.altText}-${index}`}
+                    image={image}
+                    className="h-16 w-16 rounded-lg"
                   />
                 ))}
               </div>

@@ -31,9 +31,11 @@ describe('fixture catalogue adapter', () => {
   })
 
   it('paginates via cursor rather than page number', async () => {
+    const { totalCount } = await adapter.search('fixture', { first: 1 })
+
     const firstPage = await adapter.search('fixture', { first: 1 })
     expect(firstPage.products).toHaveLength(1)
-    expect(firstPage.pageInfo.hasNextPage).toBe(true)
+    expect(firstPage.pageInfo.hasNextPage).toBe(totalCount > 1)
 
     const secondPage = await adapter.search('fixture', {
       first: 1,
@@ -41,6 +43,9 @@ describe('fixture catalogue adapter', () => {
     })
     expect(secondPage.products).toHaveLength(1)
     expect(secondPage.products[0]?.sku).not.toBe(firstPage.products[0]?.sku)
-    expect(secondPage.pageInfo.hasNextPage).toBe(false)
+
+    const lastPage = await adapter.search('fixture', { first: totalCount })
+    expect(lastPage.pageInfo.hasNextPage).toBe(false)
+    expect(lastPage.products).toHaveLength(totalCount)
   })
 })

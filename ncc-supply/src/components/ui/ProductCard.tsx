@@ -20,14 +20,20 @@ function formatPrice(pence: number): string {
 }
 
 /**
- * Design system §7 "Product card". Links use plain anchors, not the typed
- * RouterLink — see Header.tsx for why. The Add-to-basket control is real as
- * of Phase 6: adds one unit via the server-truth-priced basket module,
- * confirms with a check for 1.4s per the design spec.
+ * Design system §7 "Product card" (media block corrected 2026-09-13 to
+ * render the adapter's real `product.thumbnail` — fixture mode already
+ * provides one, clearly marked as fixture-only via the product's own
+ * `[Fixture]`-prefixed title per CLAUDE.md rule 20; live mode returns the
+ * real Shopify product image — falling back to the gradient/mesh treatment
+ * only if the image itself fails to load). Links use plain anchors, not the
+ * typed RouterLink — see Header.tsx for why. The Add-to-basket control is
+ * real as of Phase 6: adds one unit via the server-truth-priced basket
+ * module, confirms with a check for 1.4s per the design spec.
  */
 export function ProductCard({ product, className }: ProductCardProps) {
   const href = `/product/${product.sku}`
   const [status, setStatus] = useState<AddStatus>('idle')
+  const [imageFailed, setImageFailed] = useState(false)
   const addLine = useServerFn(addBasketLine)
 
   async function handleAdd() {
@@ -43,15 +49,24 @@ export function ProductCard({ product, className }: ProductCardProps) {
   }
 
   return (
-    <div className={cn('surface-card rise-in flex flex-col rounded-xl p-4', className)}>
-      <a href={href} className="rounded-lg no-underline hover:no-underline">
-        <div
-          className="sky-gradient grid-mesh flex h-32 items-center justify-center rounded-lg p-3"
-          role="img"
-          aria-label={product.thumbnail.altText}
-        />
+    <div className={cn('surface-card rise-in flex flex-col overflow-hidden rounded-xl p-0', className)}>
+      <a href={href} className="block no-underline hover:no-underline">
+        {imageFailed || !product.thumbnail.url ? (
+          <div
+            className="sky-gradient grid-mesh flex h-40 items-center justify-center"
+            role="img"
+            aria-label={product.thumbnail.altText}
+          />
+        ) : (
+          <img
+            src={product.thumbnail.url}
+            alt={product.thumbnail.altText}
+            onError={() => setImageFailed(true)}
+            className="h-40 w-full object-cover"
+          />
+        )}
       </a>
-      <div className="mt-4 flex flex-1 flex-col gap-1">
+      <div className="flex flex-1 flex-col gap-1 p-4">
         <span className="text-xs font-semibold uppercase tracking-wide text-primary">
           {product.collectionTitle}
         </span>
@@ -63,7 +78,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         </a>
         <span className="text-xs text-muted-foreground">SKU {product.sku}</span>
       </div>
-      <div className="mt-4 flex items-end justify-between gap-2">
+      <div className="flex items-end justify-between gap-2 p-4 pt-0">
         <div className="flex flex-col">
           <span className="font-display text-xl font-semibold text-foreground">
             {formatPrice(product.price.amountPence)}
