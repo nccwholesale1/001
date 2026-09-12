@@ -9,6 +9,7 @@ import {
   updateBasketLine,
 } from '../server/basket/server-functions'
 import type { BasketView } from '../server/basket/basket'
+import { getCurrentBuyerSummary } from '../server/buyers/server-functions'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
 import { Container, Section } from '../components/ui/Layout'
@@ -18,7 +19,10 @@ function formatPrice(pence: number): string {
 }
 
 export const Route = createFileRoute('/basket')({
-  loader: () => getBasket(),
+  loader: async () => {
+    const [basket, buyer] = await Promise.all([getBasket(), getCurrentBuyerSummary()])
+    return { basket, isBuyer: buyer !== null }
+  },
   head: () => ({
     meta: [{ name: 'robots', content: 'noindex' }, { title: 'Basket · NCC Supply' }],
   }),
@@ -26,7 +30,7 @@ export const Route = createFileRoute('/basket')({
 })
 
 function BasketRoute() {
-  const initialBasket = Route.useLoaderData()
+  const { basket: initialBasket, isBuyer } = Route.useLoaderData()
   const [basket, setBasket] = useState<BasketView>(initialBasket)
   const [contactEmail, setContactEmail] = useState('')
   const [contactName, setContactName] = useState('')
@@ -65,13 +69,19 @@ function BasketRoute() {
     setSubmitError(null)
     try {
       const result = await submit({
-        data: {
-          contactEmail: contactEmail.trim() || undefined,
-          contactName: contactName.trim() || undefined,
-        },
+        data: isBuyer
+          ? {}
+          : {
+              contactEmail: contactEmail.trim() || undefined,
+              contactName: contactName.trim() || undefined,
+            },
       })
-      const params = new URLSearchParams({ orderId: result.orderRequestId, token: result.token })
-      window.location.href = `/order-submitted?${params.toString()}`
+      if (result.kind === 'buyer') {
+        window.location.href = '/account/orders'
+      } else {
+        const params = new URLSearchParams({ orderId: result.orderRequestId, token: result.token })
+        window.location.href = `/order-submitted?${params.toString()}`
+      }
     } catch (error) {
       setSubmitError(
         error instanceof Error
@@ -200,18 +210,27 @@ function BasketRoute() {
                 onSubmit={handleSubmit}
                 className="surface-card flex flex-col gap-4 rounded-xl p-5"
               >
-                <Field
-                  label="Email"
-                  type="email"
-                  value={contactEmail}
-                  onChange={(event) => setContactEmail(event.target.value)}
-                  helpText="Your private order link will reference this contact."
-                />
-                <Field
-                  label="Name"
-                  value={contactName}
-                  onChange={(event) => setContactName(event.target.value)}
-                />
+                {isBuyer ? (
+                  <p className="text-sm text-muted-foreground">
+                    Submitting sends this to your company admin for approval before it reaches
+                    NCC.
+                  </p>
+                ) : (
+                  <>
+                    <Field
+                      label="Email"
+                      type="email"
+                      value={contactEmail}
+                      onChange={(event) => setContactEmail(event.target.value)}
+                      helpText="Your private order link will reference this contact."
+                    />
+                    <Field
+                      label="Name"
+                      value={contactName}
+                      onChange={(event) => setContactName(event.target.value)}
+                    />
+                  </>
+                )}
                 {submitError ? (
                   <p role="alert" className="text-sm text-destructive">
                     {submitError}

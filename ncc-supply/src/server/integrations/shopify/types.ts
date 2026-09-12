@@ -192,14 +192,26 @@ export interface CustomerAccountSession {
   refreshToken?: string
 }
 
+export interface VerifiedCustomerIdentity {
+  email: string
+  /** Shopify customer GID (the id_token's `sub` claim) — stored as `buyerUsers.shopifyCustomerId`. */
+  shopifyCustomerId: string
+}
+
 /**
  * Owns: passwordless sign-in for company buyers via Shopify's own OAuth2 +
  * PKCE + OIDC flow (ADR-003 — the app never builds its own buyer password
  * system). `login()` returns the URL to redirect the buyer to; `authorize`
- * exchanges the callback's authorization code for a session. Genuinely not
- * live-testable until a real HTTPS callback route exists (Phase 7) — this
- * phase implements real URL/token-exchange construction, contract-tested
- * via mocked fetch.
+ * exchanges the callback's authorization code for a session; `verifyIdentity`
+ * verifies and decodes the session's id_token into the email/customer-id
+ * pair Phase 7's callback route matches against `buyerUsers` — this is the
+ * actual authentication boundary (CLAUDE.md rule 9), not just token
+ * exchange. Real adapter verifies the id_token's signature against
+ * Shopify's own JWKS; not live-testable until a real HTTPS callback route
+ * and a configured client id exist (see docs/DECISIONS.md). A fixture
+ * adapter (CUSTOMER_ACCOUNT_ADAPTER=fixture, the dev default) implements
+ * the same contract against a self-signed token so the whole sign-in flow
+ * is exercisable with zero Shopify credentials.
  */
 export interface CustomerAccountAdapter {
   login(
@@ -210,6 +222,7 @@ export interface CustomerAccountAdapter {
     codeVerifier: string,
     redirectUri: string,
   ): Promise<CustomerAccountSession>
+  verifyIdentity(idToken: string): Promise<VerifiedCustomerIdentity>
   /** Phase 10 — needs a real authenticated session to mean anything. */
   getReturnEligibility(orderId: string, accessToken: string): Promise<{ eligible: boolean }>
   /** Phase 10. */

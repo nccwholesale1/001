@@ -4,65 +4,69 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 6 — Basket and guest order-request vertical slice
+## Last completed phase: Phase 7 — Company accounts, buyer identity, company approval
 
-**Completed scope:** the guest-only path from PRD §§4, 6.5, 6.7 (runbook §9), on branch `phase/6-guest-orders`. Company-buyer basket/approval is Phase 7's job, not touched here.
+**Completed scope:** company buyer identity and the company-side approval step from PRD §§2, 4, 6.10–6.13, 7.4 (runbook §10), on branch `phase/7-company-accounts`. NCC-side staff auth (`server/auth/session.ts`/`password.ts`, built in Phase 2) is unused by any route until Phase 11 — out of this phase's scope by design.
 
-- **`server/basket/session.ts`** — the persistent guest basket mechanism: TanStack Start's `useSession` (encrypted, httpOnly, sealed with `env.SESSION_SECRET`) holds only a pointer to a server-side basket row (ADR-017).
-- **`server/basket/basket.ts`** — add/update/remove lines, each re-resolving real price/product via `getCatalogueAdapter()` — never a stored or client-supplied price. A line whose product has since become unavailable stays visible with a clear reason rather than being silently dropped.
-- **`server/basket/submit-order-request.ts`** — the guest submission: re-resolves every price one more time at this exact moment, creates the order request directly at `awaiting_ncc_review` (guests skip company approval — rule 6), issues a guest token, records an audit event. Wrapped in `withIdempotency` keyed on the basket id, so a duplicate/retried submission always replays the exact same result rather than creating a second order — proven by a test asserting exactly one `order_requests` row after submitting twice.
-- **`server/basket/server-functions.ts`** — the `createServerFn` layer every route/component calls; every mutation resolves the basket id from the session cookie itself, never from client input.
-- **New routes:** `/basket` (editable line list, ex-VAT subtotal, contact fields, "Submit basket" — copy never says Pay/Checkout), `/order-submitted` (confirmation + the one-time private link), `/order/:id` (token-gated; a missing/wrong/expired/revoked token and a nonexistent id all render the identical "we couldn't find that order" state — verified in a real browser for all four cases, not just asserted).
-- **`ProductCard`** and **`/product/:sku`** — the "Add to Basket" control is real now (was deliberately inert since Phase 4/5, since there was nothing to add to yet), with the design system's confirm-then-revert visual state.
-- **ADR-018**: `submitBasketSchema` revised — basket id and lines are never client input anymore, only optional contact fields.
-- **Schema gap fixes** (same pattern as ADR-012/014): `baskets.status`/`orderRequestId`, `basket_lines.sku`, `order_request_lines.sku` — none of these existed even though the domain model and the adapter's SKU-only lookup already required them. Migration `0001_clear_switch.sql`.
+- **Buyer identity is Shopify's own OIDC/PKCE Customer Account flow (ADR-003)** — no app-owned password system. `server/integrations/shopify/customer-account-adapter.ts` (built Phase 3, never live-tested) finally gets its real HTTPS callback route, `/auth-callback`. Added `verifyIdentity(idToken)` to the adapter contract: real JWKS signature verification against Shopify's discovery document (via `jose`, a new dependency), checking `aud`/`iss` before trusting the `email`/`sub` claims — the actual authentication boundary, not just token exchange.
+- **`CUSTOMER_ACCOUNT_ADAPTER=fixture|live`** (default `fixture`), mirroring `CATALOGUE_ADAPTER` — `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` is still unconfigured (same blocker as Phase 3's Storefront token, still unconfirmed by the user). The fixture adapter (`fixture-customer-account-adapter.ts`) drives a dev-only simulated Shopify login page (`/dev/fixture-shopify-login`) using a self-signed JWT, so the entire sign-in → callback → session → account → approval flow was genuinely exercised end-to-end in a real browser, not just unit-mocked (ADR-019).
+- **`/auth`** (buyer sign-in entry) and **`/register`** (first-time company creation for a verified identity with no matching `buyerUsers` row). Invite acceptance happens via `/auth` itself — an admin-created `invited` row activates on that buyer's first successful sign-in (mirrors ADR-007's staff activation pattern) — there is no separate "accept invite" step (ADR-022).
+- **Buyer session** (`ncc_buyer` cookie, `server/buyers/buyer-session.ts`) is entirely separate from the guest basket session (`ncc_basket`) — signing in never disturbs an in-progress guest basket. A short-lived `ncc_oidc_pending` session carries OIDC round-trip state and, briefly, a verified-but-unmatched identity for `/register` (ADR-021).
+- **`/account`** shell (sidebar layout + guard), dashboard, **`/account/orders`** (buyer-own vs. company-admin-all, reusing the existing `canViewCompanyResource` unchanged), **`/account/users`** (admin-only invite/edit-role-and-spend-limit/remove), **`/account/pricing`** (plain statement of uniform list pricing — ADR-005 already resolved there's no tier table to show).
+- **Reorder** (`server/orders/order-view.ts::reorderIntoBasket`) duplicates a past order's lines — confirmed quantity if NCC already set one, else requested — into a fresh basket via the existing `addLine`, no bespoke copy path.
+- **Basket ownership unified with minimal diff**: `getOrCreateBasketId` (`server/basket/session.ts`) now checks for a buyer session first (resolving/creating that buyer's own basket by identity, no cookie pointer needed) before falling through to the unchanged guest-cookie logic — every existing basket call site (`ProductCard`, `/product/:sku`, `basket/server-functions.ts`) works unchanged for both guest and buyer.
+- **Buyer order submission** (`server/basket/submit-order-request.ts`) creates the order request directly at `awaiting_company_approval` — unlike a guest, who still skips straight to `awaiting_ncc_review` (rule 6). **`server/orders/company-approval.ts::decideCompanyApproval`** is what actually exercises the existing guarded `transitionOrderRequest('company_approve'|'company_reject')` — a replayed decision on an already-decided order fails cleanly via the existing `InvalidTransitionError`, with no new idempotency wrapper needed (ADR-023).
+- **Audit events** for company registration, buyer invite/activation/role/spend-limit/removal, and every company approval/rejection — all via the existing `recordAuditEvent`.
+- **Header** shows the signed-in company name + role, with sign-out — extends the existing root-loader pattern alongside the category loader.
+- **A real pre-existing bug found and fixed**: `authorization.ts`'s `isCompanyAdmin` type predicate always narrowed to `never` (an `Extract<Union, {discriminant, narrowerLiteral}>` gotcha) — written in Phase 2, never exercised by any caller until this phase's code was the first to actually use it. Fixed to extract-then-intersect. See DECISIONS.md ADR notes for the full explanation.
 
-**Files created/changed:** see `TASKS.md` Phase 6 checklist for the exhaustive list with per-item evidence. Also touched: `validation/commands.ts` (new basket-line schemas, revised `submitBasketSchema`), `DECISIONS.md` (ADR-017, ADR-018, the schema-gap note, and a real process-gap finding below).
+**Files created/changed:** see `TASKS.md` Phase 7 checklist for the exhaustive list. New modules: `server/buyers/{buyer-session,oidc-flow,companies,server-functions}.ts`, `server/orders/{order-view,company-approval,server-functions}.ts`, `server/integrations/shopify/fixture-customer-account-adapter.ts`; new routes `auth.tsx`, `auth-callback.tsx`, `register.tsx`, `dev/fixture-shopify-login.tsx`, `account/{route,index,orders,users,pricing}.tsx`; new components `OrderRequestDetail.tsx` (extracted from `/order/$id` for reuse), `BuyerUserTable.tsx`. Also touched: `validation/commands.ts` (new schemas), `env.ts`/`.env.example` (`CUSTOMER_ACCOUNT_ADAPTER`), `integrations/shopify/{types,index,customer-account-adapter}.ts`, `basket/{session,submit-order-request}.ts`, `auth/authorization.ts` (the `isCompanyAdmin` fix + a shared `ForbiddenError`), `components/ui/Header.tsx`, `routes/__root.tsx`, `routes/order/$id.tsx`, `routes/basket.tsx`. `DECISIONS.md` (ADR-019 through ADR-023 plus the type-bug note).
 
 **Verification performed (actual output, not inspection-only):**
 ```
-$ pnpm test        → Test Files 33 passed (33), Tests 231 passed | 1 skipped (232)
-$ pnpm typecheck   → tsc --noEmit, no output, exit 0
-$ pnpm lint        → eslint ., no output, exit 0
-$ pnpm build       → client + SSR bundles both built successfully
+$ pnpm typecheck  → tsc --noEmit, no output, exit 0
+$ pnpm lint       → eslint ., no output, exit 0
+$ pnpm test       → Test Files 39 passed (39), Tests 291 passed | 1 skipped (292)
+$ pnpm build      → client + SSR bundles both built successfully
 ```
-Also inspected the build output specifically for this phase: confirmed `createServerFn`'s server/client code-splitting works correctly even when a server function is called from a shared component (`ProductCard`, used on the homepage/category/search, not just from a route loader) — the client chunk stayed small while the server chunk carried the real `db`/adapter logic, with no `@libsql/client` leakage into the browser bundle.
+Also re-checked the client bundle specifically for this phase: grepped `dist/client/assets/*.js` for `libsql`/`node:crypto`/`jose`/`jwtVerify`/`createRemoteJWKSet` — none present, confirming the new JWKS-verification code and the db client stayed server-only despite being reachable from routes now guarded by session logic.
 
-Manual, via the Browser tool against `pnpm dev` with the real (migrated) dev database: added a real fixture product to the basket from its product page, confirmed it appeared on `/basket` with the correct live price, increased its quantity and watched the subtotal update, submitted, landed on `/order-submitted` with a real private link, followed it to a fully populated `/order/:id`, then confirmed a tampered token, a missing token, and a nonexistent order id all render the identical "we couldn't find that order" message. Confirmed that reloading `/basket` after a successful submission issues a fresh empty basket rather than resurfacing the completed one. Checked both 375px and desktop layouts.
+Manual, via the Browser tool against `pnpm dev` (fixture adapter, the default): registered a new company ("Acme Repairs") end-to-end through the simulated Shopify login → `/register` → landed on `/account` with the sidebar/role/company name all correct; invited a second buyer ("Bob Buyer") from `/account/users` and confirmed his row showed "Pending invite"; signed in as Bob via the fixture login and confirmed his `invited` row activated and he landed straight on `/account` as "Buyer" (no Users link, no admin-only dashboard card); added a fixture product to his basket and submitted it, confirming buyer-mode copy ("sends this to your company admin") and no contact fields; confirmed the order showed `awaiting_company_approval` on `/account/orders` for both Bob's own view and Jane's (the admin's) all-orders view with "· Bob Buyer" attribution; approved it as Jane and confirmed it flipped to `awaiting_ncc_review`; re-expanded the row afterward and confirmed no stale Approve/Reject controls remained (see the real bug found below); reordered it into a fresh basket confirmed by quantity/SKU; registered a second company ("Beta Supplies") and confirmed its admin saw zero orders and zero users from Acme — real cross-tenant isolation, not just asserted in tests.
 
-**A real bug the manual verification caught:** the first add-to-basket attempt failed with a genuine SQL error — the migration had only ever been applied to throwaway test files in every prior phase, never to the actual `local.db` the running dev server uses. Fixed by running `pnpm db:migrate` against it directly. See `DECISIONS.md` for the full note; this is a real process gap worth remembering for future phases, not just a one-off fix.
+**A real bug the manual verification caught:** after approving/rejecting an order, the row's cached detail was cleared but the "which row is expanded" state wasn't reset alongside it — the next click on that row (still logically "expanded" with no detail to show) silently collapsed it instead of re-expanding with fresh data. Fixed in `routes/account/orders.tsx` by resetting `expandedId` in the same place `detailById` is cleared, so a decided row visibly collapses and a subsequent click re-fetches current detail.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 6 decisions and facts" (ADR-017, ADR-018, the schema-gap note, the dev-database migration finding).
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 7 decisions and facts" (ADR-019 through ADR-023, the `jose`/jsdom `CryptoKey` realm bug, the `isCompanyAdmin` type-narrowing bug).
 
-**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged (fixture-mode by default, not blocking). PRD §13 Questions 1, 4, 5, 6 unchanged.
+**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged. `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` is also still unconfigured — the same manual Shopify-admin Headless-channel step would supply both tokens; neither is confirmed done by the user. Both adapters default to `fixture`/complete, tested defaults in the meantime. PRD §13 Questions 1, 4, 5, 6 unchanged.
 
-**Database migrations / environment variables:** new migration `src/server/db/migrations/0001_clear_switch.sql` (baskets status/orderRequestId, basket_lines.sku, order_request_lines.sku) — applied to the local dev database as part of this phase's own verification. No new environment variables.
+**Database migrations / environment variables:** no new migration — every column Phase 7 needed (`companies`, `buyerUsers.{role,status,spendLimit,shopifyCustomerId}`, `baskets.buyerUserId`, `orderRequests.{buyerUserId,companyApprovedByBuyerUserId,companyApprovedAt}`, `auditEvents.actorType` including `'buyer'`) already existed from Phase 2's forward-looking schema. New environment variable: `CUSTOMER_ACCOUNT_ADAPTER` (optional, default `fixture`). New dependency: `jose`.
 
 ---
 
-## Next phase: Phase 7 — Company accounts, buyer identity, company approval
+## Next phase: Phase 8 — NCC order console, Shopify draft order and confirmed checkout
 
-**Phase 7 entry criteria (Phase 6 exit gate, satisfied):** the full guest vertical slice works end-to-end against real data; every price is server-resolved; guest access is token-gated with no enumeration; duplicate submission is idempotent; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
+**Phase 8 entry criteria (Phase 7 exit gate, satisfied):** company buyer identity, registration, invites, and the company-approval step all work end-to-end against real data (fixture Shopify adapter); every order still reaches `awaiting_ncc_review` before any question of confirmation; cross-company and buyer-vs-admin isolation both hold; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
 
 ```text
-Read all context and the Phase 6 handoff. Inspect git status. Implement only Phase 7.
+Read all context and the Phase 7 handoff. Inspect git status. Implement only Phase 8.
 
-Implement company buyer identity and company-side approval according to PRD §§2, 4, 6.10–6.13 and 7.4.
+Build the NCC order review and confirmation workflow from PRD §§4, 6.7, 6.9 and 7.1.
 
-Use Shopify's current customer-account flow for company buyers as decided in the architecture (src/server/integrations/shopify/customer-account-adapter.ts already exists from Phase 3 — real OIDC/PKCE construction, contract-tested, not yet live-tested since it needs a real HTTPS callback route, which this phase provides). Do not create a separate buyer password system. Implement server-side mapping from Shopify customer/company identity to the app-owned workflow records already defined in src/server/db/schema.ts (companies, buyer_users).
+Implement:
+- protected /staff/orders and /staff/order/:id routes;
+- staff authentication boundary needed for NCC admins;
+- queue states that distinguish awaiting review from confirmed;
+- per-line confirmed quantities, allowing zero and preventing increases above requested quantity;
+- delivery and VAT inputs, server-side recalculated final totals, internal notes and invoice-link field;
+- one atomic NCC-admin Approve action that validates and records quantities, delivery, VAT, total and status together;
+- Cancel with required reason and audit record;
+- Shopify Draft Order creation/update only after successful NCC approval;
+- secure invoice/payment link handling using the current supported Shopify flow;
+- /checkout/:id guard that redirects to order view unless status is confirmed;
+- confirmed customer order view showing original versus confirmed lines, removals, delivery, VAT and final total;
+- cash-on-delivery and invoice-payment options only when confirmed.
 
-Build:
-- /auth and /register buyer/invite paths as specified;
-- /account shell and dashboard;
-- /account/orders with buyer-own vs company-admin-all visibility (src/server/auth/authorization.ts's canViewCompanyResource/canMutateCompanyResource already implement this distinction — reuse them, don't re-derive);
-- reorder action that creates a new basket (src/server/basket/basket.ts's addLine, reused);
-- /account/users for invites, roles, spend limits and removal;
-- /account/pricing as read-only server-resolved entitlement data (uniform list pricing only — ADR-005, no contract tiers to look up);
-- buyer order submission into awaiting_company_approval (src/server/domain/status.ts's transitionOrderRequest already has this transition — guest submission in Phase 6 bypassed it entirely by creating straight at awaiting_ncc_review; a signed-in buyer's submission needs to actually start at awaiting_company_approval and use the guarded transition to advance);
-- company-admin approve/reject actions and clear pending states;
-- audit events for every approval, role, limit and user-state change (src/server/audit/audit-log.ts already exists).
+Design external mutations for idempotency and partial-failure recovery. Never leave the app confirmed while Shopify creation failed without an explicit recoverable reconciliation state. Never expose Admin API access to the client.
 
-Every company buyer order requires company-admin approval regardless of spend limit. Spend limits are informational context only. A company-admin approval advances the request to NCC review; it never confirms the order or unlocks payment.
-
-Test cross-company isolation, buyer/admin visibility, removed-user behaviour, pending invites, replayed approval, unauthorized price access and all status transitions. Run all checks, update tracking documents and stop.
+Use a development Shopify store only. Place every live mutation behind an explicit environment safety check. Test unauthorized access, quantity increase attempts, double approval, Shopify timeout/failure, reconciliation, unconfirmed checkout access and final-total integrity. Run all checks, update records and stop.
 ```

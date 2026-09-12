@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createTestDb } from '../db/test-helpers'
-import { baskets, guestTokens, orderRequestLines, orderRequests } from '../db/schema'
+import { auditEvents, baskets, buyerUsers, companies, guestTokens, orderRequestLines, orderRequests } from '../db/schema'
 import { addLine } from './basket'
 import { BasketNotFoundError, EmptyBasketError, submitBasket } from './submit-order-request'
 
@@ -47,6 +47,7 @@ describe('submitBasket', () => {
     const { db, basketId } = await seedOpenBasketWithLine()
 
     const result = await submitBasket(db, basketId, {})
+    if (result.kind !== 'guest') throw new Error('expected a guest submission result')
 
     const [basket] = await db.select().from(baskets).where(eq(baskets.id, basketId))
     expect(basket?.status).toBe('submitted')
@@ -80,5 +81,58 @@ describe('submitBasket', () => {
     expect(second).toEqual(first)
     const allOrderRequests = await db.select().from(orderRequests)
     expect(allOrderRequests).toHaveLength(1)
+  })
+
+  describe('a signed-in buyer basket (buyerUserId set)', () => {
+    async function seedBuyerBasketWithLine() {
+      const { db, client } = await createTestDb()
+      cleanup = () => client.close()
+      await db.insert(companies).values({ id: 'co-a', name: 'Acme' })
+      await db.insert(buyerUsers).values({
+        id: 'buyer-1',
+        companyId: 'co-a',
+        name: 'Buyer One',
+        email: 'buyer1@example.com',
+        role: 'buyer',
+        status: 'active',
+      })
+      const basketId = 'buyer-basket-1'
+      await db.insert(baskets).values({ id: basketId, buyerUserId: 'buyer-1' })
+      await addLine(db, basketId, 'FIXTURE-CHG-001', 4)
+      return { db, basketId }
+    }
+
+    it('creates the order request at awaiting_company_approval — unlike a guest, it does not skip company approval (rule 6)', async () => {
+      const { db, basketId } = await seedBuyerBasketWithLine()
+
+      const result = await submitBasket(db, basketId, {})
+      expect(result.kind).toBe('buyer')
+      if (result.kind !== 'buyer') throw new Error('expected a buyer submission result')
+
+      const [orderRequest] = await db.select().from(orderRequests).where(eq(orderRequests.id, result.orderRequestId))
+      expect(orderRequest?.status).toBe('awaiting_company_approval')
+      expect(orderRequest?.buyerUserId).toBe('buyer-1')
+      expect(orderRequest?.guestContactEmail).toBeNull()
+
+      // No guest token for a buyer order — they reach it via /account/orders, session-gated.
+      const tokens = await db.select().from(guestTokens)
+      expect(tokens).toHaveLength(0)
+
+      const [event] = await db.select().from(auditEvents).where(eq(auditEvents.action, 'submit_order_request'))
+      expect(event?.actorType).toBe('buyer')
+      expect(event?.actorId).toBe('buyer-1')
+    })
+
+    it('still resolves the line price from the live catalogue, never client input', async () => {
+      const { db, basketId } = await seedBuyerBasketWithLine()
+      const result = await submitBasket(db, basketId, {})
+      if (result.kind !== 'buyer') throw new Error('expected a buyer submission result')
+
+      const lines = await db
+        .select()
+        .from(orderRequestLines)
+        .where(eq(orderRequestLines.orderRequestId, result.orderRequestId))
+      expect(lines[0]?.unitPricePence).toBe(1299)
+    })
   })
 })

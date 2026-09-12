@@ -22,8 +22,11 @@ const envSchema = z.object({
   /** Admin API access token — not needed until Phase 8's real draft-order/invoice/refund operations. */
   SHOPIFY_ADMIN_ACCESS_TOKEN: z.string().min(1).optional(),
   SHOPIFY_API_VERSION: z.string().min(1).default('2026-07'),
-  /** Customer Account API client id from the Headless channel — not usable until Phase 7 has a real HTTPS login callback route. */
+  /** Customer Account API client id from the Headless channel — required when CUSTOMER_ACCOUNT_ADAPTER=live. */
   SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: z.string().min(1).optional(),
+
+  /** Which CustomerAccountAdapter getCustomerAccountAdapter() returns — see integrations/shopify/index.ts. */
+  CUSTOMER_ACCOUNT_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -46,6 +49,14 @@ function loadEnv(): Env {
   ) {
     throw new Error(
       'CATALOGUE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_ACCESS_TOKEN to be set.',
+    )
+  }
+  if (
+    result.data.CUSTOMER_ACCOUNT_ADAPTER === 'live' &&
+    (!result.data.SHOPIFY_STORE_DOMAIN || !result.data.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID)
+  ) {
+    throw new Error(
+      'CUSTOMER_ACCOUNT_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID to be set.',
     )
   }
   return result.data

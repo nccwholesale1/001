@@ -1,6 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { env } from '../../env'
-import type { CustomerAccountAdapter, CustomerAccountSession, ShopifyReturn } from './types'
+import type {
+  CustomerAccountAdapter,
+  CustomerAccountSession,
+  ShopifyReturn,
+  VerifiedCustomerIdentity,
+} from './types'
 
 /**
  * Real OIDC discovery + PKCE construction, verified against
@@ -14,6 +20,8 @@ import type { CustomerAccountAdapter, CustomerAccountSession, ShopifyReturn } fr
 interface OidcDiscoveryDocument {
   authorization_endpoint: string
   token_endpoint: string
+  jwks_uri: string
+  issuer: string
 }
 
 interface TokenResponse {
@@ -46,7 +54,7 @@ function toCodeChallenge(codeVerifier: string): string {
 }
 
 export function createCustomerAccountAdapter(): CustomerAccountAdapter {
-  return { login, authorize, getReturnEligibility, requestReturn }
+  return { login, authorize, verifyIdentity, getReturnEligibility, requestReturn }
 }
 
 async function login(redirectUri: string) {
@@ -104,6 +112,31 @@ async function authorize(
     expiresAt: new Date(Date.now() + token.expires_in * 1000),
     refreshToken: token.refresh_token,
   }
+}
+
+/**
+ * Verifies the id_token's signature against Shopify's own JWKS (never trust
+ * an unverified claim about who signed in — CLAUDE.md rule 9) and checks
+ * `aud`/`iss` before reading the `email`/`sub` claims that the Phase 7
+ * callback route matches against `buyerUsers`.
+ */
+async function verifyIdentity(idToken: string): Promise<VerifiedCustomerIdentity> {
+  if (!env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID) {
+    throw new Error('verifyIdentity called without SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID configured')
+  }
+  const { jwks_uri, issuer } = await discoverEndpoints()
+  const jwks = createRemoteJWKSet(new URL(jwks_uri))
+  const { payload } = await jwtVerify(idToken, jwks, {
+    issuer,
+    audience: env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID,
+  })
+
+  const email = typeof payload.email === 'string' ? payload.email : null
+  const shopifyCustomerId = typeof payload.sub === 'string' ? payload.sub : null
+  if (!email || !shopifyCustomerId) {
+    throw new Error('id_token is missing required email/sub claims')
+  }
+  return { email: email.toLowerCase(), shopifyCustomerId }
 }
 
 // Params intentionally unused: signature fixed by CustomerAccountAdapter, needs a real session to mean anything (Phase 10).

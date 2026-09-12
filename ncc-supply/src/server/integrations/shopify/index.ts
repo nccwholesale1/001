@@ -1,11 +1,14 @@
 import { env } from '../../env'
 import { withCache } from './cache'
+import { createCustomerAccountAdapter } from './customer-account-adapter'
 import { createFixtureCatalogueAdapter } from './fixture-adapter'
+import { createFixtureCustomerAccountAdapter } from './fixture-customer-account-adapter'
 import { createStorefrontCatalogueAdapter } from './storefront-adapter'
 import type {
   CatalogueAdapter,
   CollectionResult,
   CollectionSummary,
+  CustomerAccountAdapter,
   FacetOpts,
   PaginationOpts,
   ProductDetail,
@@ -45,4 +48,17 @@ export function getCatalogueAdapter(): CatalogueAdapter {
     return withCatalogueCache(createStorefrontCatalogueAdapter())
   }
   return createFixtureCatalogueAdapter()
+}
+
+/**
+ * Same fixture/live split as `getCatalogueAdapter()`, for the same reason:
+ * SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID isn't configured yet, so the fixture
+ * adapter (default) is what makes Phase 7's buyer sign-in flow demonstrable
+ * without live Shopify credentials — see fixture-customer-account-adapter.ts.
+ */
+export function getCustomerAccountAdapter(): CustomerAccountAdapter {
+  if (env.CUSTOMER_ACCOUNT_ADAPTER === 'live') {
+    return createCustomerAccountAdapter()
+  }
+  return createFixtureCustomerAccountAdapter()
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { addBasketLineSchema, returnRequestSchema, submitBasketSchema } from './commands'
+import {
+  addBasketLineSchema,
+  inviteBuyerSchema,
+  registerCompanySchema,
+  returnRequestSchema,
+  submitBasketSchema,
+  updateBuyerUserSchema,
+} from './commands'
 
 describe('addBasketLineSchema', () => {
   it('accepts a well-formed line — sku and quantity only, no price field exists to supply', () => {
@@ -44,5 +51,47 @@ describe('returnRequestSchema', () => {
       lines: [{ orderRequestLineId: 'line_1', quantity: 1 }],
     })
     expect(result.success).toBe(true)
+  })
+})
+
+describe('registerCompanySchema', () => {
+  it('accepts company/admin name only — identity comes from the verified Shopify session, never here', () => {
+    expect(
+      registerCompanySchema.safeParse({ companyName: 'Acme Repairs', adminName: 'Jane Doe' }).success,
+    ).toBe(true)
+  })
+
+  it('rejects a client-supplied email or shopifyCustomerId', () => {
+    expect(
+      registerCompanySchema.safeParse({
+        companyName: 'Acme',
+        adminName: 'Jane',
+        email: 'jane@example.com',
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('inviteBuyerSchema', () => {
+  it('accepts a well-formed invite', () => {
+    expect(
+      inviteBuyerSchema.safeParse({ email: 'buyer@example.com', name: 'A Buyer', role: 'buyer' }).success,
+    ).toBe(true)
+  })
+
+  it('rejects an unknown role', () => {
+    expect(
+      inviteBuyerSchema.safeParse({ email: 'buyer@example.com', name: 'A Buyer', role: 'owner' }).success,
+    ).toBe(false)
+  })
+})
+
+describe('updateBuyerUserSchema', () => {
+  it('accepts clearing the spend limit with null', () => {
+    expect(updateBuyerUserSchema.safeParse({ buyerUserId: 'b1', spendLimit: null }).success).toBe(true)
+  })
+
+  it('rejects a negative spend limit', () => {
+    expect(updateBuyerUserSchema.safeParse({ buyerUserId: 'b1', spendLimit: -100 }).success).toBe(false)
   })
 })

@@ -1,5 +1,13 @@
 import type { BuyerRole } from '../db/schema'
 
+/** Generic authorization failure — shared across every module that enforces `canViewCompanyResource`/`canMutateCompanyResource`. */
+export class ForbiddenError extends Error {
+  constructor(message = 'Not authorized to perform this action') {
+    super(message)
+    this.name = 'ForbiddenError'
+  }
+}
+
 /**
  * The five roles from docs/route-permissions-matrix.md, as a discriminated
  * union rather than a flat role string — callers narrow with `actor.kind`
@@ -92,6 +100,6 @@ export function isSalesRep(actor: Actor): actor is Extract<Actor, { kind: 'sales
 
 export function isCompanyAdmin(
   actor: Actor,
-): actor is Extract<Actor, { kind: 'buyer'; role: 'company_admin' }> {
+): actor is Extract<Actor, { kind: 'buyer' }> & { role: 'company_admin' } {
   return actor.kind === 'buyer' && actor.role === 'company_admin'
 }

@@ -6,7 +6,8 @@ import { AppErrorBoundary } from '../components/app-boundaries/ErrorBoundary'
 import { AppNotFound } from '../components/app-boundaries/NotFound'
 import { AppPending } from '../components/app-boundaries/Pending'
 import { Footer } from '../components/ui/Footer'
-import { Header, type HeaderCategory } from '../components/ui/Header'
+import { Header, type HeaderBuyer, type HeaderCategory } from '../components/ui/Header'
+import { getCurrentBuyerSummary } from '../server/buyers/server-functions'
 import { getCatalogueAdapter } from '../server/integrations/shopify'
 
 import appCss from '../styles.css?url'
@@ -23,8 +24,19 @@ const getHeaderCategories = createServerFn({ method: 'GET' }).handler(
   },
 )
 
+const getHeaderBuyer = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<HeaderBuyer | null> => {
+    const summary = await getCurrentBuyerSummary()
+    if (!summary) return null
+    return { companyName: summary.companyName, role: summary.role }
+  },
+)
+
 export const Route = createRootRoute({
-  loader: () => getHeaderCategories(),
+  loader: async () => {
+    const [categories, buyer] = await Promise.all([getHeaderCategories(), getHeaderBuyer()])
+    return { categories, buyer }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -48,7 +60,7 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const categories = Route.useLoaderData()
+  const { categories, buyer } = Route.useLoaderData()
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -56,7 +68,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Header categories={categories} />
+        <Header categories={categories} buyer={buyer} />
         <main>{children}</main>
         <Footer />
         <TanStackDevtools

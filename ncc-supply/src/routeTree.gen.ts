@@ -10,12 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteRouteImport } from './routes/account/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthCallbackRouteImport } from './routes/auth-callback'
 import { Route as BasketRouteImport } from './routes/basket'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as OrderSubmittedRouteImport } from './routes/order-submitted'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as AccountOrdersRouteImport } from './routes/account/orders'
+import { Route as AccountPricingRouteImport } from './routes/account/pricing'
+import { Route as AccountUsersRouteImport } from './routes/account/users'
 import { Route as CategorySlugRouteImport } from './routes/category/$slug'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
+import { Route as DevFixtureShopifyLoginRouteImport } from './routes/dev/fixture-shopify-login'
 import { Route as DevShopifyHealthRouteImport } from './routes/dev/shopify-health'
 import { Route as OrderIdRouteImport } from './routes/order/$id'
 import { Route as ProductSkuRouteImport } from './routes/product/$sku'
@@ -23,6 +32,21 @@ import { Route as ProductSkuRouteImport } from './routes/product/$sku'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRouteRoute = AccountRouteRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth-callback',
+  path: '/auth-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BasketRoute = BasketRouteImport.update({
@@ -40,10 +64,35 @@ const OrderSubmittedRoute = OrderSubmittedRouteImport.update({
   path: '/order-submitted',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountOrdersRoute = AccountOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountPricingRoute = AccountPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountUsersRoute = AccountUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AccountRouteRoute,
 } as any)
 const CategorySlugRoute = CategorySlugRouteImport.update({
   id: '/category/$slug',
@@ -53,6 +102,11 @@ const CategorySlugRoute = CategorySlugRouteImport.update({
 const DevComponentsRoute = DevComponentsRouteImport.update({
   id: '/dev/components',
   path: '/dev/components',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevFixtureShopifyLoginRoute = DevFixtureShopifyLoginRouteImport.update({
+  id: '/dev/fixture-shopify-login',
+  path: '/dev/fixture-shopify-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevShopifyHealthRoute = DevShopifyHealthRouteImport.update({
@@ -73,88 +127,145 @@ const ProductSkuRoute = ProductSkuRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/auth-callback': typeof AuthCallbackRoute
   '/basket': typeof BasketRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
+  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/account/orders': typeof AccountOrdersRoute
+  '/account/pricing': typeof AccountPricingRoute
+  '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
   '/dev/components': typeof DevComponentsRoute
+  '/dev/fixture-shopify-login': typeof DevFixtureShopifyLoginRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/account/': typeof AccountIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/auth-callback': typeof AuthCallbackRoute
   '/basket': typeof BasketRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
+  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/account/orders': typeof AccountOrdersRoute
+  '/account/pricing': typeof AccountPricingRoute
+  '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
   '/dev/components': typeof DevComponentsRoute
+  '/dev/fixture-shopify-login': typeof DevFixtureShopifyLoginRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/account': typeof AccountIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/auth-callback': typeof AuthCallbackRoute
   '/basket': typeof BasketRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
+  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/account/orders': typeof AccountOrdersRoute
+  '/account/pricing': typeof AccountPricingRoute
+  '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
   '/dev/components': typeof DevComponentsRoute
+  '/dev/fixture-shopify-login': typeof DevFixtureShopifyLoginRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/account/': typeof AccountIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
+    | '/auth'
+    | '/auth-callback'
     | '/basket'
     | '/categories'
     | '/order-submitted'
+    | '/register'
     | '/search'
+    | '/account/orders'
+    | '/account/pricing'
+    | '/account/users'
     | '/category/$slug'
     | '/dev/components'
+    | '/dev/fixture-shopify-login'
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/account/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
+    | '/auth-callback'
     | '/basket'
     | '/categories'
     | '/order-submitted'
+    | '/register'
     | '/search'
+    | '/account/orders'
+    | '/account/pricing'
+    | '/account/users'
     | '/category/$slug'
     | '/dev/components'
+    | '/dev/fixture-shopify-login'
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/account'
   id:
     | '__root__'
     | '/'
+    | '/account'
+    | '/auth'
+    | '/auth-callback'
     | '/basket'
     | '/categories'
     | '/order-submitted'
+    | '/register'
     | '/search'
+    | '/account/orders'
+    | '/account/pricing'
+    | '/account/users'
     | '/category/$slug'
     | '/dev/components'
+    | '/dev/fixture-shopify-login'
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/account/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRouteRoute: typeof AccountRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   BasketRoute: typeof BasketRoute
   CategoriesRoute: typeof CategoriesRoute
   OrderSubmittedRoute: typeof OrderSubmittedRoute
+  RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   CategorySlugRoute: typeof CategorySlugRoute
   DevComponentsRoute: typeof DevComponentsRoute
+  DevFixtureShopifyLoginRoute: typeof DevFixtureShopifyLoginRoute
   DevShopifyHealthRoute: typeof DevShopifyHealthRoute
   OrderIdRoute: typeof OrderIdRoute
   ProductSkuRoute: typeof ProductSkuRoute
@@ -167,6 +278,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth-callback': {
+      id: '/auth-callback'
+      path: '/auth-callback'
+      fullPath: '/auth-callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/basket': {
@@ -190,12 +322,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderSubmittedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/account/': {
+      id: '/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/orders': {
+      id: '/account/orders'
+      path: '/orders'
+      fullPath: '/account/orders'
+      preLoaderRoute: typeof AccountOrdersRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/pricing': {
+      id: '/account/pricing'
+      path: '/pricing'
+      fullPath: '/account/pricing'
+      preLoaderRoute: typeof AccountPricingRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/users': {
+      id: '/account/users'
+      path: '/users'
+      fullPath: '/account/users'
+      preLoaderRoute: typeof AccountUsersRouteImport
+      parentRoute: typeof AccountRouteRoute
     }
     '/category/$slug': {
       id: '/category/$slug'
@@ -209,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/dev/components'
       fullPath: '/dev/components'
       preLoaderRoute: typeof DevComponentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/fixture-shopify-login': {
+      id: '/dev/fixture-shopify-login'
+      path: '/dev/fixture-shopify-login'
+      fullPath: '/dev/fixture-shopify-login'
+      preLoaderRoute: typeof DevFixtureShopifyLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/shopify-health': {
@@ -235,14 +409,37 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AccountRouteRouteChildren {
+  AccountOrdersRoute: typeof AccountOrdersRoute
+  AccountPricingRoute: typeof AccountPricingRoute
+  AccountUsersRoute: typeof AccountUsersRoute
+  AccountIndexRoute: typeof AccountIndexRoute
+}
+
+const AccountRouteRouteChildren: AccountRouteRouteChildren = {
+  AccountOrdersRoute: AccountOrdersRoute,
+  AccountPricingRoute: AccountPricingRoute,
+  AccountUsersRoute: AccountUsersRoute,
+  AccountIndexRoute: AccountIndexRoute,
+}
+
+const AccountRouteRouteWithChildren = AccountRouteRoute._addFileChildren(
+  AccountRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRouteRoute: AccountRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   BasketRoute: BasketRoute,
   CategoriesRoute: CategoriesRoute,
   OrderSubmittedRoute: OrderSubmittedRoute,
+  RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   CategorySlugRoute: CategorySlugRoute,
   DevComponentsRoute: DevComponentsRoute,
+  DevFixtureShopifyLoginRoute: DevFixtureShopifyLoginRoute,
   DevShopifyHealthRoute: DevShopifyHealthRoute,
   OrderIdRoute: OrderIdRoute,
   ProductSkuRoute: ProductSkuRoute,

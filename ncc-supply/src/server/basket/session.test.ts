@@ -1,6 +1,7 @@
+import { eq } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createTestDb } from '../db/test-helpers'
-import { baskets } from '../db/schema'
+import { baskets, buyerUsers, companies } from '../db/schema'
 
 /**
  * `useSession` depends on request-scoped context (AsyncLocalStorage) that
@@ -9,7 +10,7 @@ import { baskets } from '../db/schema'
  * simple in-memory stand-in that behaves the same way for the one thing
  * `getOrCreateBasketId` needs: reading and updating `data.basketId`.
  */
-function createFakeSession(initialData: { basketId?: string } = {}) {
+function createFakeSession(initialData: { basketId?: string; buyerUserId?: string } = {}) {
   const data = { ...initialData }
   return {
     id: 'fake-session',
@@ -82,5 +83,37 @@ describe('getOrCreateBasketId', () => {
 
     expect(basketId).not.toBe('old-basket')
     expect(session.data.basketId).toBe(basketId)
+  })
+
+  it('a signed-in buyer gets their own basket by identity, never the guest cookie mechanism', async () => {
+    const { db, client } = await createTestDb()
+    cleanup = () => client.close()
+    await db.insert(companies).values({ id: 'co-a', name: 'Acme' })
+    await db.insert(buyerUsers).values({
+      id: 'buyer-1',
+      companyId: 'co-a',
+      name: 'Buyer One',
+      email: 'buyer1@example.com',
+      role: 'buyer',
+      status: 'active',
+    })
+
+    const guestSession = createFakeSession()
+    const buyerSession = createFakeSession({ buyerUserId: 'buyer-1' })
+    vi.doMock('@tanstack/react-start/server', () => ({
+      useSession: vi.fn((opts: { name: string }) =>
+        Promise.resolve(opts.name === 'ncc_buyer' ? buyerSession : guestSession),
+      ),
+    }))
+    const { getOrCreateBasketId } = await import('./session')
+
+    const basketId = await getOrCreateBasketId(db)
+
+    const [basket] = await db.select().from(baskets).where(eq(baskets.id, basketId))
+    expect(basket?.buyerUserId).toBe('buyer-1')
+    expect(guestSession.update).not.toHaveBeenCalled()
+
+    const again = await getOrCreateBasketId(db)
+    expect(again).toBe(basketId)
   })
 })

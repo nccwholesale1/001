@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { BUYER_ROLES } from '../db/schema'
 
 /**
  * Every schema a guest or buyer can submit is `.strict()` — Zod rejects any
@@ -43,6 +44,40 @@ export const submitBasketSchema = z
   })
   .strict()
 export type SubmitBasketInput = z.infer<typeof submitBasketSchema>
+
+/** Company name only — the admin's identity (email/name) already comes from the verified Shopify session, never client-typed here. */
+export const registerCompanySchema = z
+  .object({
+    companyName: z.string().min(1),
+    adminName: z.string().min(1),
+  })
+  .strict()
+export type RegisterCompanyInput = z.infer<typeof registerCompanySchema>
+
+export const inviteBuyerSchema = z
+  .object({
+    email: z.string().email(),
+    name: z.string().min(1),
+    role: z.enum(BUYER_ROLES),
+    spendLimit: z.number().int().nonnegative().optional(),
+  })
+  .strict()
+export type InviteBuyerInput = z.infer<typeof inviteBuyerSchema>
+
+export const updateBuyerUserSchema = z
+  .object({
+    buyerUserId: z.string().min(1),
+    role: z.enum(BUYER_ROLES).optional(),
+    spendLimit: z.number().int().nonnegative().nullable().optional(),
+  })
+  .strict()
+export type UpdateBuyerUserInput = z.infer<typeof updateBuyerUserSchema>
+
+export const removeBuyerUserSchema = z.object({ buyerUserId: z.string().min(1) }).strict()
+export type RemoveBuyerUserInput = z.infer<typeof removeBuyerUserSchema>
+
+export const reorderSchema = z.object({ orderRequestId: z.string().min(1) }).strict()
+export type ReorderInput = z.infer<typeof reorderSchema>
 
 export const companyApprovalDecisionSchema = z
   .object({

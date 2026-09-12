@@ -1,5 +1,7 @@
-import { LifeBuoy, Menu, Search, ShoppingBasket, User, X } from 'lucide-react'
+import { LifeBuoy, LogOut, Menu, Search, ShoppingBasket, User, X } from 'lucide-react'
+import { useServerFn } from '@tanstack/react-start'
 import { useEffect, useRef, useState } from 'react'
+import { logout } from '../../server/buyers/server-functions'
 import { Icon } from './Icon'
 import { Container } from './Layout'
 import { cn } from '../../lib/cn'
@@ -9,8 +11,14 @@ export interface HeaderCategory {
   title: string
 }
 
+export interface HeaderBuyer {
+  companyName: string
+  role: 'buyer' | 'company_admin'
+}
+
 export interface HeaderProps {
   categories: HeaderCategory[]
+  buyer?: HeaderBuyer | null
 }
 
 /**
@@ -30,9 +38,15 @@ const PRIMARY_NAV = [
 const iconLinkClasses =
   'rounded-lg p-2 text-foreground/80 transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
-export function Header({ categories }: HeaderProps) {
+export function Header({ categories, buyer = null }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const signOut = useServerFn(logout)
+
+  async function handleSignOut() {
+    await signOut()
+    window.location.href = '/'
+  }
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -88,12 +102,25 @@ export function Header({ categories }: HeaderProps) {
             <Icon icon={ShoppingBasket} />
           </a>
           <a
-            href="/account"
-            aria-label="Account"
-            className={cn(iconLinkClasses, 'hidden sm:inline-flex')}
+            href={buyer ? '/account' : '/auth'}
+            aria-label={buyer ? `Account — ${buyer.companyName}` : 'Sign in'}
+            className={cn(iconLinkClasses, 'hidden items-center gap-1.5 sm:inline-flex')}
           >
             <Icon icon={User} />
+            {buyer ? (
+              <span className="hidden text-sm font-medium lg:inline">{buyer.companyName}</span>
+            ) : null}
           </a>
+          {buyer ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              className={cn(iconLinkClasses, 'hidden sm:inline-flex')}
+            >
+              <Icon icon={LogOut} />
+            </button>
+          ) : null}
           <button
             ref={menuButtonRef}
             type="button"
@@ -139,11 +166,20 @@ export function Header({ categories }: HeaderProps) {
               </a>
             ))}
             <a
-              href="/account"
+              href={buyer ? '/account' : '/auth'}
               className="rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-secondary"
             >
-              Account
+              {buyer ? `Account — ${buyer.companyName}` : 'Sign in'}
             </a>
+            {buyer ? (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-md px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-secondary"
+              >
+                Sign out
+              </button>
+            ) : null}
           </Container>
         </nav>
       ) : null}
