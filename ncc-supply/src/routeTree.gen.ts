@@ -14,9 +14,11 @@ import { Route as AccountRouteRouteImport } from './routes/account/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthCallbackRouteImport } from './routes/auth-callback'
 import { Route as BasketRouteImport } from './routes/basket'
+import { Route as BulkOrderRouteImport } from './routes/bulk-order'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as OrderSubmittedRouteImport } from './routes/order-submitted'
 import { Route as PreviewAccessRouteImport } from './routes/preview-access'
+import { Route as QuoteSubmittedRouteImport } from './routes/quote-submitted'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as StaffLoginRouteImport } from './routes/staff-login'
@@ -31,8 +33,12 @@ import { Route as DevFixtureShopifyLoginRouteImport } from './routes/dev/fixture
 import { Route as DevShopifyHealthRouteImport } from './routes/dev/shopify-health'
 import { Route as OrderIdRouteImport } from './routes/order/$id'
 import { Route as ProductSkuRouteImport } from './routes/product/$sku'
+import { Route as QuoteIndexRouteImport } from './routes/quote/index'
+import { Route as QuoteIdRouteImport } from './routes/quote/$id'
 import { Route as StaffOrdersRouteImport } from './routes/staff/orders'
+import { Route as StaffQuotesRouteImport } from './routes/staff/quotes'
 import { Route as StaffOrderIdRouteImport } from './routes/staff/order/$id'
+import { Route as StaffQuoteIdRouteImport } from './routes/staff/quote/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +65,11 @@ const BasketRoute = BasketRouteImport.update({
   path: '/basket',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BulkOrderRoute = BulkOrderRouteImport.update({
+  id: '/bulk-order',
+  path: '/bulk-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -72,6 +83,11 @@ const OrderSubmittedRoute = OrderSubmittedRouteImport.update({
 const PreviewAccessRoute = PreviewAccessRouteImport.update({
   id: '/preview-access',
   path: '/preview-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuoteSubmittedRoute = QuoteSubmittedRouteImport.update({
+  id: '/quote-submitted',
+  path: '/quote-submitted',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -144,14 +160,34 @@ const ProductSkuRoute = ProductSkuRouteImport.update({
   path: '/product/$sku',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuoteIndexRoute = QuoteIndexRouteImport.update({
+  id: '/quote/',
+  path: '/quote/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuoteIdRoute = QuoteIdRouteImport.update({
+  id: '/quote/$id',
+  path: '/quote/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffOrdersRoute = StaffOrdersRouteImport.update({
   id: '/staff/orders',
   path: '/staff/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffQuotesRoute = StaffQuotesRouteImport.update({
+  id: '/staff/quotes',
+  path: '/staff/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffOrderIdRoute = StaffOrderIdRouteImport.update({
   id: '/staff/order/$id',
   path: '/staff/order/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffQuoteIdRoute = StaffQuoteIdRouteImport.update({
+  id: '/staff/quote/$id',
+  path: '/staff/quote/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -161,9 +197,11 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/auth-callback': typeof AuthCallbackRoute
   '/basket': typeof BasketRoute
+  '/bulk-order': typeof BulkOrderRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
   '/preview-access': typeof PreviewAccessRoute
+  '/quote-submitted': typeof QuoteSubmittedRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/staff-login': typeof StaffLoginRoute
@@ -177,18 +215,24 @@ export interface FileRoutesByFullPath {
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/quote/$id': typeof QuoteIdRoute
   '/staff/orders': typeof StaffOrdersRoute
+  '/staff/quotes': typeof StaffQuotesRoute
   '/account/': typeof AccountIndexRoute
+  '/quote/': typeof QuoteIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
+  '/staff/quote/$id': typeof StaffQuoteIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/auth-callback': typeof AuthCallbackRoute
   '/basket': typeof BasketRoute
+  '/bulk-order': typeof BulkOrderRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
   '/preview-access': typeof PreviewAccessRoute
+  '/quote-submitted': typeof QuoteSubmittedRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/staff-login': typeof StaffLoginRoute
@@ -202,9 +246,13 @@ export interface FileRoutesByTo {
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/quote/$id': typeof QuoteIdRoute
   '/staff/orders': typeof StaffOrdersRoute
+  '/staff/quotes': typeof StaffQuotesRoute
   '/account': typeof AccountIndexRoute
+  '/quote': typeof QuoteIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
+  '/staff/quote/$id': typeof StaffQuoteIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -213,9 +261,11 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/auth-callback': typeof AuthCallbackRoute
   '/basket': typeof BasketRoute
+  '/bulk-order': typeof BulkOrderRoute
   '/categories': typeof CategoriesRoute
   '/order-submitted': typeof OrderSubmittedRoute
   '/preview-access': typeof PreviewAccessRoute
+  '/quote-submitted': typeof QuoteSubmittedRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/staff-login': typeof StaffLoginRoute
@@ -229,9 +279,13 @@ export interface FileRoutesById {
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/quote/$id': typeof QuoteIdRoute
   '/staff/orders': typeof StaffOrdersRoute
+  '/staff/quotes': typeof StaffQuotesRoute
   '/account/': typeof AccountIndexRoute
+  '/quote/': typeof QuoteIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
+  '/staff/quote/$id': typeof StaffQuoteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -241,9 +295,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auth-callback'
     | '/basket'
+    | '/bulk-order'
     | '/categories'
     | '/order-submitted'
     | '/preview-access'
+    | '/quote-submitted'
     | '/register'
     | '/search'
     | '/staff-login'
@@ -257,18 +313,24 @@ export interface FileRouteTypes {
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/quote/$id'
     | '/staff/orders'
+    | '/staff/quotes'
     | '/account/'
+    | '/quote/'
     | '/staff/order/$id'
+    | '/staff/quote/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/auth-callback'
     | '/basket'
+    | '/bulk-order'
     | '/categories'
     | '/order-submitted'
     | '/preview-access'
+    | '/quote-submitted'
     | '/register'
     | '/search'
     | '/staff-login'
@@ -282,9 +344,13 @@ export interface FileRouteTypes {
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/quote/$id'
     | '/staff/orders'
+    | '/staff/quotes'
     | '/account'
+    | '/quote'
     | '/staff/order/$id'
+    | '/staff/quote/$id'
   id:
     | '__root__'
     | '/'
@@ -292,9 +358,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auth-callback'
     | '/basket'
+    | '/bulk-order'
     | '/categories'
     | '/order-submitted'
     | '/preview-access'
+    | '/quote-submitted'
     | '/register'
     | '/search'
     | '/staff-login'
@@ -308,9 +376,13 @@ export interface FileRouteTypes {
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/quote/$id'
     | '/staff/orders'
+    | '/staff/quotes'
     | '/account/'
+    | '/quote/'
     | '/staff/order/$id'
+    | '/staff/quote/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -319,9 +391,11 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   BasketRoute: typeof BasketRoute
+  BulkOrderRoute: typeof BulkOrderRoute
   CategoriesRoute: typeof CategoriesRoute
   OrderSubmittedRoute: typeof OrderSubmittedRoute
   PreviewAccessRoute: typeof PreviewAccessRoute
+  QuoteSubmittedRoute: typeof QuoteSubmittedRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   StaffLoginRoute: typeof StaffLoginRoute
@@ -332,8 +406,12 @@ export interface RootRouteChildren {
   DevShopifyHealthRoute: typeof DevShopifyHealthRoute
   OrderIdRoute: typeof OrderIdRoute
   ProductSkuRoute: typeof ProductSkuRoute
+  QuoteIdRoute: typeof QuoteIdRoute
   StaffOrdersRoute: typeof StaffOrdersRoute
+  StaffQuotesRoute: typeof StaffQuotesRoute
+  QuoteIndexRoute: typeof QuoteIndexRoute
   StaffOrderIdRoute: typeof StaffOrderIdRoute
+  StaffQuoteIdRoute: typeof StaffQuoteIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -373,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BasketRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bulk-order': {
+      id: '/bulk-order'
+      path: '/bulk-order'
+      fullPath: '/bulk-order'
+      preLoaderRoute: typeof BulkOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/categories': {
       id: '/categories'
       path: '/categories'
@@ -392,6 +477,13 @@ declare module '@tanstack/react-router' {
       path: '/preview-access'
       fullPath: '/preview-access'
       preLoaderRoute: typeof PreviewAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quote-submitted': {
+      id: '/quote-submitted'
+      path: '/quote-submitted'
+      fullPath: '/quote-submitted'
+      preLoaderRoute: typeof QuoteSubmittedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -492,6 +584,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSkuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quote/': {
+      id: '/quote/'
+      path: '/quote'
+      fullPath: '/quote/'
+      preLoaderRoute: typeof QuoteIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quote/$id': {
+      id: '/quote/$id'
+      path: '/quote/$id'
+      fullPath: '/quote/$id'
+      preLoaderRoute: typeof QuoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/orders': {
       id: '/staff/orders'
       path: '/staff/orders'
@@ -499,11 +605,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/quotes': {
+      id: '/staff/quotes'
+      path: '/staff/quotes'
+      fullPath: '/staff/quotes'
+      preLoaderRoute: typeof StaffQuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/order/$id': {
       id: '/staff/order/$id'
       path: '/staff/order/$id'
       fullPath: '/staff/order/$id'
       preLoaderRoute: typeof StaffOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/quote/$id': {
+      id: '/staff/quote/$id'
+      path: '/staff/quote/$id'
+      fullPath: '/staff/quote/$id'
+      preLoaderRoute: typeof StaffQuoteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -533,9 +653,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   BasketRoute: BasketRoute,
+  BulkOrderRoute: BulkOrderRoute,
   CategoriesRoute: CategoriesRoute,
   OrderSubmittedRoute: OrderSubmittedRoute,
   PreviewAccessRoute: PreviewAccessRoute,
+  QuoteSubmittedRoute: QuoteSubmittedRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   StaffLoginRoute: StaffLoginRoute,
@@ -546,8 +668,12 @@ const rootRouteChildren: RootRouteChildren = {
   DevShopifyHealthRoute: DevShopifyHealthRoute,
   OrderIdRoute: OrderIdRoute,
   ProductSkuRoute: ProductSkuRoute,
+  QuoteIdRoute: QuoteIdRoute,
   StaffOrdersRoute: StaffOrdersRoute,
+  StaffQuotesRoute: StaffQuotesRoute,
+  QuoteIndexRoute: QuoteIndexRoute,
   StaffOrderIdRoute: StaffOrderIdRoute,
+  StaffQuoteIdRoute: StaffQuoteIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
