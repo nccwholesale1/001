@@ -152,6 +152,85 @@
   to { opacity: 1; transform: none; }
 }
 
+/* Scroll-triggered reveal (see components/ui/Reveal.tsx) — the wrapper adds
+   `data-state="hidden"` only after mount (progressive enhancement: a visitor
+   with JS disabled, or before hydration finishes, sees fully visible static
+   content, never a permanently-invisible section), then flips it to
+   "visible" once an IntersectionObserver reports the element on screen. */
+[data-reveal] {
+  transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);
+}
+[data-reveal][data-state="hidden"] {
+  opacity: 0;
+  transform: translateY(28px);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal][data-state="hidden"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A stronger hover treatment than plain surface-card, for the handful of
+   elements (hero CTAs, feature tiles) that should feel more alive than a
+   data-dense list row — a soft primary-tinted glow behind the element. */
+@utility glow-hover {
+  transition: box-shadow .3s ease, transform .3s ease;
+  &:hover {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent), 0 12px 32px -8px color-mix(in oklab, var(--color-primary) 45%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* A light sweep across a primary CTA on hover — cheap (one pseudo-element,
+   no JS) and the kind of finishing touch the reference site's own buttons
+   use throughout (confirmed via its own compiled CSS, not guessed). */
+@utility shimmer-sweep {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, color-mix(in oklab, white 55%, transparent) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform .7s ease;
+  }
+  &:hover::after {
+    transform: translateX(120%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after { transition: none; }
+    &:hover::after { transform: translateX(-120%); }
+  }
+}
+
+/* Animated underline for text nav links — grows from the center on hover
+   instead of a plain colour swap. */
+@utility nav-underline {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--color-primary);
+    transform: scaleX(0);
+    transition: transform .25s ease;
+  }
+  &:hover::after {
+    transform: scaleX(1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after { transition: none; }
+  }
+}
+
 * {
   box-sizing: border-box;
 }

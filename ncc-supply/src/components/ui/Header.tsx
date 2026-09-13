@@ -81,7 +81,7 @@ export function Header({ categories, buyer = null }: HeaderProps) {
             <a
               key={item.href}
               href={item.href}
-              className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+              className="nav-underline text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
             >
               {item.label}
             </a>

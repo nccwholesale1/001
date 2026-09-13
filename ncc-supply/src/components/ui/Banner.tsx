@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import { useParallax } from '../../lib/use-parallax'
 import { Container } from './Layout'
 
 /**
@@ -36,8 +37,8 @@ function CtaLink({ cta, variant }: { cta: BannerCta; variant: 'primary' | 'secon
   const className = cn(
     'inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none',
     variant === 'primary'
-      ? 'sky-gradient hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100'
-      : 'border border-border bg-card/80 text-foreground hover:bg-secondary',
+      ? 'sky-gradient shimmer-sweep hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100'
+      : 'glow-hover border border-border bg-card/80 text-foreground hover:bg-secondary hover:-translate-y-0.5 active:translate-y-0',
   )
   if (cta.href) {
     return (
@@ -63,17 +64,27 @@ export function Banner({
   className,
   children,
 }: BannerProps) {
+  const { ref: parallaxRef, offset } = useParallax(0.18)
+
   return (
     <div
+      ref={variant === 'hero' ? parallaxRef : undefined}
       className={cn(
         'hero-gradient relative overflow-hidden',
         variant === 'hero' ? 'rounded-none' : 'rounded-xl',
         className,
       )}
     >
+      {variant === 'hero' ? (
+        <div
+          aria-hidden="true"
+          className="grid-mesh pointer-events-none absolute inset-0 opacity-60"
+          style={{ transform: `translateY(${offset}px)` }}
+        />
+      ) : null}
       <Container
         className={cn(
-          'flex flex-col gap-5',
+          'relative flex flex-col gap-5',
           variant === 'hero' ? 'min-h-[320px] justify-center py-24 md:min-h-[420px]' : 'py-10',
         )}
       >

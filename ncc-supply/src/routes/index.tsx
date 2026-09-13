@@ -10,6 +10,7 @@ import { Icon } from '../components/ui/Icon'
 import { Container, Section } from '../components/ui/Layout'
 import { OrderSteps } from '../components/ui/OrderSteps'
 import { ProductCard } from '../components/ui/ProductCard'
+import { Reveal } from '../components/ui/Reveal'
 
 interface HomeData {
   collections: CollectionSummary[]
@@ -133,12 +134,14 @@ function IndexRoute() {
       <Section className="border-b border-border/60">
         <Container>
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            {TRUST_STATS.map((stat) => (
-              <div key={stat.label} className="flex flex-col items-center gap-2 text-center">
-                <Icon icon={stat.icon} size="lg" className="text-primary" />
-                <span className="text-sm font-semibold text-foreground">{stat.label}</span>
-                <span className="text-xs text-muted-foreground">{stat.description}</span>
-              </div>
+            {TRUST_STATS.map((stat, index) => (
+              <Reveal key={stat.label} delayMs={index * 80}>
+                <div className="group glow-hover flex flex-col items-center gap-2 rounded-xl p-3 text-center transition-transform duration-300 hover:-translate-y-1">
+                  <Icon icon={stat.icon} size="lg" className="text-primary transition-transform duration-300 group-hover:scale-110" />
+                  <span className="text-sm font-semibold text-foreground">{stat.label}</span>
+                  <span className="text-xs text-muted-foreground">{stat.description}</span>
+                </div>
+              </Reveal>
             ))}
           </div>
         </Container>
@@ -146,48 +149,52 @@ function IndexRoute() {
 
       <Section>
         <Container>
-          <div className="surface-card grid grid-cols-1 overflow-hidden rounded-2xl p-0 md:grid-cols-2">
-            <div className="flex flex-col justify-center gap-5 p-8 sm:p-12">
-              <span className="w-fit rounded-full bg-sky-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                Confirmed before you pay
-              </span>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-                Build one basket, let NCC confirm the rest
-              </h2>
-              <p className="text-sm text-muted-foreground sm:text-base">
-                Submit lines from any category with no payment up front — NCC checks stock,
-                confirms delivery and VAT, and you approve the final total before anything is
-                charged.
-              </p>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <a
-                  href="/categories"
-                  className="sky-gradient inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
-                >
-                  Browse Catalogue
-                </a>
-                <a
-                  href="/how-to-order"
-                  className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
-                >
-                  How Ordering Works
-                </a>
+          <Reveal>
+            <div className="surface-card grid grid-cols-1 overflow-hidden rounded-2xl p-0 md:grid-cols-2">
+              <div className="flex flex-col justify-center gap-5 p-8 sm:p-12">
+                <span className="w-fit rounded-full bg-sky-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                  Confirmed before you pay
+                </span>
+                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                  Build one basket, let NCC confirm the rest
+                </h2>
+                <p className="text-sm text-muted-foreground sm:text-base">
+                  Submit lines from any category with no payment up front — NCC checks stock,
+                  confirms delivery and VAT, and you approve the final total before anything is
+                  charged.
+                </p>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <a
+                    href="/categories"
+                    className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
+                  >
+                    Browse Catalogue
+                  </a>
+                  <a
+                    href="/how-to-order"
+                    className="glow-hover inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:bg-secondary active:translate-y-0"
+                  >
+                    How Ordering Works
+                  </a>
+                </div>
               </div>
+              {/* Image slot — placeholder until real product photography is supplied (design system §7's placeholder rule); never left blank. */}
+              <div className="sky-gradient grid-mesh min-h-[220px] transition-transform duration-700 hover:scale-105" role="img" aria-label="NCC Supply product range" />
             </div>
-            {/* Image slot — placeholder until real product photography is supplied (design system §7's placeholder rule); never left blank. */}
-            <div className="sky-gradient grid-mesh min-h-[220px]" role="img" aria-label="NCC Supply product range" />
-          </div>
+          </Reveal>
         </Container>
       </Section>
 
       <Section>
         <Container className="flex flex-col gap-8">
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">Shop By Category</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Search or browse the full catalogue by category.
-            </p>
-          </div>
+          <Reveal>
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">Shop By Category</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Search or browse the full catalogue by category.
+              </p>
+            </div>
+          </Reveal>
           {error ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : collections.length === 0 ? (
@@ -200,20 +207,24 @@ function IndexRoute() {
 
       <Section tinted>
         <Container className="flex flex-col gap-8">
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">Popular This Month</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              A sample of what's available to order right now.
-            </p>
-          </div>
+          <Reveal>
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">Popular This Month</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                A sample of what's available to order right now.
+              </p>
+            </div>
+          </Reveal>
           {error ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : popularProducts.length === 0 ? (
             <p className="text-sm text-muted-foreground">No products found.</p>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {popularProducts.map((product) => (
-                <ProductCard key={product.sku} product={product} />
+              {popularProducts.map((product, index) => (
+                <Reveal key={product.sku} delayMs={index * 70}>
+                  <ProductCard product={product} />
+                </Reveal>
               ))}
             </div>
           )}
@@ -222,44 +233,54 @@ function IndexRoute() {
 
       <Section>
         <Container className="flex flex-col gap-8">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Process
-            </span>
-            <h2 className="mt-1 text-2xl font-semibold text-foreground">How It Works</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              From basket to confirmed order in five steps.
-            </p>
-          </div>
-          <OrderSteps variant="compact" />
+          <Reveal>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+                Process
+              </span>
+              <h2 className="mt-1 text-2xl font-semibold text-foreground">How It Works</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                From basket to confirmed order in five steps.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delayMs={100}>
+            <OrderSteps variant="compact" />
+          </Reveal>
         </Container>
       </Section>
 
       <Section tinted>
         <Container className="flex flex-col gap-8">
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">Frequently Asked Questions</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              The questions we hear most from guest and company buyers.
-            </p>
-          </div>
-          <FAQ />
-          <div className="rounded-xl border border-primary/30 bg-hero-gradient p-6 shadow-soft">
-            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-              <div>
-                <p className="font-semibold text-foreground">Still unsure?</p>
-                <p className="text-sm text-muted-foreground">
-                  Reach out and we'll help you get started.
-                </p>
-              </div>
-              <a
-                href="/contact"
-                className="sky-gradient inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
-              >
-                Contact Us
-              </a>
+          <Reveal>
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">Frequently Asked Questions</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The questions we hear most from guest and company buyers.
+              </p>
             </div>
-          </div>
+          </Reveal>
+          <Reveal delayMs={80}>
+            <FAQ />
+          </Reveal>
+          <Reveal delayMs={140}>
+            <div className="rounded-xl border border-primary/30 bg-hero-gradient p-6 shadow-soft">
+              <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+                <div>
+                  <p className="font-semibold text-foreground">Still unsure?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Reach out and we'll help you get started.
+                  </p>
+                </div>
+                <a
+                  href="/contact"
+                  className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
+                >
+                  Contact Us
+                </a>
+              </div>
+            </div>
+          </Reveal>
         </Container>
       </Section>
     </>

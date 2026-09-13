@@ -4,6 +4,7 @@ import type { CollectionSummary } from '../../server/integrations/shopify/types'
 import { CategoryCard } from './CategoryCard'
 import { Icon } from './Icon'
 import { ResponsiveGrid } from './Layout'
+import { Reveal } from './Reveal'
 
 export interface CategoryGridProps {
   categories: CollectionSummary[]
@@ -45,8 +46,10 @@ export function CategoryGrid({ categories, searchable = true }: CategoryGridProp
         <p className="text-sm text-muted-foreground">No categories found.</p>
       ) : (
         <ResponsiveGrid className="lg:grid-cols-5">
-          {filtered.map((category) => (
-            <CategoryCard key={category.slug} category={category} />
+          {filtered.map((category, index) => (
+            <Reveal key={category.slug} delayMs={(index % 5) * 70}>
+              <CategoryCard category={category} />
+            </Reveal>
           ))}
         </ResponsiveGrid>
       )}
