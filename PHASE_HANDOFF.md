@@ -4,69 +4,85 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 9 — Bulk ordering, quotes, reorder completion
+## Last completed phase: Phase 10 + 11 (merged) — Returns, support, staff accounts, team management
 
-**Completed scope:** PRD §§4, 6.6, 6.8, 6.11, 6.14 (runbook's own Phase 9 prompt), on branch `phase/9-bulk-quotes`. **Reorder was found already fully shipped** before this phase started — `reorderIntoBasket`, the `reorder` server function, and working "Reorder" buttons on `/account` and `/account/orders` all pre-existed from Phase 2/7's forward-looking work (confirmed by reading, not assumed). This phase's real remaining scope was two verticals: bulk order and quotes.
+**Completed scope:** PRD §§4, 6.15-6.22, 2, 7.2, on branch `phase/10-returns-support`. Merged into one session at the user's explicit request to move faster. As with Phase 9, most schema/domain groundwork (`returns`, `supportTickets`, `transitionReturn`, `transitionStaff`, `AdminCommerceAdapter.approveReturn`) already existed from Phase 2/3's forward-looking work — this pass wired it all up for real against the live store.
 
-- **Bulk order** (`/bulk-order`): hand-rolled CSV/paste parser (`server/bulk-order/csv.ts`) — header auto-detection, duplicate-SKU merging by summing quantity, a specific reason per malformed row, a hard 500-row cap returning one whole-file error rather than silently truncating. `previewBulkOrder`/`addBulkOrderLinesToBasket` (`server/bulk-order/bulk-order.ts`) reuse the existing `addLine`, so price/availability re-resolution is never re-derived. Downloadable template at `public/bulk-order-template.csv`; a "Download unmatched rows" export on the preview screen is sanitized against CSV/formula injection (`sanitizeCsvCell`, ADR-029).
-- **New adapter capability**: `CatalogueAdapter.getProductsBySku(skus)` (ADR-028) — a single paginated catalogue scan resolving many SKUs at once, used by both bulk order (up to 500 rows) and quote requests (up to 100 lines) instead of calling `getProduct` in a loop, which would have meant hundreds of separate scans. `variantId` was promoted from `ProductDetail` onto `ProductSummary` itself so the batch method can return it.
-- **Quotes** (`/quote`, `/quote/:id`, `/staff/quotes`, `/staff/quote/:id`): request form (guest or signed-in buyer, ADR-030 — a standalone line list, not the shopping basket), NCC-admin-only per-line pricing/issue action (mirrors `confirmOrder`'s gate), lazy expiry with no cron job (ADR-031 — checked wherever a quote's status matters, persisted the moment it's observed), and an explicit customer "Accept Quote" action that converts the quote into a real order re-entering the standard review pipeline unchanged (ADR-032 — guest → `awaiting_ncc_review`, buyer → `awaiting_company_approval`, never skipping either; Phase 8's confirm/Shopify-sync flow needed zero changes). Added a `sku` column to `quoteLines` (migration `0002_pale_mercury.sql`) — the same gap Phase 8 would have hit, since the catalogue adapter has no by-variant-id lookup.
-- Every server module (`quote-view.ts`, `submit-quote-request.ts`, `staff-quote-queue.ts`, `quote-pricing.ts`) mirrors its order-side equivalent from Phase 7/8 line-for-line — same authorization functions (`canViewCompanyResource`/`isNccAdmin`), same guest-token mechanism, same `db.transaction` atomicity pattern.
+- **Attachments** (ADR-033, new): a `attachments` table (BLOB, polymorphic owner) backs the "optional photo/attachment" requirement on both returns and support messages — no file infrastructure existed before this. Content type is sniffed from real magic bytes, never trusted from the client; a renamed-malicious-file attack is rejected (verified with a test). Served only as a data URL that re-runs the owning resource's own real authorization check first — never a public path.
+- **Returns** (`/returns`, `/returns/:id`, `/account/returns`, `/staff/returns`, `/staff/return/:id`): always reached with real confirmed-order context (never cold-start); eligibility enforced against confirmed quantity minus anything already claimed by a non-rejected return; full staff decision flow (`requested → under_review → approved/rejected → refunded/replacement_sent`) with a resolution choice on approval and a manual outcome-confirmation step. The Shopify `approveReturn` sync is attempted for real and — confirmed empirically against the live store, not just reasoned about (ADR-034) — fails cleanly every time, since an app-originated return has no corresponding Shopify Return object to approve; the app's own state stays authoritative regardless, exactly like Phase 8's Draft Order reconciliation.
+- **Support** (`/support`, `/support/:id`, `/staff/support`, `/staff/support/:id`): message-thread ticket system, category + optional *verified* order/return reference (a guest must supply that resource's own token; a buyer's ownership is checked the normal way), internal notes excluded from the customer view at the query layer (not just hidden in the UI — a real security boundary, tested directly), resolve/escalate, and a reply to a resolved ticket implicitly reopens it.
+- **`/staff/team`** (NCC-admin-only): add/deactivate/reactivate staff accounts, case-normalized email/username, duplicate email/username/employee-ID all rejected, employee-ID format validated, sales-rep-vs-ncc_admin activation asymmetry preserved from ADR-007. **Role change** was added specifically because the runbook's own required test list names "role downgrade" as a scenario — the initial build only had creation, so this closes that gap for real rather than leaving it aspirational.
+- **`/staff/accounts`** (read-only, same company-scoping as every other staff queue): buyer users, spend limits, assigned sales rep per company. Contract/tier pricing administration is correctly absent (ADR-005 already resolved this build to uniform pricing). Staff-initiated *creation* of a brand-new company is a recorded gap, not built — every company today comes from a buyer's own verified Shopify sign-in, and a staff-initiated cold-start company would need an identity-linking design this session had no grounds to invent (ADR-036).
 
-**A real routing bug found and fixed:** `routes/quote.tsx` (a flat file) silently became an implicit parent layout for `routes/quote/$id.tsx` once the `quote/` directory existed as a sibling — TanStack Router's generated route tree nested `QuoteIdRoute` under `QuoteRoute`. Since the parent had no `<Outlet/>`, a real guest quote link showed the *correct browser tab title* (title generation runs per matched route independently) but the *wrong page content* (still the parent's request form) — a confusing silent mismatch, not a crash. Found by manually following a real guest quote link end-to-end, not by the test suite (route-tree nesting isn't something a server-side unit test exercises). Fixed by moving the file to `routes/quote/index.tsx`, the same convention this codebase already used for the identical `account.tsx`-vs-`account/*.tsx` shape. Verified fixed by rebuilding, checking the regenerated route tree, and re-running the full flow in-browser.
+**A real routing-bug regression check, not just a fix:** having found the flat-file-vs-directory nesting bug in Phase 9 (`routes/quote.tsx`), every new index/detail route pair this phase (`/returns` + `/returns/:id`, `/support` + `/support/:id`) was built directly as `index.tsx` + `$id.tsx` inside its own directory from the start, and the generated route tree was checked directly to confirm neither `ReturnsIdRoute` nor `SupportIdRoute` nested under its own index route before relying on either in the browser.
 
-**Files created/changed:** see `TASKS.md` Phase 9 checklist. New modules: `server/bulk-order/{csv,bulk-order,server-functions}.ts`, `server/quotes/{quote-view,submit-quote-request,staff-quote-queue,quote-pricing,server-functions,staff-quote-server-functions}.ts`; new routes `bulk-order.tsx`, `quote/index.tsx`, `quote/$id.tsx`, `quote-submitted.tsx`, `staff/quotes.tsx`, `staff/quote/$id.tsx`; new component `components/ui/QuoteDetail.tsx`; new static asset `public/bulk-order-template.csv`. Also touched: `db/schema.ts` (`quoteLines.sku` + migration), `integrations/shopify/types.ts`/`storefront-adapter.ts`/`fixture-adapter.ts`/`index.ts` (`getProductsBySku`, `variantId` promoted onto `ProductSummary`), `validation/commands.ts` (`bulkOrderCsvSchema`, `addBulkOrderLinesSchema`, `quoteRequestSchema`, `issueQuoteSchema`, `acceptQuoteSchema`), `components/ui/Header.tsx` (nav links). `DECISIONS.md` (ADR-028 through ADR-032, the routing-bug writeup).
+**Files created/changed:** see `TASKS.md` Phase 10+11 checklist. New modules: `server/attachments/{attachments,server-functions}.ts`, `server/returns/{return-view,submit-return-request,staff-return-queue,return-processing,server-functions,staff-return-server-functions}.ts`, `server/support/{support-view,submit-support-ticket,staff-support-queue,support-processing,server-functions,staff-support-server-functions}.ts`, `server/staff/{team-management,team-server-functions,company-directory,company-directory-server-functions}.ts`; new routes `returns/{index,$id}.tsx`, `support/{index,$id}.tsx`, `staff/{returns,team,accounts}.tsx`, `staff/return/$id.tsx`, `staff/support/{index,$id}.tsx`; new components `ReturnDetail.tsx`, `SupportTicketDetail.tsx`, `StaffNav.tsx`; new lib `lib/file-to-base64.ts`. Also touched: `db/schema.ts` (`attachments` table, migration `0003_sad_reavers.sql`), `validation/commands.ts` (return/support/staff-team schemas, upgraded `returnRequestSchema.reason` to a real enum), `routes/order/$id.tsx` and `routes/account/orders.tsx` (added "Request a return" entry points, per PRD's "never a cold-start form"). `DECISIONS.md` (ADR-033 through ADR-036, the role-downgrade-gap writeup).
 
 **Verification performed (actual output, not inspection-only):**
 ```
 $ pnpm typecheck  → tsc --noEmit, no output, exit 0
 $ pnpm lint       → eslint ., no output, exit 0
-$ pnpm test       → Test Files 50 passed (50), Tests 371 passed | 1 skipped (372)
+$ pnpm test       → Test Files 59 passed (59), Tests 435 passed | 1 skipped (436)
 $ pnpm build      → client + SSR bundles both built successfully
 ```
 Client bundle re-swept post-build for every known secret literal — clean.
 
-Manual, via the Browser tool against `pnpm dev` with the live Shopify catalogue connected: bulk-ordered a CSV mixing a real SKU, an unknown SKU, and a malformed row — preview correctly showed one matched line with real title/price (Charger - C20 20W USB-A+C, £2.00), both bad rows flagged with specific reasons ("Expected two columns...", "Unknown SKU — not found in the catalogue"), and the matched line landed in the real `/basket`. Requested a quote as a guest for a real SKU (B1190001); the private link correctly showed "Requested" status. Signed in as the seeded NCC admin (`fixture.ncc-admin`) at `/staff-login`, found the quote in `/staff/quotes`, priced it at £1.75/unit and issued it — status moved to "Quoted" with an expiry date shown. As the guest, followed the same link again: now showed "Quoted... valid until [date]" with an "Accept quote" action. Accepted it — redirected to a real "Order Submitted" confirmation with a fresh guest order link; followed that link and confirmed the resulting order at `/order/:id` shows "Awaiting NCC Review" with the exact quoted price (£1.75) carried through. Confirmed on the staff side that the quote's own status now reads "Accepted".
+Manual, via the Browser tool against `pnpm dev` with the live Shopify catalogue and the seeded fixture accounts: submitted a support ticket as a guest, replied as the seeded NCC admin (status moved `open → awaiting_customer` correctly, real staff name shown), confirmed the guest's own token-gated view showed the reply and a working reply box (and not the internal-note toggle). Added a real product to basket, submitted and approved a fresh guest order to get a genuinely `confirmed` order, requested a return against it as that guest (`/returns` correctly showed the real order lines with quantities), staff started review → approved with a refund resolution → marked refunded — watched the whole status chain update correctly on both the staff and customer sides, and confirmed in the server logs that the real Shopify `returnApproveRequest` attempt failed exactly as ADR-034 predicted (invalid global id), with the app's own `approved`/`refunded` state completely unaffected. Confirmed `/staff/team` (add-account form, real seeded `fixture.ncc-admin`/`fixture.sales-rep` rows, working company-assignment picker) and `/staff/accounts` (real seeded companies/buyers/spend-limits) both render correctly.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 9 decisions and facts" (ADR-028 through ADR-032) plus the routing-bug write-up immediately after.
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 10 + 11 decisions and facts" (ADR-033 through ADR-036) plus the role-downgrade writeup immediately after.
 
-**Unresolved blockers / risks carried forward (unchanged from Phase 8, still open):**
-- The connected Admin API token still needs the `write_draft_orders` scope added before real Draft Order creation succeeds — fails cleanly and recoverably via the existing Retry flow either way (unaffected by this phase — a quote-accepted order goes through the exact same Phase 8 pipeline).
-- Real live products still have incomplete data at the individual-SKU level: some show £0.00 ex VAT, some have no product image — genuine store data gaps, not code defects.
-- A guest order with no contact email can never get a real Shopify invoice — a guest-originated quote has the same exposure once accepted, since `acceptQuote` copies the quote's own (possibly absent) contact fields straight onto the new order. Still needs the same business decision as before (require email at guest checkout/quote, or accept phone-follow-up).
-- No `/account/quotes` list page was built — PRD's own Phase 9 prompt asks for "`/quote` request flow and token/account-based `/quote/:id` detail," not a listing page, and `listQuotesForActor` (built, tested, unused by any route) is ready whenever one is wanted. A signed-in buyer currently reaches their own quote only via the link shown right after submitting it.
+**Unresolved blockers / risks carried forward:**
+- The connected Admin API token still needs the `write_draft_orders` scope for real Draft Order creation (Phase 8's original blocker, unaffected by this phase).
+- **New:** the real Shopify `returnApproveRequest` mutation can never succeed for an app-originated return, confirmed empirically this session (ADR-034) — not a scope issue like the Draft Order one, a genuine architecture question: does NCC want a real Shopify-side Return object created at request time (via some `returnCreate`-equivalent, not yet researched), or is app-side reconciliation the permanent design here? Needs a business/architecture decision before this can ever go further than "attempt and log."
+- No `/account/quotes` list page (Phase 9's carried-forward gap, unchanged) and no `/account/support` list page (same reasoning — PRD names only `/account/returns` explicitly for this phase).
+- Staff-initiated company *account creation* is not built (ADR-036) — every company today originates from a buyer's own Shopify sign-in.
+- Real live products still have incomplete data at the individual-SKU level (£0.00 pricing, missing images) — a live-store data gap, unchanged, not a code defect.
+- A guest order/quote/return with no contact email can never get a real Shopify invoice/notification — unchanged business-decision gap from Phase 8.
 - PRD §13 Questions 4, 5, 6 unchanged. `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` still unconfigured (Phase 7's blocker, unchanged).
 
-**Database migrations / environment variables:** one new migration (`0002_pale_mercury.sql`, adds `quote_lines.sku`). No new environment variables.
+**Database migrations / environment variables:** one new migration (`0003_sad_reavers.sql`, adds the `attachments` table). No new environment variables.
 
 ---
 
-## Next phase: Phase 10 — Returns and support cases
+## Next phase: Phase 12 — SEO, AEO, accessibility, performance and security hardening
 
-**Phase 10 entry criteria (Phase 9 exit gate, satisfied):** bulk order and quotes both work end-to-end against live Shopify data; an accepted quote correctly re-enters the exact same NCC-review/Shopify-sync pipeline Phase 8 built, unchanged; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
+**Phase 12 entry criteria (Phase 11 exit gate, satisfied):** every customer-facing and staff-facing workflow through returns/support/team management works end-to-end against live data; internal notes are provably excluded from customer views at the query layer; every staff mutation is confirmed NCC-admin-gated with a real authorization test, not just a hidden button; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
 
 ```text
-Read all context and the Phase 9 handoff. Inspect git status. Implement only Phase 10.
+Read all context and the Phase 11 handoff. Inspect git status. Implement only Phase 12.
 
-Build returns and support as first-class trackable workflows from PRD §§4 and 6.16–6.21.
+Audit and harden the entire application against PRD §§9–11 and every acceptance criterion.
 
-Returns:
-- /returns reachable with confirmed-order context, never as an unbound return;
-- eligible line and quantity picker, reason, optional note/photo;
-- /returns/:id token/account status timeline;
-- /account/returns history;
-- /staff/returns queue and approve/reject/refund/replacement actions;
-- current Shopify native return/refund integration where applicable.
+SEO/AEO:
+- unique titles/descriptions, canonical URLs, Open Graph/Twitter metadata;
+- Organization, FAQPage, ItemList, Product and BreadcrumbList structured data where valid;
+- one H1 and semantic headings;
+- canonical filtered URLs and noindex empty-result facets;
+- noindex basket, checkout, account, private token, quote and staff routes;
+- robots and sitemap rules that include only legitimate public routes;
+- question-and-answer content covering the required NCC ordering topics without inventing policy.
 
-Support:
-- /support ticket form for guests and accounts;
-- category, optional order/return reference, message and optional attachment;
-- /support/:id private status timeline and reply thread;
-- /staff/support queue, replies, internal notes, statuses and escalation action.
+Accessibility:
+- automated WCAG checks plus keyboard-only review;
+- focus order, focus trapping/restoration, labels, live regions and status timelines;
+- contrast verification and non-colour status communication;
+- responsive checks at 375, 768, 1024 and 1440 px;
+- reduced-motion verification.
 
-Use the same case-view component family for return and support status. Validate attachments by content, size and type; store them privately; scan or quarantine according to the selected infrastructure; serve through authorized expiring access. Never rely on email as the only status record.
+Performance:
+- route and bundle analysis;
+- image dimensions/formats/loading to prevent layout shift;
+- server/data cache review;
+- realistic catalogue pagination/search checks;
+- agreed performance budgets measured in a production build.
 
-Where return policies or support SLAs remain unanswered in PRD §13, implement configuration points and safe neutral states rather than inventing business policy.
+Security:
+- route/action authorization matrix test coverage;
+- tenant isolation and IDOR review;
+- token, session, CSRF, XSS, injection, upload and secret-exposure review;
+- rate limiting and abuse handling for public submissions/search;
+- dependency and configuration audit;
+- redacted observability and safe error messages.
 
-Test order/line eligibility, return quantity limits, cross-tenant and token isolation, attachment attacks, staff authorization, timeline announcements for assistive technology, invalid transitions and Shopify refund failure recovery. Run all checks, update records and stop.
+Produce docs/quality-audit.md containing evidence and remaining exceptions. Fix findings in scope, run the complete test suite and production build, update project records and stop.
 ```

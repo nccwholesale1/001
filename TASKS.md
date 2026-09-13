@@ -152,8 +152,20 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [x] **Real routing bug found and fixed**: `routes/quote.tsx` (flat file) became an implicit parent layout for `routes/quote/$id.tsx` once the `quote/` directory existed as a sibling — TanStack Router nested `QuoteIdRoute` under `QuoteRoute` in the generated tree, so the detail page's content never rendered (only its `<title>` did, since the parent had no `<Outlet/>`). Fixed by moving it to `routes/quote/index.tsx`, matching the convention `routes/account/index.tsx` already established. Found by manually following a real guest quote link, not by the test suite.
 - [x] `pnpm typecheck`/`lint`/`test` (50 files / 371 passed, 1 skipped)/`build` all pass; client bundle re-swept, clean
 
-## Phase 10 — Returns and support cases
-## Phase 11 — Staff accounts, team management, sales-rep scoping
+## Phase 10 — Returns and support cases (merged with Phase 11 into one session, at the user's request)
+
+- [x] New `attachments` table (BLOB storage, polymorphic owner) — content-type sniffed from magic bytes, never trusted from the client; served only as an authorized data URL that re-runs the owning return/ticket's own real access check, never a public path. Migration `0003_sad_reavers.sql`.
+- [x] **Returns** (`/returns`, `/returns/:id`, `/account/returns`, `/staff/returns`, `/staff/return/:id`): request form reachable only from a real confirmed order (guest token or buyer session), eligible-line/quantity picker enforcing confirmed-quantity-minus-already-returned limits, reason from PRD's defined list, optional note/photo. Staff flow: `requested → under_review → approved/rejected → refunded/replacement_sent`, resolution choice on approval, manual "mark refunded/replacement sent" confirmation independent of the (real, contract-tested, empirically-confirmed-empty) Shopify sync attempt. Verified end-to-end in-browser against a real confirmed order: full status chain from request through refunded, including the real Shopify sync failure logged exactly as designed.
+- [x] **Support** (`/support`, `/support/:id`, `/staff/support`, `/staff/support/:id`): ticket form (category, optional verified order/return reference, message, optional attachment) for guests and buyers; message thread with NCC replies, internal notes (excluded from the customer view **at the query layer**, not just the UI — verified with a dedicated test), resolve/escalate; a customer reply to a `resolved` ticket implicitly reopens it. Verified end-to-end in-browser: guest ticket → NCC admin reply → guest saw the reply and could respond.
+- [x] `pnpm typecheck`/`lint`/`test` (59 files / 435 passed, 1 skipped)/`build` all pass; client bundle re-swept, clean
+
+## Phase 11 — Staff accounts, team management, sales-rep scoping (merged with Phase 10, see above)
+
+- [x] **`/staff/team`** (NCC-admin-only, redirects any other role away): add a staff account (name/email/username/role/initial password/employee ID), case-normalized email/username, duplicate email/username/employee-ID rejected, employee-ID format validated, a sales rep starts `pending_id_verification` (real ADR-007 activation on first login, unchanged from Phase 8) while an ncc_admin starts `active` immediately. Deactivate/reactivate. **Role change (downgrade/upgrade)** added specifically to make the runbook's own named test scenario real — see DECISIONS.md. Assign/unassign a sales rep's company book.
+- [x] **`/staff/accounts`** (read-only in this pass, scoped like every other staff queue — sales rep sees only their book): each company's buyer users, spend limits, and assigned sales rep. Contract/tier pricing administration is correctly absent — ADR-005 already resolved this build to uniform pricing. Staff-initiated company *creation* is a recorded gap, not built (see DECISIONS.md ADR-036).
+- [x] Every staff mutation confirmed NCC-admin-only via a real `ForbiddenError` test (sales rep and buyer actors both denied) — direct URL access and server-action authorization both covered, not just UI-hidden buttons.
+- [x] Verified in-browser against the real seeded fixture accounts: `/staff/team` and `/staff/accounts` both render live data with working controls; confirmed neither new index/id route pair repeats the Phase 9 routing bug by checking the generated route tree directly.
+
 ## Phase 12 — SEO, AEO, accessibility, performance, security hardening
 ## Phase 13 — Real catalogue, assets, content readiness
 ## Phase 14 — Staging, end-to-end acceptance, launch preparation
