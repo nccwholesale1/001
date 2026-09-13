@@ -28,6 +28,8 @@ const timestamps = {
 export const companies = sqliteTable('companies', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  /** Self-reported at registration — see baskets.referringSalesRepId for the same field on orders/quotes. */
+  referringSalesRepId: text('referring_sales_rep_id'),
   ...timestamps,
 })
 

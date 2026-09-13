@@ -64,6 +64,7 @@ export const registerCompanySchema = z
   .object({
     companyName: z.string().min(1),
     adminName: z.string().min(1),
+    referringSalesRepId: salesRepReferralIdSchema.optional(),
   })
   .strict()
 export type RegisterCompanyInput = z.infer<typeof registerCompanySchema>

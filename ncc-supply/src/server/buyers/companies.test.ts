@@ -61,6 +61,22 @@ describe('companies', () => {
       expect(event?.resourceId).toBe(companyId)
     })
 
+    it('records a self-reported referring sales rep id, if given', async () => {
+      const { db, client } = await createTestDb()
+      cleanup = () => client.close()
+
+      const { companyId } = await registerCompany(db, {
+        companyName: 'Referred Co',
+        adminName: 'Jane Doe',
+        email: 'jane@referredco.example',
+        shopifyCustomerId: 'gid://shopify/Customer/3',
+        referringSalesRepId: 'EMP-042',
+      })
+
+      const [company] = await db.select().from(companies).where(eq(companies.id, companyId))
+      expect(company?.referringSalesRepId).toBe('EMP-042')
+    })
+
     it('rejects an email that is already registered', async () => {
       const db = await seed()
       await expect(

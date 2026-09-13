@@ -24,6 +24,7 @@ function RegisterRoute() {
   const submitRegistration = useServerFn(submitCompanyRegistration)
   const [companyName, setCompanyName] = useState('')
   const [adminName, setAdminName] = useState('')
+  const [salesRepId, setSalesRepId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [signingIn, setSigningIn] = useState(false)
@@ -44,7 +45,11 @@ function RegisterRoute() {
     setError(null)
     try {
       await submitRegistration({
-        data: { companyName: companyName.trim(), adminName: adminName.trim() },
+        data: {
+          companyName: companyName.trim(),
+          adminName: adminName.trim(),
+          referringSalesRepId: salesRepId.trim() || undefined,
+        },
       })
       window.location.href = '/account'
     } catch (err) {
@@ -88,6 +93,13 @@ function RegisterRoute() {
             required
             value={adminName}
             onChange={(event) => setAdminName(event.target.value)}
+          />
+          <Field
+            label="Sales Rep ID (optional)"
+            value={salesRepId}
+            onChange={(event) => setSalesRepId(event.target.value)}
+            placeholder="e.g. EMP-042"
+            helpText="Were you referred by an NCC sales rep? Add their ID and we'll credit them."
           />
           {error ? (
             <p role="alert" className="text-sm text-destructive">

@@ -32,10 +32,11 @@ function AuthRoute() {
   return (
     <Section>
       <Container className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
-        <h1 className="text-3xl font-semibold text-foreground">Sign in</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Sign in or create a company account</h1>
         <p className="text-sm text-muted-foreground">
-          Company buyers sign in with their work email — no password to remember. If you've been
-          invited to a company account, signing in is also how you accept that invite.
+          One step, no password to remember — verify your work email and we'll take you to the
+          right place. New here? The same button starts your company's account. Already set up?
+          It signs you straight in, and it's also how an invited teammate accepts their invite.
         </p>
         {error ? (
           <p role="alert" className="text-sm text-destructive">
@@ -46,7 +47,12 @@ function AuthRoute() {
           {pending ? 'Redirecting…' : 'Continue with email'}
         </Button>
         <p className="text-sm text-muted-foreground">
-          No account yet? Signing in for the first time lets you register a new company.
+          A company account keeps every order in one place, adds teammates with company-level
+          approval, and remembers your details for repeat ordering. Just need one order right now?{' '}
+          <a href="/" className="font-medium text-primary hover:underline">
+            Order as a guest
+          </a>{' '}
+          — no account needed.
         </p>
       </Container>
     </Section>

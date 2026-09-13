@@ -40,7 +40,13 @@ export interface BuyerUserSummary {
  */
 export async function registerCompany(
   db: Db,
-  input: { companyName: string; adminName: string; email: string; shopifyCustomerId: string },
+  input: {
+    companyName: string
+    adminName: string
+    email: string
+    shopifyCustomerId: string
+    referringSalesRepId?: string
+  },
 ): Promise<{ companyId: string; buyerUserId: string }> {
   const [existing] = await db
     .select({ id: buyerUsers.id })
@@ -52,7 +58,11 @@ export async function registerCompany(
   const companyId = randomUUID()
   const buyerUserId = randomUUID()
 
-  await db.insert(companies).values({ id: companyId, name: input.companyName })
+  await db.insert(companies).values({
+    id: companyId,
+    name: input.companyName,
+    referringSalesRepId: input.referringSalesRepId ?? null,
+  })
   await db.insert(buyerUsers).values({
     id: buyerUserId,
     companyId,

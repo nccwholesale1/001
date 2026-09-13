@@ -1,0 +1,1 @@
+ALTER TABLE `companies` ADD `referring_sales_rep_id` text;

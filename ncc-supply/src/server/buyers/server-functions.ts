@@ -79,6 +79,7 @@ export const submitCompanyRegistration = createServerFn({ method: 'POST' })
       adminName: data.adminName,
       email: pending.email,
       shopifyCustomerId: pending.shopifyCustomerId,
+      referringSalesRepId: data.referringSalesRepId,
     })
     await establishBuyerSession(buyerUserId)
     await clearPendingRegistrationIdentity()

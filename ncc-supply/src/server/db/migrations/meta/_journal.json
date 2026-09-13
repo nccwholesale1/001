@@ -36,6 +36,13 @@
       "when": 1789308827736,
       "tag": "0004_daffy_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789309544894,
+      "tag": "0005_pretty_colossus",
+      "breakpoints": true
     }
   ]
 }

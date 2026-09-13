@@ -17,6 +17,8 @@ export interface StaffCompanySummary {
   name: string
   buyers: StaffCompanyBuyerSummary[]
   assignedSalesRep: { id: string; name: string } | null
+  /** Self-reported at registration — a lead-attribution hint, not the same as (and not necessarily matching) assignedSalesRep. */
+  referringSalesRepId: string | null
 }
 
 /**
@@ -60,5 +62,6 @@ export async function listCompaniesForStaff(db: Db, actor: Actor): Promise<Staff
     name: company.name,
     buyers: buyersByCompanyId.get(company.id) ?? [],
     assignedSalesRep: repByCompanyId.get(company.id) ?? null,
+    referringSalesRepId: company.referringSalesRepId,
   }))
 }

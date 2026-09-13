@@ -48,6 +48,11 @@ function StaffAccountsRoute() {
                     {company.assignedSalesRep ? `Rep: ${company.assignedSalesRep.name}` : 'No sales rep assigned'}
                   </span>
                 </div>
+                {company.referringSalesRepId ? (
+                  <p className="text-xs text-muted-foreground">
+                    Referred by: <span className="font-medium text-foreground">{company.referringSalesRepId}</span>
+                  </p>
+                ) : null}
                 {company.buyers.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No buyer users yet.</p>
                 ) : (
