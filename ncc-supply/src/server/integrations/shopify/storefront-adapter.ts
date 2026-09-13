@@ -50,6 +50,15 @@ interface StorefrontProductNode {
   images?: { edges: Array<{ node: StorefrontImage }> }
   collections?: { edges: Array<{ node: { handle: string; title: string } }> }
   variants: { edges: Array<{ node: { id: string; sku: string } }> }
+  /**
+   * Product-detail-only: the full variant list, aliased to avoid a GraphQL
+   * "argument conflict" error against the `variants(first: 1)` already
+   * selected by PRODUCT_SUMMARY_FIELDS (the same field can't be selected
+   * twice with different arguments in one query) — a real, confirmed bug
+   * this session: getProductLive always errored against live data before
+   * this fix, for every SKU, independent of the sku-search bug fixed above.
+   */
+  allVariants?: { edges: Array<{ node: { id: string; sku: string } }> }
 }
 
 interface StorefrontFilterGroup {
@@ -101,15 +110,31 @@ function toSummary(
   }
 }
 
+/**
+ * Shopify's Storefront API injects its own built-in "Availability" and
+ * "Price" filter groups alongside real product-attribute facets (verified
+ * directly against the live store 2026-09-13). Both are excluded here:
+ * "Availability" (in stock / out of stock) directly contradicts this site's
+ * "Available to order" messaging and CLAUDE.md rule 10 (never surface live
+ * stock state) — every line NCC lists is presented as orderable, so an
+ * in-stock/out-of-stock split would openly contradict the checkout flow.
+ * "Price" is a PRICE_RANGE-type filter (a single min/max control, not a
+ * list of discrete values) that this app's checkbox-style FacetSidebar
+ * can't render correctly — it already has dedicated Price ↑/↓ sort options.
+ */
+const EXCLUDED_FACET_LABELS = new Set(['availability', 'price'])
+
 function toFacetOptions(groups: StorefrontFilterGroup[] | undefined): FacetOption[] {
   if (!groups) return []
-  return groups.flatMap((group) =>
-    group.values.map((value) => ({
-      attribute: group.label,
-      value: value.label,
-      count: value.count,
-    })),
-  )
+  return groups
+    .filter((group) => !EXCLUDED_FACET_LABELS.has(group.label.toLowerCase()))
+    .flatMap((group) =>
+      group.values.map((value) => ({
+        attribute: group.label,
+        value: value.label,
+        count: value.count,
+      })),
+    )
 }
 
 /** Best-effort mapping — see module doc comment. */
@@ -254,30 +279,89 @@ async function getCollectionLive(
   }
 }
 
-async function getProductLive(sku: string): Promise<ProductDetail | null> {
+/**
+ * `products(query: "sku:X")` is not a reliable way to look a product up by
+ * SKU — verified directly against the real store 2026-09-13: it silently
+ * ignores the `sku:` field and returns an unfiltered default listing
+ * instead of erroring or filtering (confirmed with plain, single-quoted,
+ * and double-quoted values, and with `variants.sku:` too — all identical,
+ * unrelated results), most likely because this store's search index
+ * doesn't have SKU enabled as a searchable field. Free-text fields like
+ * `title:` filter correctly, so this is specific to `sku:`. Every real
+ * `getProduct(sku)` caller (this product page, `addLine`'s server-truth
+ * pricing, order-submission re-pricing) depends on this returning the
+ * right product or `null` — never a wrong one — so a full-catalogue scan
+ * for the matching variant, cheap fields only, is the only Storefront-API
+ * approach that doesn't depend on that store/search configuration.
+ */
+interface HandleScanNode {
+  handle: string
+  variants: { edges: Array<{ node: { sku: string } }> }
+}
+
+interface HandleScanPage {
+  products: {
+    edges: Array<{ node: HandleScanNode }>
+    pageInfo: PageInfo
+  }
+}
+
+async function findProductHandleBySku(sku: string): Promise<string | null> {
   const query = `
-    query GetProductBySku($searchQuery: String!) {
-      products(first: 1, query: $searchQuery) {
-        edges {
-          node {
-            ${PRODUCT_SUMMARY_FIELDS}
-            descriptionHtml
-            options { name values }
-            images(first: 10) { edges { node { url altText width height } } }
-            variants(first: 100) { edges { node { id sku } } }
-          }
-        }
+    query FindProductHandleBySku($first: Int!, $after: String) {
+      products(first: $first, after: $after) {
+        edges { node { handle variants(first: 100) { edges { node { sku } } } } }
+        pageInfo { hasNextPage endCursor }
       }
     }
   `
-  const data = await storefrontRequest<{
-    products: { edges: Array<{ node: StorefrontProductNode }> }
-  }>('getProductBySku', query, { searchQuery: `sku:${sku}` })
+  let after: string | null = null
+  // Capped at 4 pages of 250 (1000 products) — comfortably above the
+  // documented real catalogue size (321 SKUs, see listCollectionsLive above).
+  for (let page = 0; page < 4; page++) {
+    const pageData: HandleScanPage = await storefrontRequest<HandleScanPage>(
+      'findProductHandleBySku',
+      query,
+      { first: 250, after },
+    )
 
-  const node = data.products.edges[0]?.node
+    const match = pageData.products.edges.find((edge) =>
+      edge.node.variants.edges.some((variantEdge) => variantEdge.node.sku === sku),
+    )
+    if (match) return match.node.handle
+    if (!pageData.products.pageInfo.hasNextPage) return null
+    after = pageData.products.pageInfo.endCursor ?? null
+  }
+  return null
+}
+
+async function getProductLive(sku: string): Promise<ProductDetail | null> {
+  const handle = await findProductHandleBySku(sku)
+  if (!handle) return null
+
+  const query = `
+    query GetProductByHandle($handle: String!) {
+      productByHandle(handle: $handle) {
+        ${PRODUCT_SUMMARY_FIELDS}
+        descriptionHtml
+        options { name values }
+        images(first: 10) { edges { node { url altText width height } } }
+        allVariants: variants(first: 100) { edges { node { id sku } } }
+      }
+    }
+  `
+  const data = await storefrontRequest<{ productByHandle: StorefrontProductNode | null }>(
+    'getProductByHandle',
+    query,
+    { handle },
+  )
+
+  const node = data.productByHandle
   if (!node) return null
 
-  const matchingVariant = node.variants.edges.find((edge) => edge.node.sku === sku)
+  const matchingVariant = (node.allVariants ?? node.variants).edges.find(
+    (edge) => edge.node.sku === sku,
+  )
   if (!matchingVariant) return null
 
   return {

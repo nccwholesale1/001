@@ -52,11 +52,14 @@ describe('getCatalogueAdapter', () => {
 
   it('never mixes fixture and live data: CATALOGUE_ADAPTER=live only ever calls the real Storefront endpoint', async () => {
     const { getCatalogueAdapter } = await loadFactoryWithEnv('live')
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ data: { products: { edges: [] } } }), { status: 200 }),
-      )
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: { products: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } },
+        }),
+        { status: 200 },
+      ),
+    )
     global.fetch = fetchMock
 
     const adapter = getCatalogueAdapter()
@@ -70,11 +73,14 @@ describe('getCatalogueAdapter', () => {
 
   it('caches a repeated getProduct call against the live adapter within the TTL', async () => {
     const { getCatalogueAdapter } = await loadFactoryWithEnv('live')
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ data: { products: { edges: [] } } }), { status: 200 }),
-      )
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: { products: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } },
+        }),
+        { status: 200 },
+      ),
+    )
     global.fetch = fetchMock
 
     const adapter = getCatalogueAdapter()
