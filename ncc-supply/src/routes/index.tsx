@@ -98,6 +98,11 @@ const TRUST_STATS = [
 function IndexRoute() {
   const { collections, popularProducts, error } = Route.useLoaderData()
   const totalLines = collections.reduce((sum, collection) => sum + collection.lineCount, 0)
+  // Never hardcode a specific category slug — real Shopify collection
+  // handles (e.g. "wall-chargers") don't match the old fixture-era guesses
+  // (e.g. "chargers"), as going live surfaced. First real collection with
+  // at least one line, so the CTA never points at an empty category.
+  const featuredCollection = collections.find((collection) => collection.lineCount > 0) ?? collections[0]
 
   return (
     <>
@@ -110,7 +115,11 @@ function IndexRoute() {
           </>
         }
         description="Order chargers, batteries, screens and repair parts as a guest or a company account — no card details until NCC confirms your order."
-        primaryCta={{ label: 'Shop Chargers', href: '/category/chargers' }}
+        primaryCta={
+          featuredCollection
+            ? { label: `Shop ${featuredCollection.title}`, href: `/category/${featuredCollection.slug}` }
+            : { label: 'Browse All Categories', href: '/categories' }
+        }
         secondaryCta={{ label: 'Browse All Categories', href: '/categories' }}
       >
         <a
