@@ -4,7 +4,25 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 10 + 11 (merged) — Returns, support, staff accounts, team management
+## Most recent work: Phase 12, security-only slice (not the full phase)
+
+**Scope decision (user's explicit choice, 2026-09-13):** ahead of standing up a staging deployment, the user chose to run only the security-relevant half of Phase 12 now — authorization, tenant isolation, injection/XSS, uploads, secrets, rate limiting — deferring SEO/AEO, accessibility, performance, and a dependency audit to a later full Phase 12 pass. See `docs/quality-audit.md` for the complete writeup and DECISIONS.md ADR-037.
+
+**Two real gaps found and fixed** (not just reviewed):
+1. 12 inline server functions defined inside route files (`support/$id.tsx`, `returns/$id.tsx`, `returns/index.tsx`, `quote/$id.tsx` ×2, `checkout/$id.tsx`, `order/$id.tsx`, `category/$slug.tsx`, `search.tsx` ×2, `product/$sku.tsx`) validated their `.validator()` RPC boundary with a bare TypeScript-typed passthrough — no runtime validation at all, directly callable regardless of what the app's own UI happens to send. The worst instance: a customer's support-ticket reply had no length/size cap, even though the exact schema needed (`supportTicketMessageSchema`) already existed in `validation/commands.ts` and was simply never wired up. All 12 now validate for real.
+2. No rate limiting existed anywhere for this app's own endpoints. Added `server/shared/rate-limit.ts` (in-memory, fixed-window, its own test suite) on staff sign-in (by IP and by identifier independently), the site-access gate, and every guest-writable submission (order/quote/return/support-ticket/support-reply). Recorded limitation: in-process only, doesn't survive a restart or coordinate across multiple instances — fine for a single-instance deployment, not a substitute for a shared store if this scales out.
+
+Everything else audited (authorization matrix, tenant isolation, sessions/CSRF, injection, XSS, upload validation, password hashing) was reviewed against real code and existing tests and found already sound — cited as evidence in `docs/quality-audit.md`, not re-derived from scratch.
+
+**Verification:** `pnpm typecheck`/`lint`/`test` (60 files, 441 passed/1 skipped)/`build` all clean; client bundle re-swept, clean.
+
+**Not done in this slice (deferred, tracked in TASKS.md):** SEO/AEO, accessibility, performance budgets, dependency/configuration audit.
+
+**Hosting recommendation given (Phase 14, not yet started):** Vercel (app) + Turso (database) — see `docs/quality-audit.md`'s final section for reasoning. Account creation is the user's own action; not yet done.
+
+---
+
+## Last completed full phase: Phase 10 + 11 (merged) — Returns, support, staff accounts, team management
 
 **Completed scope:** PRD §§4, 6.15-6.22, 2, 7.2, on branch `phase/10-returns-support`. Merged into one session at the user's explicit request to move faster. As with Phase 9, most schema/domain groundwork (`returns`, `supportTickets`, `transitionReturn`, `transitionStaff`, `AdminCommerceAdapter.approveReturn`) already existed from Phase 2/3's forward-looking work — this pass wired it all up for real against the live store.
 

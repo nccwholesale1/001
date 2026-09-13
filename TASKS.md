@@ -167,6 +167,18 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [x] Verified in-browser against the real seeded fixture accounts: `/staff/team` and `/staff/accounts` both render live data with working controls; confirmed neither new index/id route pair repeats the Phase 9 routing bug by checking the generated route tree directly.
 
 ## Phase 12 — SEO, AEO, accessibility, performance, security hardening
+
+**Security-only slice done now, ahead of Phase 14 staging — the user explicitly chose to defer SEO/AEO/accessibility/performance/dependency-audit to a later full pass. See `docs/quality-audit.md` and DECISIONS.md ADR-037.**
+
+- [x] Authorization matrix, tenant isolation/IDOR, sessions/CSRF, injection, XSS, upload validation, and password hashing all reviewed against real code and existing tests — found already sound, evidence cited in `docs/quality-audit.md`.
+- [x] **Real gap fixed:** 12 inline route-level server functions used an unvalidated TypeScript-typed passthrough instead of a real Zod schema at the `.validator()` RPC boundary — including a customer support-ticket reply with no message/attachment size cap. All 12 now validate for real.
+- [x] **Real gap fixed:** no rate limiting existed anywhere for this app's own endpoints. Added an in-memory limiter (`server/shared/rate-limit.ts`) on staff sign-in, the site-access gate, and every guest-writable submission (order/quote/return/support-ticket/support-reply).
+- [x] `pnpm typecheck`/`lint`/`test` (60 files / 441 passed, 1 skipped)/`build` all pass; client bundle re-swept, clean.
+- [ ] SEO/AEO (structured data, canonical URLs, robots/sitemap, Q&A content) — deferred.
+- [ ] Accessibility (automated WCAG, keyboard-only, focus/contrast/reduced-motion, responsive breakpoints) — deferred.
+- [ ] Performance (bundle analysis, image loading, cache review, measured budgets) — deferred.
+- [ ] Dependency/configuration audit — deferred.
+
 ## Phase 13 — Real catalogue, assets, content readiness
 ## Phase 14 — Staging, end-to-end acceptance, launch preparation
 
