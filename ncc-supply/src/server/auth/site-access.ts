@@ -29,13 +29,16 @@ function getSiteAccessSession() {
   })
 }
 
+/** No password configured at all means the gate is off — always granted, no session lookup needed. */
 export async function hasSiteAccess(): Promise<boolean> {
+  if (!env.SITE_ACCESS_PASSWORD) return true
   const session = await getSiteAccessSession()
   return session.data.granted === true
 }
 
 /** Constant-time comparison — this gate is meant to keep casual visitors out, not withstand a targeted attack, but there's no reason to leak timing anyway. */
 export function isCorrectSiteAccessPassword(candidate: string): boolean {
+  if (!env.SITE_ACCESS_PASSWORD) return false
   const expected = Buffer.from(env.SITE_ACCESS_PASSWORD)
   const actual = Buffer.from(candidate)
   if (actual.length !== expected.length) return false
