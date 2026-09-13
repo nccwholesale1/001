@@ -29,6 +29,8 @@ export interface OrderRequestView {
   invoiceUrl: string | null
   shopifyDraftOrderId: string | null
   internalNotes: string | null
+  /** Self-reported by the customer at submission (e.g. from the Bulk Order page) — a lead-attribution hint for staff, never an authorization credential. */
+  referringSalesRepId: string | null
   lines: OrderRequestLineView[]
 }
 
@@ -80,6 +82,7 @@ export async function buildOrderRequestView(db: Db, orderRequestId: string): Pro
     invoiceUrl: orderRequest.invoiceUrl,
     shopifyDraftOrderId: orderRequest.shopifyDraftOrderId,
     internalNotes: orderRequest.internalNotes,
+    referringSalesRepId: orderRequest.referringSalesRepId,
     lines,
   }
 }

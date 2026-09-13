@@ -83,6 +83,7 @@ async function submitGuestQuoteRequest(
     status: 'requested',
     guestContactEmail: input.contactEmail ?? null,
     guestContactName: input.contactName ?? null,
+    referringSalesRepId: input.referringSalesRepId ?? null,
   })
   await insertQuoteLines(db, quoteId, resolvedLines)
 
@@ -113,6 +114,7 @@ async function submitBuyerQuoteRequest(
     id: quoteId,
     status: 'requested',
     buyerUserId,
+    referringSalesRepId: input.referringSalesRepId ?? null,
   })
   await insertQuoteLines(db, quoteId, resolvedLines)
 

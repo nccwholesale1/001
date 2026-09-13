@@ -4,10 +4,18 @@ import { checkRateLimitByIp } from '../shared/rate-limit'
 import {
   addBasketLineSchema,
   removeBasketLineSchema,
+  setBasketReferringSalesRepSchema,
   submitBasketSchema,
   updateBasketLineQuantitySchema,
 } from '../validation/commands'
-import { addLine, getBasketView, removeLine, updateLineQuantity, type BasketView } from './basket'
+import {
+  addLine,
+  getBasketView,
+  removeLine,
+  setBasketReferringSalesRep,
+  updateLineQuantity,
+  type BasketView,
+} from './basket'
 import { getOrCreateBasketId } from './session'
 import { submitBasket, type SubmitBasketResult } from './submit-order-request'
 
@@ -56,6 +64,13 @@ export const removeBasketLine = createServerFn({ method: 'POST' })
     const view = await getBasketView(db, basketId)
     if (!view) throw new Error('Basket unexpectedly missing immediately after removing a line')
     return view
+  })
+
+export const setReferringSalesRep = createServerFn({ method: 'POST' })
+  .validator(setBasketReferringSalesRepSchema.parse)
+  .handler(async ({ data }): Promise<void> => {
+    const basketId = await getOrCreateBasketId(db)
+    await setBasketReferringSalesRep(db, basketId, data.referringSalesRepId)
   })
 
 export const submitCurrentBasket = createServerFn({ method: 'POST' })

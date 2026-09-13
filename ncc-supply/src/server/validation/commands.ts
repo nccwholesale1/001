@@ -9,6 +9,15 @@ import { BUYER_ROLES, STAFF_ROLES } from '../db/schema'
  * outright instead of the server having to remember to ignore those fields.
  */
 
+/**
+ * A customer-typed "which NCC sales rep referred you" id — deliberately
+ * lenient (no format/enum check against real staff employee ids) since it's
+ * a self-reported lead-attribution hint for staff to follow up on, never an
+ * authorization credential (CLAUDE.md rule 9 doesn't apply the same way
+ * here — this grants no access, no price, no entitlement).
+ */
+export const salesRepReferralIdSchema = z.string().trim().min(1).max(40)
+
 export const addBasketLineSchema = z
   .object({
     sku: z.string().min(1),
@@ -27,6 +36,11 @@ export type UpdateBasketLineQuantityInput = z.infer<typeof updateBasketLineQuant
 
 export const removeBasketLineSchema = z.object({ lineId: z.string().min(1) }).strict()
 export type RemoveBasketLineInput = z.infer<typeof removeBasketLineSchema>
+
+export const setBasketReferringSalesRepSchema = z
+  .object({ referringSalesRepId: salesRepReferralIdSchema })
+  .strict()
+export type SetBasketReferringSalesRepInput = z.infer<typeof setBasketReferringSalesRepSchema>
 
 /**
  * Phase 2 originally guessed `{ basketId, lines }` here — a client-supplied
@@ -101,6 +115,7 @@ export const quoteRequestSchema = z
       .max(100),
     contactEmail: z.string().email().optional(),
     contactName: z.string().min(1).optional(),
+    referringSalesRepId: salesRepReferralIdSchema.optional(),
   })
   .strict()
 export type QuoteRequestInput = z.infer<typeof quoteRequestSchema>

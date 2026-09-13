@@ -91,6 +91,12 @@ export function QuoteDetail({ quote, actions, bare = false }: QuoteDetailProps) 
         </div>
       ) : null}
 
+      {quote.referringSalesRepId ? (
+        <p className="text-sm text-muted-foreground">
+          Referred by sales rep: <span className="font-medium text-foreground">{quote.referringSalesRepId}</span>
+        </p>
+      ) : null}
+
       {actions}
     </div>
   )

@@ -32,6 +32,21 @@ describe('submitQuoteRequest', () => {
     }
   })
 
+  it('records a self-reported referring sales rep id, if given', async () => {
+    const { db, client } = await createTestDb()
+    try {
+      const result = await submitQuoteRequest(db, null, {
+        lines: [{ sku: 'FIXTURE-CHG-001', quantity: 1 }],
+        referringSalesRepId: 'EMP-042',
+      })
+
+      const [quote] = await db.select().from(quotes).where(eq(quotes.id, result.quoteId))
+      expect(quote?.referringSalesRepId).toBe('EMP-042')
+    } finally {
+      client.close()
+    }
+  })
+
   it('a signed-in buyer request creates a quote under their own buyerUserId, no token', async () => {
     const { db, client } = await createTestDb()
     try {

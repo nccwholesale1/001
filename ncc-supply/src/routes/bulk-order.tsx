@@ -5,11 +5,12 @@ import { useState } from 'react'
 import { addBulkOrderLines, previewBulkOrder } from '../server/bulk-order/server-functions'
 import type { BulkOrderPreview } from '../server/bulk-order/bulk-order'
 import { sanitizeCsvCell } from '../server/bulk-order/csv'
+import { setReferringSalesRep } from '../server/basket/server-functions'
 import { Breadcrumbs } from '../components/ui/Breadcrumbs'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
 import { Container, Section } from '../components/ui/Layout'
-import { TextareaField } from '../components/ui/Field'
+import { Field, TextareaField } from '../components/ui/Field'
 
 function formatPrice(pence: number): string {
   return `£${(pence / 100).toFixed(2)}`
@@ -50,9 +51,11 @@ function BulkOrderRoute() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addedCount, setAddedCount] = useState(0)
+  const [salesRepId, setSalesRepId] = useState('')
 
   const doPreview = useServerFn(previewBulkOrder)
   const doAddLines = useServerFn(addBulkOrderLines)
+  const doSetReferringSalesRep = useServerFn(setReferringSalesRep)
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -84,6 +87,9 @@ function BulkOrderRoute() {
         .filter((row) => checkedSkus.has(row.sku))
         .map((row) => ({ sku: row.sku, quantity: row.quantity }))
       const result = await doAddLines({ data: { lines } })
+      if (salesRepId.trim()) {
+        await doSetReferringSalesRep({ data: { referringSalesRepId: salesRepId.trim() } })
+      }
       setAddedCount(result.added.length)
       setStage('added')
     } finally {
@@ -150,6 +156,15 @@ function BulkOrderRoute() {
                 />
               </div>
             </div>
+
+            <Field
+              label="Sales Rep ID (optional)"
+              value={salesRepId}
+              onChange={(event) => setSalesRepId(event.target.value)}
+              placeholder="e.g. EMP-042"
+              helpText="Were you referred by an NCC sales rep? Add their ID and we'll credit them."
+              className="max-w-xs"
+            />
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

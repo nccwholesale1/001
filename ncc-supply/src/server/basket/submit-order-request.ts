@@ -119,6 +119,11 @@ async function submitGuestBasket(
 ): Promise<SubmitBasketResult> {
   return withIdempotency(db, 'submit_basket', basketId, async () => {
     const resolvedLines = await resolveLinesOrThrow(db, basketId)
+    const [basket] = await db
+      .select({ referringSalesRepId: baskets.referringSalesRepId })
+      .from(baskets)
+      .where(eq(baskets.id, basketId))
+      .limit(1)
 
     const orderRequestId = randomUUID()
     await db.insert(orderRequests).values({
@@ -126,6 +131,7 @@ async function submitGuestBasket(
       status: 'awaiting_ncc_review',
       guestContactEmail: input.contactEmail ?? null,
       guestContactName: input.contactName ?? null,
+      referringSalesRepId: basket?.referringSalesRepId ?? null,
     })
     await insertOrderRequestLines(db, orderRequestId, resolvedLines)
     await db
@@ -166,12 +172,18 @@ async function submitBuyerBasket(
 ): Promise<SubmitBasketResult> {
   return withIdempotency(db, 'submit_basket', basketId, async () => {
     const resolvedLines = await resolveLinesOrThrow(db, basketId)
+    const [basket] = await db
+      .select({ referringSalesRepId: baskets.referringSalesRepId })
+      .from(baskets)
+      .where(eq(baskets.id, basketId))
+      .limit(1)
 
     const orderRequestId = randomUUID()
     await db.insert(orderRequests).values({
       id: orderRequestId,
       status: 'awaiting_company_approval',
       buyerUserId,
+      referringSalesRepId: basket?.referringSalesRepId ?? null,
     })
     await insertOrderRequestLines(db, orderRequestId, resolvedLines)
     await db

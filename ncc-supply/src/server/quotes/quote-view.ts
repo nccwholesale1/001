@@ -21,6 +21,8 @@ export interface QuoteView {
   guestContactName: string | null
   expiresAt: string | null
   convertedOrderRequestId: string | null
+  /** Self-reported by the customer at request time — a lead-attribution hint for staff, never an authorization credential. */
+  referringSalesRepId: string | null
   lines: QuoteLineView[]
 }
 
@@ -79,6 +81,7 @@ export async function buildQuoteView(db: Db, quoteId: string): Promise<QuoteView
     guestContactName: quote.guestContactName,
     expiresAt: quote.expiresAt,
     convertedOrderRequestId: quote.convertedOrderRequestId,
+    referringSalesRepId: quote.referringSalesRepId,
     lines,
   }
 }

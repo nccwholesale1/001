@@ -119,6 +119,22 @@ export async function removeLine(db: Db, basketId: string, lineId: string): Prom
 }
 
 /**
+ * Records a self-reported "which NCC sales rep referred you" id against the
+ * basket — surfaced from the Bulk Order page (a customer naming their rep
+ * there is a real lead for NCC to follow up on), carried onto the resulting
+ * order request at submission (submit-order-request.ts). Never an
+ * authorization credential and never validated against a real staff row —
+ * purely an attribution hint for staff to act on manually.
+ */
+export async function setBasketReferringSalesRep(
+  db: Db,
+  basketId: string,
+  referringSalesRepId: string,
+): Promise<void> {
+  await db.update(baskets).set({ referringSalesRepId }).where(eq(baskets.id, basketId))
+}
+
+/**
  * Every line's price is re-resolved from the catalogue adapter right now,
  * never read from a stored value — the basket view is never stale and
  * never trusts anything but the current live catalogue for price.

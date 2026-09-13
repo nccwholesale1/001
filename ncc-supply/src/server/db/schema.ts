@@ -149,6 +149,14 @@ export const baskets = sqliteTable('baskets', {
   status: text('status', { enum: BASKET_STATUSES }).notNull().default('open'),
   /** Set once the basket becomes an order request (Phase 6) — a submitted basket is never editable again. */
   orderRequestId: text('order_request_id').references(() => orderRequests.id),
+  /**
+   * A self-reported NCC sales-rep identifier a buyer/guest optionally names
+   * (e.g. from the Bulk Order page) so NCC can credit/follow up on the lead
+   * — never an authorization credential, never validated against a real
+   * staff row. Copied onto the resulting order_requests row at submission
+   * (see submit-order-request.ts).
+   */
+  referringSalesRepId: text('referring_sales_rep_id'),
   ...timestamps,
 })
 
@@ -197,6 +205,8 @@ export const orderRequests = sqliteTable('order_requests', {
   internalNotes: text('internal_notes'),
   /** Set only after NCC approval creates the Shopify Draft Order (PRD §7.1). */
   shopifyDraftOrderId: text('shopify_draft_order_id'),
+  /** Copied from the submitting basket, if named — see baskets.referringSalesRepId. */
+  referringSalesRepId: text('referring_sales_rep_id'),
   ...timestamps,
 })
 
@@ -232,6 +242,8 @@ export const quotes = sqliteTable('quotes', {
   expiresAt: text('expires_at'),
   /** Set when accepted — the order request it became (rule: quote never skips NCC review). */
   convertedOrderRequestId: text('converted_order_request_id').references(() => orderRequests.id),
+  /** Self-reported at request time — see baskets.referringSalesRepId for the same field on orders. */
+  referringSalesRepId: text('referring_sales_rep_id'),
   ...timestamps,
 })
 

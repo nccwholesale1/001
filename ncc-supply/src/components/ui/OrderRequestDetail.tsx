@@ -121,6 +121,12 @@ export function OrderRequestDetail({ order, placedByLabel, actions, bare = false
         </div>
       ) : null}
 
+      {order.referringSalesRepId ? (
+        <p className="text-sm text-muted-foreground">
+          Referred by sales rep: <span className="font-medium text-foreground">{order.referringSalesRepId}</span>
+        </p>
+      ) : null}
+
       {actions}
     </div>
   )

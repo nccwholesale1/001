@@ -34,6 +34,7 @@ function QuoteRequestRoute() {
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()])
   const [contactEmail, setContactEmail] = useState('')
   const [contactName, setContactName] = useState('')
+  const [salesRepId, setSalesRepId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,6 +77,7 @@ function QuoteRequestRoute() {
           ...(isBuyer
             ? {}
             : { contactEmail: contactEmail.trim() || undefined, contactName: contactName.trim() || undefined }),
+          referringSalesRepId: salesRepId.trim() || undefined,
         },
       })
       if (result.kind === 'buyer') {
@@ -157,6 +159,15 @@ function QuoteRequestRoute() {
               />
             </div>
           ) : null}
+
+          <Field
+            label="Sales Rep ID (optional)"
+            value={salesRepId}
+            onChange={(event) => setSalesRepId(event.target.value)}
+            placeholder="e.g. EMP-042"
+            helpText="Were you referred by an NCC sales rep? Add their ID and we'll credit them."
+            className="max-w-xs"
+          />
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

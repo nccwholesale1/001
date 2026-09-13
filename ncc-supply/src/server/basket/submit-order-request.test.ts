@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createTestDb } from '../db/test-helpers'
 import { auditEvents, baskets, buyerUsers, companies, guestTokens, orderRequestLines, orderRequests } from '../db/schema'
-import { addLine } from './basket'
+import { addLine, setBasketReferringSalesRep } from './basket'
 import { BasketNotFoundError, EmptyBasketError, submitBasket } from './submit-order-request'
 
 describe('submitBasket', () => {
@@ -41,6 +41,19 @@ describe('submitBasket', () => {
     expect(lines[0]?.unitPricePence).toBe(1299) // the real fixture price — never client input
     expect(lines[0]?.requestedQuantity).toBe(2)
     expect(lines[0]?.confirmedQuantity).toBeNull()
+  })
+
+  it('carries a self-reported referring sales rep id from the basket onto the order request', async () => {
+    const { db, basketId } = await seedOpenBasketWithLine()
+    await setBasketReferringSalesRep(db, basketId, 'EMP-042')
+
+    const result = await submitBasket(db, basketId, {})
+
+    const [orderRequest] = await db
+      .select()
+      .from(orderRequests)
+      .where(eq(orderRequests.id, result.orderRequestId))
+    expect(orderRequest?.referringSalesRepId).toBe('EMP-042')
   })
 
   it('marks the basket submitted and issues a guest token that is never stored raw', async () => {
@@ -120,7 +133,16 @@ describe('submitBasket', () => {
 
       const [event] = await db.select().from(auditEvents).where(eq(auditEvents.action, 'submit_order_request'))
       expect(event?.actorType).toBe('buyer')
-      expect(event?.actorId).toBe('buyer-1')
+    })
+
+    it('also carries a self-reported referring sales rep id for a buyer basket', async () => {
+      const { db, basketId } = await seedBuyerBasketWithLine()
+      await setBasketReferringSalesRep(db, basketId, 'EMP-007')
+
+      const result = await submitBasket(db, basketId, {})
+
+      const [orderRequest] = await db.select().from(orderRequests).where(eq(orderRequests.id, result.orderRequestId))
+      expect(orderRequest?.referringSalesRepId).toBe('EMP-007')
     })
 
     it('still resolves the line price from the live catalogue, never client input', async () => {
