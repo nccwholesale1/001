@@ -25,6 +25,7 @@ import { Route as StaffLoginRouteImport } from './routes/staff-login'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountOrdersRouteImport } from './routes/account/orders'
 import { Route as AccountPricingRouteImport } from './routes/account/pricing'
+import { Route as AccountReturnsRouteImport } from './routes/account/returns'
 import { Route as AccountUsersRouteImport } from './routes/account/users'
 import { Route as CategorySlugRouteImport } from './routes/category/$slug'
 import { Route as CheckoutIdRouteImport } from './routes/checkout/$id'
@@ -35,10 +36,20 @@ import { Route as OrderIdRouteImport } from './routes/order/$id'
 import { Route as ProductSkuRouteImport } from './routes/product/$sku'
 import { Route as QuoteIndexRouteImport } from './routes/quote/index'
 import { Route as QuoteIdRouteImport } from './routes/quote/$id'
+import { Route as ReturnsIndexRouteImport } from './routes/returns/index'
+import { Route as ReturnsIdRouteImport } from './routes/returns/$id'
+import { Route as StaffAccountsRouteImport } from './routes/staff/accounts'
 import { Route as StaffOrdersRouteImport } from './routes/staff/orders'
 import { Route as StaffQuotesRouteImport } from './routes/staff/quotes'
+import { Route as StaffReturnsRouteImport } from './routes/staff/returns'
+import { Route as StaffTeamRouteImport } from './routes/staff/team'
+import { Route as SupportIndexRouteImport } from './routes/support/index'
+import { Route as SupportIdRouteImport } from './routes/support/$id'
 import { Route as StaffOrderIdRouteImport } from './routes/staff/order/$id'
 import { Route as StaffQuoteIdRouteImport } from './routes/staff/quote/$id'
+import { Route as StaffReturnIdRouteImport } from './routes/staff/return/$id'
+import { Route as StaffSupportIndexRouteImport } from './routes/staff/support/index'
+import { Route as StaffSupportIdRouteImport } from './routes/staff/support/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -120,6 +131,11 @@ const AccountPricingRoute = AccountPricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => AccountRouteRoute,
 } as any)
+const AccountReturnsRoute = AccountReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
 const AccountUsersRoute = AccountUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -170,6 +186,21 @@ const QuoteIdRoute = QuoteIdRouteImport.update({
   path: '/quote/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReturnsIndexRoute = ReturnsIndexRouteImport.update({
+  id: '/returns/',
+  path: '/returns/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReturnsIdRoute = ReturnsIdRouteImport.update({
+  id: '/returns/$id',
+  path: '/returns/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffAccountsRoute = StaffAccountsRouteImport.update({
+  id: '/staff/accounts',
+  path: '/staff/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffOrdersRoute = StaffOrdersRouteImport.update({
   id: '/staff/orders',
   path: '/staff/orders',
@@ -180,6 +211,26 @@ const StaffQuotesRoute = StaffQuotesRouteImport.update({
   path: '/staff/quotes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffReturnsRoute = StaffReturnsRouteImport.update({
+  id: '/staff/returns',
+  path: '/staff/returns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffTeamRoute = StaffTeamRouteImport.update({
+  id: '/staff/team',
+  path: '/staff/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportIndexRoute = SupportIndexRouteImport.update({
+  id: '/support/',
+  path: '/support/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportIdRoute = SupportIdRouteImport.update({
+  id: '/support/$id',
+  path: '/support/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffOrderIdRoute = StaffOrderIdRouteImport.update({
   id: '/staff/order/$id',
   path: '/staff/order/$id',
@@ -188,6 +239,21 @@ const StaffOrderIdRoute = StaffOrderIdRouteImport.update({
 const StaffQuoteIdRoute = StaffQuoteIdRouteImport.update({
   id: '/staff/quote/$id',
   path: '/staff/quote/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffReturnIdRoute = StaffReturnIdRouteImport.update({
+  id: '/staff/return/$id',
+  path: '/staff/return/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffSupportIndexRoute = StaffSupportIndexRouteImport.update({
+  id: '/staff/support/',
+  path: '/staff/support/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffSupportIdRoute = StaffSupportIdRouteImport.update({
+  id: '/staff/support/$id',
+  path: '/staff/support/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -207,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/staff-login': typeof StaffLoginRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/pricing': typeof AccountPricingRoute
+  '/account/returns': typeof AccountReturnsRoute
   '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
   '/checkout/$id': typeof CheckoutIdRoute
@@ -216,12 +283,22 @@ export interface FileRoutesByFullPath {
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
   '/quote/$id': typeof QuoteIdRoute
+  '/returns/$id': typeof ReturnsIdRoute
+  '/staff/accounts': typeof StaffAccountsRoute
   '/staff/orders': typeof StaffOrdersRoute
   '/staff/quotes': typeof StaffQuotesRoute
+  '/staff/returns': typeof StaffReturnsRoute
+  '/staff/team': typeof StaffTeamRoute
+  '/support/$id': typeof SupportIdRoute
   '/account/': typeof AccountIndexRoute
   '/quote/': typeof QuoteIndexRoute
+  '/returns/': typeof ReturnsIndexRoute
+  '/support/': typeof SupportIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
   '/staff/quote/$id': typeof StaffQuoteIdRoute
+  '/staff/return/$id': typeof StaffReturnIdRoute
+  '/staff/support/$id': typeof StaffSupportIdRoute
+  '/staff/support/': typeof StaffSupportIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -238,6 +315,7 @@ export interface FileRoutesByTo {
   '/staff-login': typeof StaffLoginRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/pricing': typeof AccountPricingRoute
+  '/account/returns': typeof AccountReturnsRoute
   '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
   '/checkout/$id': typeof CheckoutIdRoute
@@ -247,12 +325,22 @@ export interface FileRoutesByTo {
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
   '/quote/$id': typeof QuoteIdRoute
+  '/returns/$id': typeof ReturnsIdRoute
+  '/staff/accounts': typeof StaffAccountsRoute
   '/staff/orders': typeof StaffOrdersRoute
   '/staff/quotes': typeof StaffQuotesRoute
+  '/staff/returns': typeof StaffReturnsRoute
+  '/staff/team': typeof StaffTeamRoute
+  '/support/$id': typeof SupportIdRoute
   '/account': typeof AccountIndexRoute
   '/quote': typeof QuoteIndexRoute
+  '/returns': typeof ReturnsIndexRoute
+  '/support': typeof SupportIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
   '/staff/quote/$id': typeof StaffQuoteIdRoute
+  '/staff/return/$id': typeof StaffReturnIdRoute
+  '/staff/support/$id': typeof StaffSupportIdRoute
+  '/staff/support': typeof StaffSupportIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -271,6 +359,7 @@ export interface FileRoutesById {
   '/staff-login': typeof StaffLoginRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/pricing': typeof AccountPricingRoute
+  '/account/returns': typeof AccountReturnsRoute
   '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
   '/checkout/$id': typeof CheckoutIdRoute
@@ -280,12 +369,22 @@ export interface FileRoutesById {
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
   '/quote/$id': typeof QuoteIdRoute
+  '/returns/$id': typeof ReturnsIdRoute
+  '/staff/accounts': typeof StaffAccountsRoute
   '/staff/orders': typeof StaffOrdersRoute
   '/staff/quotes': typeof StaffQuotesRoute
+  '/staff/returns': typeof StaffReturnsRoute
+  '/staff/team': typeof StaffTeamRoute
+  '/support/$id': typeof SupportIdRoute
   '/account/': typeof AccountIndexRoute
   '/quote/': typeof QuoteIndexRoute
+  '/returns/': typeof ReturnsIndexRoute
+  '/support/': typeof SupportIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
   '/staff/quote/$id': typeof StaffQuoteIdRoute
+  '/staff/return/$id': typeof StaffReturnIdRoute
+  '/staff/support/$id': typeof StaffSupportIdRoute
+  '/staff/support/': typeof StaffSupportIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -305,6 +404,7 @@ export interface FileRouteTypes {
     | '/staff-login'
     | '/account/orders'
     | '/account/pricing'
+    | '/account/returns'
     | '/account/users'
     | '/category/$slug'
     | '/checkout/$id'
@@ -314,12 +414,22 @@ export interface FileRouteTypes {
     | '/order/$id'
     | '/product/$sku'
     | '/quote/$id'
+    | '/returns/$id'
+    | '/staff/accounts'
     | '/staff/orders'
     | '/staff/quotes'
+    | '/staff/returns'
+    | '/staff/team'
+    | '/support/$id'
     | '/account/'
     | '/quote/'
+    | '/returns/'
+    | '/support/'
     | '/staff/order/$id'
     | '/staff/quote/$id'
+    | '/staff/return/$id'
+    | '/staff/support/$id'
+    | '/staff/support/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -336,6 +446,7 @@ export interface FileRouteTypes {
     | '/staff-login'
     | '/account/orders'
     | '/account/pricing'
+    | '/account/returns'
     | '/account/users'
     | '/category/$slug'
     | '/checkout/$id'
@@ -345,12 +456,22 @@ export interface FileRouteTypes {
     | '/order/$id'
     | '/product/$sku'
     | '/quote/$id'
+    | '/returns/$id'
+    | '/staff/accounts'
     | '/staff/orders'
     | '/staff/quotes'
+    | '/staff/returns'
+    | '/staff/team'
+    | '/support/$id'
     | '/account'
     | '/quote'
+    | '/returns'
+    | '/support'
     | '/staff/order/$id'
     | '/staff/quote/$id'
+    | '/staff/return/$id'
+    | '/staff/support/$id'
+    | '/staff/support'
   id:
     | '__root__'
     | '/'
@@ -368,6 +489,7 @@ export interface FileRouteTypes {
     | '/staff-login'
     | '/account/orders'
     | '/account/pricing'
+    | '/account/returns'
     | '/account/users'
     | '/category/$slug'
     | '/checkout/$id'
@@ -377,12 +499,22 @@ export interface FileRouteTypes {
     | '/order/$id'
     | '/product/$sku'
     | '/quote/$id'
+    | '/returns/$id'
+    | '/staff/accounts'
     | '/staff/orders'
     | '/staff/quotes'
+    | '/staff/returns'
+    | '/staff/team'
+    | '/support/$id'
     | '/account/'
     | '/quote/'
+    | '/returns/'
+    | '/support/'
     | '/staff/order/$id'
     | '/staff/quote/$id'
+    | '/staff/return/$id'
+    | '/staff/support/$id'
+    | '/staff/support/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -407,11 +539,21 @@ export interface RootRouteChildren {
   OrderIdRoute: typeof OrderIdRoute
   ProductSkuRoute: typeof ProductSkuRoute
   QuoteIdRoute: typeof QuoteIdRoute
+  ReturnsIdRoute: typeof ReturnsIdRoute
+  StaffAccountsRoute: typeof StaffAccountsRoute
   StaffOrdersRoute: typeof StaffOrdersRoute
   StaffQuotesRoute: typeof StaffQuotesRoute
+  StaffReturnsRoute: typeof StaffReturnsRoute
+  StaffTeamRoute: typeof StaffTeamRoute
+  SupportIdRoute: typeof SupportIdRoute
   QuoteIndexRoute: typeof QuoteIndexRoute
+  ReturnsIndexRoute: typeof ReturnsIndexRoute
+  SupportIndexRoute: typeof SupportIndexRoute
   StaffOrderIdRoute: typeof StaffOrderIdRoute
   StaffQuoteIdRoute: typeof StaffQuoteIdRoute
+  StaffReturnIdRoute: typeof StaffReturnIdRoute
+  StaffSupportIdRoute: typeof StaffSupportIdRoute
+  StaffSupportIndexRoute: typeof StaffSupportIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -528,6 +670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountPricingRouteImport
       parentRoute: typeof AccountRouteRoute
     }
+    '/account/returns': {
+      id: '/account/returns'
+      path: '/returns'
+      fullPath: '/account/returns'
+      preLoaderRoute: typeof AccountReturnsRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
     '/account/users': {
       id: '/account/users'
       path: '/users'
@@ -598,6 +747,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuoteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/returns/': {
+      id: '/returns/'
+      path: '/returns'
+      fullPath: '/returns/'
+      preLoaderRoute: typeof ReturnsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/returns/$id': {
+      id: '/returns/$id'
+      path: '/returns/$id'
+      fullPath: '/returns/$id'
+      preLoaderRoute: typeof ReturnsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/accounts': {
+      id: '/staff/accounts'
+      path: '/staff/accounts'
+      fullPath: '/staff/accounts'
+      preLoaderRoute: typeof StaffAccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/orders': {
       id: '/staff/orders'
       path: '/staff/orders'
@@ -610,6 +780,34 @@ declare module '@tanstack/react-router' {
       path: '/staff/quotes'
       fullPath: '/staff/quotes'
       preLoaderRoute: typeof StaffQuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/returns': {
+      id: '/staff/returns'
+      path: '/staff/returns'
+      fullPath: '/staff/returns'
+      preLoaderRoute: typeof StaffReturnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/team': {
+      id: '/staff/team'
+      path: '/staff/team'
+      fullPath: '/staff/team'
+      preLoaderRoute: typeof StaffTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support/': {
+      id: '/support/'
+      path: '/support'
+      fullPath: '/support/'
+      preLoaderRoute: typeof SupportIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support/$id': {
+      id: '/support/$id'
+      path: '/support/$id'
+      fullPath: '/support/$id'
+      preLoaderRoute: typeof SupportIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/order/$id': {
@@ -626,12 +824,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffQuoteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/return/$id': {
+      id: '/staff/return/$id'
+      path: '/staff/return/$id'
+      fullPath: '/staff/return/$id'
+      preLoaderRoute: typeof StaffReturnIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/support/': {
+      id: '/staff/support/'
+      path: '/staff/support'
+      fullPath: '/staff/support/'
+      preLoaderRoute: typeof StaffSupportIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/support/$id': {
+      id: '/staff/support/$id'
+      path: '/staff/support/$id'
+      fullPath: '/staff/support/$id'
+      preLoaderRoute: typeof StaffSupportIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AccountRouteRouteChildren {
   AccountOrdersRoute: typeof AccountOrdersRoute
   AccountPricingRoute: typeof AccountPricingRoute
+  AccountReturnsRoute: typeof AccountReturnsRoute
   AccountUsersRoute: typeof AccountUsersRoute
   AccountIndexRoute: typeof AccountIndexRoute
 }
@@ -639,6 +859,7 @@ interface AccountRouteRouteChildren {
 const AccountRouteRouteChildren: AccountRouteRouteChildren = {
   AccountOrdersRoute: AccountOrdersRoute,
   AccountPricingRoute: AccountPricingRoute,
+  AccountReturnsRoute: AccountReturnsRoute,
   AccountUsersRoute: AccountUsersRoute,
   AccountIndexRoute: AccountIndexRoute,
 }
@@ -669,11 +890,21 @@ const rootRouteChildren: RootRouteChildren = {
   OrderIdRoute: OrderIdRoute,
   ProductSkuRoute: ProductSkuRoute,
   QuoteIdRoute: QuoteIdRoute,
+  ReturnsIdRoute: ReturnsIdRoute,
+  StaffAccountsRoute: StaffAccountsRoute,
   StaffOrdersRoute: StaffOrdersRoute,
   StaffQuotesRoute: StaffQuotesRoute,
+  StaffReturnsRoute: StaffReturnsRoute,
+  StaffTeamRoute: StaffTeamRoute,
+  SupportIdRoute: SupportIdRoute,
   QuoteIndexRoute: QuoteIndexRoute,
+  ReturnsIndexRoute: ReturnsIndexRoute,
+  SupportIndexRoute: SupportIndexRoute,
   StaffOrderIdRoute: StaffOrderIdRoute,
   StaffQuoteIdRoute: StaffQuoteIdRoute,
+  StaffReturnIdRoute: StaffReturnIdRoute,
+  StaffSupportIdRoute: StaffSupportIdRoute,
+  StaffSupportIndexRoute: StaffSupportIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
