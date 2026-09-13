@@ -9,11 +9,15 @@ import { env } from '../env.ts'
 /**
  * Standalone migration runner (`pnpm db:migrate`). Separate from
  * `db/client.ts` so the app's own singleton connection isn't the one used
- * for schema migration — deliberately explicit rather than implicit.
+ * for schema migration — deliberately explicit rather than implicit. Mirrors
+ * client.ts's own DATABASE_URL-takes-priority rule so this can be pointed at
+ * a remote database (e.g. Turso) with the same env vars the app itself uses.
  */
-const client = createClient({ url: `file:${env.DATABASE_FILE}` })
+const client = env.DATABASE_URL
+  ? createClient({ url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN })
+  : createClient({ url: `file:${env.DATABASE_FILE}` })
 const db = drizzle({ client })
 
 await migrate(db, { migrationsFolder: './src/server/db/migrations' })
-console.log(`Migrations applied to ${env.DATABASE_FILE}`)
+console.log(`Migrations applied to ${env.DATABASE_URL ?? env.DATABASE_FILE}`)
 client.close()

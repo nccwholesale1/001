@@ -12,9 +12,13 @@ import { env } from '../env'
  * pre-1.0 beta/rc tags, which isn't a foundational dependency to pin to
  * pre-release for. libSQL ships prebuilt native bindings (no node-gyp/Python
  * compile step, which this machine can't do anyway) and works as a plain
- * local file via a `file:` URL — no server, no Turso account needed.
+ * local file via a `file:` URL for local dev — no server, no Turso account
+ * needed. `DATABASE_URL` (a libsql:// URL, e.g. Turso) takes priority when
+ * set, since a local file doesn't survive most serverless hosting.
  */
-const client = createClient({ url: `file:${env.DATABASE_FILE}` })
+const client = env.DATABASE_URL
+  ? createClient({ url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN })
+  : createClient({ url: `file:${env.DATABASE_FILE}` })
 
 export const db = drizzle({ client, schema })
 export type Db = typeof db

@@ -16,6 +16,10 @@ const optionalString = () => z.preprocess((v) => (v === '' ? undefined : v), z.s
  */
 const envSchema = z.object({
   DATABASE_FILE: z.string().min(1).default('./local.db'),
+  /** A libsql:// URL for a remote/hosted database (e.g. Turso). When set, this takes priority over DATABASE_FILE — a local file doesn't survive most serverless hosting. */
+  DATABASE_URL: optionalString(),
+  /** Required alongside DATABASE_URL for a remote database that needs auth (e.g. Turso's auth token). Ignored when DATABASE_URL is unset. */
+  DATABASE_AUTH_TOKEN: optionalString(),
   SESSION_SECRET: z
     .string()
     .min(32, 'SESSION_SECRET must be at least 32 characters')
