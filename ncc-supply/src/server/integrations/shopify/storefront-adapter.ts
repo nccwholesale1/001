@@ -102,6 +102,7 @@ function toSummary(
     node.collections?.edges[0]?.node ?? { handle: '', title: '' }
   return {
     sku: node.variants.edges[0]?.node.sku ?? '',
+    variantId: node.variants.edges[0]?.node.id ?? '',
     title: node.title,
     collectionHandle: collection.handle,
     collectionTitle: collection.title,
@@ -163,6 +164,7 @@ export function createStorefrontCatalogueAdapter(): CatalogueAdapter {
     listCollections: listCollectionsLive,
     getCollection: getCollectionLive,
     getProduct: getProductLive,
+    getProductsBySku: getProductsBySkuLive,
     search: searchLive,
     suggest: suggestLive,
   }
@@ -375,6 +377,54 @@ async function getProductLive(sku: string): Promise<ProductDetail | null> {
       value: option.values.join(', '),
     })),
   }
+}
+
+interface BulkLookupPage {
+  products: {
+    edges: Array<{ node: StorefrontProductNode }>
+    pageInfo: PageInfo
+  }
+}
+
+/**
+ * Batch SKU lookup for bulk order (PRD §6.6) — a single paginated catalogue
+ * scan requesting full summary fields, matched against the requested SKU
+ * set via the same `toSummary()` convention every other listing already
+ * uses (first variant's SKU). Deliberately never calls `getProduct` in a
+ * loop — see the CatalogueAdapter interface doc comment for why that would
+ * mean up to 500 separate catalogue scans for a full bulk-order upload.
+ * Same page cap and short-circuit-on-nothing-left-to-find approach as
+ * `findProductHandleBySku` above.
+ */
+async function getProductsBySkuLive(skus: string[]): Promise<Map<string, ProductSummary>> {
+  const wanted = new Set(skus)
+  const result = new Map<string, ProductSummary>()
+  if (wanted.size === 0) return result
+
+  const query = `
+    query BulkLookupProducts($first: Int!, $after: String) {
+      products(first: $first, after: $after) {
+        edges { node { ${PRODUCT_SUMMARY_FIELDS} } }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  `
+  let after: string | null = null
+  for (let page = 0; page < 4 && result.size < wanted.size; page++) {
+    const pageData: BulkLookupPage = await storefrontRequest<BulkLookupPage>(
+      'bulkLookupProducts',
+      query,
+      { first: 250, after },
+    )
+
+    for (const edge of pageData.products.edges) {
+      const summary = toSummary(edge.node)
+      if (wanted.has(summary.sku)) result.set(summary.sku, summary)
+    }
+    if (!pageData.products.pageInfo.hasNextPage) break
+    after = pageData.products.pageInfo.endCursor ?? null
+  }
+  return result
 }
 
 async function searchLive(

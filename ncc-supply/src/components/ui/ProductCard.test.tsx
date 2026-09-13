@@ -10,6 +10,7 @@ vi.mock('../../server/basket/server-functions', () => ({ addBasketLine: vi.fn() 
 
 const PRODUCT: ProductSummary = {
   sku: 'NCC-CHG-001',
+  variantId: 'gid://shopify/ProductVariant/1',
   title: '20W USB-C Fast Charger',
   collectionHandle: 'chargers',
   collectionTitle: 'Chargers',

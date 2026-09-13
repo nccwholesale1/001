@@ -85,6 +85,7 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
     expect(result.products).toEqual([
       {
         sku: 'NCC-CHG-001',
+        variantId: 'gid://shopify/ProductVariant/1',
         title: '20W USB-C Fast Charger',
         collectionHandle: 'chargers',
         collectionTitle: 'Chargers',

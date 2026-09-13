@@ -26,14 +26,14 @@ export interface ProductSummary {
   collectionTitle: string
   price: Money
   thumbnail: ProductImage
+  /** Shopify variant GID — the id basket lines, order lines, and quote lines reference. Already resolved for every summary, since a summary's own SKU already identifies one specific variant. */
+  variantId: string
 }
 
 export interface ProductDetail extends ProductSummary {
   description: string
   images: ProductImage[]
   specs: Array<{ label: string; value: string }>
-  /** Shopify variant GID — the id basket lines and order lines reference. */
-  variantId: string
 }
 
 /**
@@ -115,6 +115,13 @@ export interface CatalogueAdapter {
   listCollections(): Promise<CollectionSummary[]>
   getCollection(slug: string, opts: PaginationOpts & FacetOpts): Promise<CollectionResult>
   getProduct(sku: string): Promise<ProductDetail | null>
+  /**
+   * Batch lookup for bulk order (PRD §6.6) — up to 500 SKUs at once. Never
+   * call `getProduct` in a loop for this: each call scans the catalogue
+   * independently, so N SKUs would mean N separate scans. Missing SKUs are
+   * simply absent from the returned map, not an error.
+   */
+  getProductsBySku(skus: string[]): Promise<Map<string, ProductSummary>>
   search(query: string, opts: PaginationOpts & FacetOpts): Promise<SearchResult>
   suggest(query: string): Promise<TypeaheadResult>
 }

@@ -187,8 +187,8 @@ const FIXTURE_PRODUCTS: ProductDetail[] = [
 ]
 
 function toSummary(product: ProductDetail): ProductSummary {
-  const { sku, title, collectionHandle, collectionTitle, price, thumbnail } = product
-  return { sku, title, collectionHandle, collectionTitle, price, thumbnail }
+  const { sku, variantId, title, collectionHandle, collectionTitle, price, thumbnail } = product
+  return { sku, variantId, title, collectionHandle, collectionTitle, price, thumbnail }
 }
 
 /**
@@ -222,6 +222,14 @@ export function createFixtureCatalogueAdapter(): CatalogueAdapter {
     },
     async getProduct(sku) {
       return FIXTURE_PRODUCTS.find((product) => product.sku === sku) ?? null
+    },
+    async getProductsBySku(skus) {
+      const wanted = new Set(skus)
+      const result = new Map<string, ProductSummary>()
+      for (const product of FIXTURE_PRODUCTS) {
+        if (wanted.has(product.sku)) result.set(product.sku, product)
+      }
+      return result
     },
     async search(query, opts) {
       return searchFixture(query, opts)

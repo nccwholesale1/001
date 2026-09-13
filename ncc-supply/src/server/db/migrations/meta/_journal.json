@@ -15,6 +15,13 @@
       "when": 1789234890727,
       "tag": "0001_clear_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789287962558,
+      "tag": "0002_pale_mercury",
+      "breakpoints": true
     }
   ]
 }

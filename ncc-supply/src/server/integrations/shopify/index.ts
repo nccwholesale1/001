@@ -15,6 +15,7 @@ import type {
   FacetOpts,
   PaginationOpts,
   ProductDetail,
+  ProductSummary,
   SearchResult,
   TypeaheadResult,
 } from './types'
@@ -33,6 +34,11 @@ function withCatalogueCache(adapter: CatalogueAdapter): CatalogueAdapter {
       ),
     getProduct: (sku: string): Promise<ProductDetail | null> =>
       withCache(`product:${sku}`, PRODUCT_CACHE_TTL_MS, () => adapter.getProduct(sku)),
+    // Uncached, like search/suggest below: a bulk-order upload's SKU set is
+    // effectively unique per request, so there's nothing worth keying a
+    // cache on here.
+    getProductsBySku: (skus: string[]): Promise<Map<string, ProductSummary>> =>
+      adapter.getProductsBySku(skus),
     search: (query: string, opts: PaginationOpts & FacetOpts): Promise<SearchResult> =>
       adapter.search(query, opts),
     suggest: (query: string): Promise<TypeaheadResult> => adapter.suggest(query),

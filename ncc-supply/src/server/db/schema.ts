@@ -240,6 +240,8 @@ export const quoteLines = sqliteTable('quote_lines', {
   quoteId: text('quote_id')
     .notNull()
     .references(() => quotes.id),
+  /** Catalogue SKU — same reasoning as orderRequestLines.sku: the CatalogueAdapter has no by-variant-id lookup, only getProduct(sku). */
+  sku: text('sku').notNull(),
   shopifyVariantId: text('shopify_variant_id').notNull(),
   requestedQuantity: integer('requested_quantity').notNull(),
   quotedUnitPricePence: integer('quoted_unit_price_pence'),
