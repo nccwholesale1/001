@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getCurrentActor, requireActor } from '../buyers/buyer-session'
 import { db } from '../db/client'
+import { checkRateLimitByIp } from '../shared/rate-limit'
 import { supportTicketRequestSchema } from '../validation/commands'
 import { getSupportTicketViewForActor, listSupportTicketsForActor, type SupportTicketSummary, type SupportTicketView } from './support-view'
 import { submitSupportTicket, type SubmitSupportTicketResult } from './submit-support-ticket'
@@ -10,6 +11,7 @@ import { submitSupportTicket, type SubmitSupportTicketResult } from './submit-su
 export const submitSupportTicketFn = createServerFn({ method: 'POST' })
   .validator(supportTicketRequestSchema.parse)
   .handler(async ({ data }): Promise<SubmitSupportTicketResult> => {
+    checkRateLimitByIp('submit-support-ticket', { limit: 20, windowMs: 60 * 60 * 1000 })
     const actor = await getCurrentActor(db)
     return submitSupportTicket(db, actor, data)
   })

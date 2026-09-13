@@ -20,9 +20,11 @@ const REASON_LABELS: Record<(typeof RETURN_REASONS)[number], string> = {
   other: 'Other',
 }
 
+const orderForReturnQuerySchema = z.object({ orderId: z.string().min(1), token: z.string().optional() }).strict()
+
 /** Dual access, mirroring `checkout/$id.tsx::getCheckoutView` — a return is always reached with confirmed-order context. */
 const getOrderForReturn = createServerFn({ method: 'GET' })
-  .validator((input: { orderId: string; token?: string }) => input)
+  .validator(orderForReturnQuerySchema.parse)
   .handler(async ({ data }): Promise<OrderRequestView | null> => {
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'order_request')

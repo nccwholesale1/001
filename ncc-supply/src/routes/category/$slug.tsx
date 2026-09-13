@@ -77,8 +77,10 @@ interface CategoryData {
   error: string | null
 }
 
+const categoryDataQuerySchema = categorySearchSchema.extend({ slug: z.string().min(1).max(200) }).strict()
+
 const getCategoryData = createServerFn({ method: 'GET' })
-  .validator((input: { slug: string; sort?: SortValue; after?: string; filters?: string }) => input)
+  .validator(categoryDataQuerySchema.parse)
   .handler(async ({ data }): Promise<CategoryData> => {
     try {
       const result = await getCatalogueAdapter().getCollection(data.slug, {

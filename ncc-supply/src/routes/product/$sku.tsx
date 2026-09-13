@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
+import { z } from 'zod'
 import { addBasketLine } from '../../server/basket/server-functions'
 import { getCatalogueAdapter } from '../../server/integrations/shopify'
 import type { ProductDetail, ProductImage } from '../../server/integrations/shopify/types'
@@ -31,8 +32,10 @@ function GalleryImage({ image, className }: { image: ProductImage; className: st
   )
 }
 
+const productSkuSchema = z.string().min(1).max(200)
+
 const getProductData = createServerFn({ method: 'GET' })
-  .validator((sku: string) => sku)
+  .validator(productSkuSchema.parse)
   .handler(async ({ data: sku }): Promise<ProductDetail | null> => {
     try {
       return await getCatalogueAdapter().getProduct(sku)

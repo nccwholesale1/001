@@ -238,9 +238,11 @@ export const supportTicketRequestSchema = z
   .strict()
 export type SupportTicketRequestInput = z.infer<typeof supportTicketRequestSchema>
 
+/** The customer-facing (guest-token-or-buyer) reply action on `/support/:id` — see `routes/support/$id.tsx`. */
 export const supportTicketMessageSchema = z
   .object({
-    supportTicketId: z.string().min(1),
+    ticketId: z.string().min(1),
+    token: z.string().optional(),
     message: z.string().min(1).max(5000),
     attachment: attachmentInputSchema.optional(),
   })

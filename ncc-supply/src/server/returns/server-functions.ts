@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getCurrentActor, requireActor } from '../buyers/buyer-session'
 import { db } from '../db/client'
+import { checkRateLimitByIp } from '../shared/rate-limit'
 import { returnRequestSchema } from '../validation/commands'
 import { getReturnViewForActor, listReturnsForActor, type ReturnSummary, type ReturnView } from './return-view'
 import { submitReturnRequest, type SubmitReturnResult } from './submit-return-request'
@@ -17,6 +18,7 @@ import { submitReturnRequest, type SubmitReturnResult } from './submit-return-re
 export const submitReturn = createServerFn({ method: 'POST' })
   .validator(returnRequestSchema.parse)
   .handler(async ({ data }): Promise<SubmitReturnResult> => {
+    checkRateLimitByIp('submit-return', { limit: 20, windowMs: 60 * 60 * 1000 })
     const actor = await getCurrentActor(db)
     return submitReturnRequest(db, actor, data)
   })

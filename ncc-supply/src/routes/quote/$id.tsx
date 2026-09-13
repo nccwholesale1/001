@@ -11,9 +11,11 @@ import { Button } from '../../components/ui/Button'
 import { Container, Section } from '../../components/ui/Layout'
 import { QuoteDetail } from '../../components/ui/QuoteDetail'
 
+const quoteIdTokenSchema = z.object({ quoteId: z.string().min(1), token: z.string().optional() }).strict()
+
 /** Dual access, mirroring `checkout/$id.tsx::getCheckoutView` exactly. */
 const getQuoteDetailView = createServerFn({ method: 'GET' })
-  .validator((input: { quoteId: string; token?: string }) => input)
+  .validator(quoteIdTokenSchema.parse)
   .handler(async ({ data }): Promise<QuoteView | null> => {
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'quote')
@@ -36,7 +38,7 @@ const getQuoteDetailView = createServerFn({ method: 'GET' })
  * exact same check rather than trusting a client-side "I'm allowed" claim.
  */
 const acceptQuoteAction = createServerFn({ method: 'POST' })
-  .validator((input: { quoteId: string; token?: string }) => input)
+  .validator(quoteIdTokenSchema.parse)
   .handler(async ({ data }): Promise<{ orderRequestId: string; token?: string } | null> => {
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'quote')

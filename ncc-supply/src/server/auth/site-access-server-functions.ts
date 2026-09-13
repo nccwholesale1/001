@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { checkRateLimitByIp } from '../shared/rate-limit'
 import { grantSiteAccess, hasSiteAccess, isCorrectSiteAccessPassword } from './site-access'
 
 export const checkSiteAccess = createServerFn({ method: 'GET' }).handler(
@@ -11,6 +12,7 @@ const submitSiteAccessSchema = z.object({ password: z.string().min(1) })
 export const submitSiteAccess = createServerFn({ method: 'POST' })
   .validator(submitSiteAccessSchema.parse)
   .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    checkRateLimitByIp('site-access', { limit: 10, windowMs: 15 * 60 * 1000 })
     if (!isCorrectSiteAccessPassword(data.password)) return { ok: false }
     await grantSiteAccess()
     return { ok: true }

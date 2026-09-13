@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getCurrentActor, requireActor } from '../buyers/buyer-session'
 import { db } from '../db/client'
+import { checkRateLimitByIp } from '../shared/rate-limit'
 import { quoteRequestSchema } from '../validation/commands'
 import { getQuoteViewForActor, listQuotesForActor, type QuoteSummary, type QuoteView } from './quote-view'
 import { submitQuoteRequest, type SubmitQuoteResult } from './submit-quote-request'
@@ -10,6 +11,7 @@ import { submitQuoteRequest, type SubmitQuoteResult } from './submit-quote-reque
 export const submitQuote = createServerFn({ method: 'POST' })
   .validator(quoteRequestSchema.parse)
   .handler(async ({ data }): Promise<SubmitQuoteResult> => {
+    checkRateLimitByIp('submit-quote', { limit: 20, windowMs: 60 * 60 * 1000 })
     const actor = await getCurrentActor(db)
     return submitQuoteRequest(db, actor, data)
   })

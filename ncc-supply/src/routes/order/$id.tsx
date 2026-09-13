@@ -13,8 +13,10 @@ import { OrderRequestDetail } from '../../components/ui/OrderRequestDetail'
  * these apart, matching `verifyGuestToken`'s own no-enumeration contract
  * (CLAUDE.md rule 16, PRD rule 5).
  */
+const orderRequestQuerySchema = z.object({ orderId: z.string().min(1), token: z.string().min(1) }).strict()
+
 const getOrderRequestView = createServerFn({ method: 'GET' })
-  .validator((input: { orderId: string; token: string }) => input)
+  .validator(orderRequestQuerySchema.parse)
   .handler(async ({ data }): Promise<OrderRequestView | null> => {
     const verification = await verifyGuestToken(db, data.token, 'order_request')
     if (!verification || verification.resourceId !== data.orderId) return null

@@ -8,15 +8,19 @@ import { buildSupportTicketView, getSupportTicketViewForActor, type SupportTicke
 import { replyAsCustomer } from '../../server/support/support-processing'
 import { verifyGuestToken } from '../../server/tokens/token-service'
 import { getAttachmentDataUrl } from '../../server/attachments/server-functions'
+import { supportTicketMessageSchema } from '../../server/validation/commands'
+import { checkRateLimitByIp } from '../../server/shared/rate-limit'
 import { fileToBase64 } from '../../lib/file-to-base64'
 import { Button } from '../../components/ui/Button'
 import { TextareaField } from '../../components/ui/Field'
 import { Container, Section } from '../../components/ui/Layout'
 import { SupportTicketDetail } from '../../components/ui/SupportTicketDetail'
 
+const supportTicketDetailQuerySchema = z.object({ ticketId: z.string().min(1), token: z.string().optional() }).strict()
+
 /** Dual access, mirroring `checkout/$id.tsx::getCheckoutView` — a customer never sees another customer's internal notes (buildSupportTicketView's own `includeInternalNotes: false`). */
 const getSupportTicketDetailView = createServerFn({ method: 'GET' })
-  .validator((input: { ticketId: string; token?: string }) => input)
+  .validator(supportTicketDetailQuerySchema.parse)
   .handler(async ({ data }): Promise<SupportTicketView | null> => {
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'support_ticket')
@@ -34,8 +38,9 @@ const getSupportTicketDetailView = createServerFn({ method: 'GET' })
 
 /** Authorization mirrors the view above — same reasoning as quote acceptance (Phase 9 decision 8). */
 const replyToTicketAction = createServerFn({ method: 'POST' })
-  .validator((input: { ticketId: string; token?: string; message: string; attachment?: { filename: string; base64: string } }) => input)
+  .validator(supportTicketMessageSchema.parse)
   .handler(async ({ data }): Promise<boolean> => {
+    checkRateLimitByIp('support-reply', { limit: 20, windowMs: 60 * 60 * 1000 })
     let buyerUserId: string | null = null
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'support_ticket')

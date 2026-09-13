@@ -83,8 +83,12 @@ interface SearchData {
   error: string | null
 }
 
+const searchDataQuerySchema = searchSearchSchema
+  .extend({ q: z.string().max(200) })
+  .strict()
+
 const getSearchData = createServerFn({ method: 'GET' })
-  .validator((input: { q: string; sort?: SortValue; after?: string; filters?: string }) => input)
+  .validator(searchDataQuerySchema.parse)
   .handler(async ({ data }): Promise<SearchData> => {
     if (!data.q.trim()) return { q: data.q, result: null, error: null }
     try {
@@ -101,8 +105,10 @@ const getSearchData = createServerFn({ method: 'GET' })
     }
   })
 
+const searchSuggestionsQuerySchema = z.object({ q: z.string().max(200) }).strict()
+
 const getSearchSuggestions = createServerFn({ method: 'GET' })
-  .validator((input: { q: string }) => input)
+  .validator(searchSuggestionsQuerySchema.parse)
   .handler(async ({ data }): Promise<TypeaheadResult> => {
     try {
       return await getCatalogueAdapter().suggest(data.q)

@@ -10,8 +10,10 @@ import { getAttachmentDataUrl } from '../../server/attachments/server-functions'
 import { Container, Section } from '../../components/ui/Layout'
 import { ReturnDetail } from '../../components/ui/ReturnDetail'
 
+const returnDetailQuerySchema = z.object({ returnId: z.string().min(1), token: z.string().optional() }).strict()
+
 const getReturnDetailView = createServerFn({ method: 'GET' })
-  .validator((input: { returnId: string; token?: string }) => input)
+  .validator(returnDetailQuerySchema.parse)
   .handler(async ({ data }): Promise<ReturnView | null> => {
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'return')

@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { db } from '../db/client'
+import { checkRateLimitByIp } from '../shared/rate-limit'
 import {
   addBasketLineSchema,
   removeBasketLineSchema,
@@ -60,6 +61,7 @@ export const removeBasketLine = createServerFn({ method: 'POST' })
 export const submitCurrentBasket = createServerFn({ method: 'POST' })
   .validator(submitBasketSchema.parse)
   .handler(async ({ data }): Promise<SubmitBasketResult> => {
+    checkRateLimitByIp('submit-order', { limit: 20, windowMs: 60 * 60 * 1000 })
     const basketId = await getOrCreateBasketId(db)
     return submitBasket(db, basketId, data)
   })

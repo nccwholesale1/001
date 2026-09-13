@@ -16,8 +16,10 @@ import { OrderRequestDetail } from '../../components/ui/OrderRequestDetail'
  * token"/"not your order"/"doesn't exist" apart — all three land on the
  * same not-found rendering, matching PRD rule 5's no-enumeration contract.
  */
+const checkoutQuerySchema = z.object({ orderId: z.string().min(1), token: z.string().optional() }).strict()
+
 const getCheckoutView = createServerFn({ method: 'GET' })
-  .validator((input: { orderId: string; token?: string }) => input)
+  .validator(checkoutQuerySchema.parse)
   .handler(async ({ data }): Promise<OrderRequestView | null> => {
     if (data.token) {
       const verification = await verifyGuestToken(db, data.token, 'order_request')

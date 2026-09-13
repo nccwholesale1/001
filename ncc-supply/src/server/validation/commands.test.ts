@@ -5,6 +5,7 @@ import {
   registerCompanySchema,
   returnRequestSchema,
   submitBasketSchema,
+  supportTicketMessageSchema,
   updateBuyerUserSchema,
 } from './commands'
 
@@ -60,6 +61,30 @@ describe('returnRequestSchema', () => {
       lines: [{ orderRequestLineId: 'line_1', quantity: 1 }],
     })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('supportTicketMessageSchema — the customer reply action on /support/:id', () => {
+  it('accepts a guest reply (token, no session) and a buyer reply (no token)', () => {
+    expect(
+      supportTicketMessageSchema.safeParse({ ticketId: 't1', token: 'tok', message: 'Still waiting on this' }).success,
+    ).toBe(true)
+    expect(
+      supportTicketMessageSchema.safeParse({ ticketId: 't1', message: 'Still waiting on this' }).success,
+    ).toBe(true)
+  })
+
+  it('rejects an empty or oversized message — this is the real HTTP boundary, not just the route\'s TS type', () => {
+    expect(supportTicketMessageSchema.safeParse({ ticketId: 't1', message: '' }).success).toBe(false)
+    expect(
+      supportTicketMessageSchema.safeParse({ ticketId: 't1', message: 'x'.repeat(5001) }).success,
+    ).toBe(false)
+  })
+
+  it('rejects an unknown field — no client-supplied isInternalNote/authorBuyerUserId smuggled in', () => {
+    expect(
+      supportTicketMessageSchema.safeParse({ ticketId: 't1', message: 'hi', isInternalNote: true }).success,
+    ).toBe(false)
   })
 })
 
