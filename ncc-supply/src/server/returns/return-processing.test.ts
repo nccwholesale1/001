@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { ForbiddenError, type Actor } from '../auth/authorization'
 import { InvalidTransitionError } from '../domain/status'
 import { createTestDb } from '../db/test-helpers'
@@ -34,11 +34,6 @@ async function seedReturn(db: Awaited<ReturnType<typeof createTestDb>>['db'], st
 }
 
 describe('return-processing', () => {
-  afterEach(() => {
-    vi.doUnmock('../integrations/shopify')
-    vi.resetModules()
-  })
-
   it('begins review, moving requested -> under_review', async () => {
     const { db, client } = await createTestDb()
     try {
@@ -96,23 +91,14 @@ describe('return-processing', () => {
     }
   })
 
-  it('approving is authoritative in the app even when the best-effort Shopify sync fails', async () => {
-    vi.resetModules()
-    vi.doMock('../integrations/shopify', () => ({
-      getAdminCommerceAdapter: () => ({
-        createDraftOrder: vi.fn(),
-        sendDraftOrderInvoice: vi.fn(),
-        approveReturn: vi.fn().mockRejectedValue(new Error('simulated: no matching Shopify return object')),
-      }),
-    }))
-    const { decideReturn: decideWithFailingShopify } = await import('./return-processing')
+  it('approving sets the app status directly — no Shopify sync is attempted (ADR-034)', async () => {
     const { db, client } = await createTestDb()
     try {
       await seedReturn(db, 'under_review')
-      await decideWithFailingShopify(db, ncc, { returnId: 'return-1', decision: 'approve', resolution: 'refund' })
+      await decideReturn(db, ncc, { returnId: 'return-1', decision: 'approve', resolution: 'refund' })
 
       const [ret] = await db.select().from(returns).where(eq(returns.id, 'return-1'))
-      expect(ret?.status).toBe('approved') // never thrown back, never left un-approved
+      expect(ret?.status).toBe('approved')
       expect(ret?.resolution).toBe('refund')
     } finally {
       client.close()

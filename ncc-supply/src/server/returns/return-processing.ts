@@ -4,7 +4,6 @@ import { recordAuditEvent } from '../audit/audit-log'
 import type { Db } from '../db/client'
 import { orderRequests, returns } from '../db/schema'
 import { transitionReturn } from '../domain/status'
-import { getAdminCommerceAdapter } from '../integrations/shopify'
 import { issueGuestToken } from '../tokens/token-service'
 import type { DecideReturnInput, MarkReturnOutcomeInput } from '../validation/commands'
 
@@ -12,27 +11,6 @@ export class ReturnNotFoundError extends Error {
   constructor() {
     super('Return not found')
     this.name = 'ReturnNotFoundError'
-  }
-}
-
-/**
- * Best-effort only, and documented as such (see DECISIONS.md): the real
- * `returnApproveRequest` mutation (verified against the live schema in
- * Phase 3) approves an *existing* Shopify Return object — one that Shopify
- * itself created via its own native return-request flow. A return filed
- * through this app's own `/returns` form has no such Shopify-side object to
- * approve, since nothing upstream creates one. Attempted anyway (harmless
- * against the fixture adapter, and a real attempt against live Shopify
- * fails cleanly and is logged, never thrown back to the caller) — the
- * app's own `approved` status is authoritative either way, exactly like
- * order confirmation never depended on the Shopify draft-order sync
- * succeeding (ADR-026).
- */
-async function attemptShopifyReturnSync(returnId: string): Promise<void> {
-  try {
-    await getAdminCommerceAdapter().approveReturn(returnId)
-  } catch (error) {
-    console.error(`[return-processing] Shopify return sync failed for ${returnId}`, error)
   }
 }
 
@@ -56,7 +34,21 @@ export async function beginReturnReview(db: Db, actor: Actor, returnId: string):
   })
 }
 
-/** PRD §6.20: staff approve/reject with a reason, choosing refund vs. replacement on approval. */
+/**
+ * PRD §6.20: staff approve/reject with a reason, choosing refund vs. replacement on approval.
+ *
+ * No Shopify sync is attempted here. The real `returnApproveRequest` mutation
+ * (verified against the live schema in Phase 3) approves an *existing*
+ * Shopify Return object — one Shopify itself creates via its own native
+ * return-request flow. A return filed through this app's own `/returns` form
+ * has no such object, since nothing upstream creates one; a real attempt was
+ * proven to fail every time against the live store (ADR-034), so calling it
+ * unconditionally here would be a guaranteed-failing network call, not
+ * genuine best-effort resilience. The app's own `approved` status is the
+ * system of record regardless. Whether NCC wants a real Shopify-side Return
+ * created (and what that would require) is an open business/architecture
+ * question — see DECISIONS.md ADR-034 and PHASE_HANDOFF.md.
+ */
 export async function decideReturn(db: Db, actor: Actor, input: DecideReturnInput): Promise<void> {
   if (!isNccAdmin(actor)) throw new ForbiddenError()
   const [ret] = await db.select({ status: returns.status }).from(returns).where(eq(returns.id, input.returnId)).limit(1)
@@ -89,13 +81,9 @@ export async function decideReturn(db: Db, actor: Actor, input: DecideReturnInpu
     resourceId: input.returnId,
     detail: { resolution: input.resolution, rejectionReason: input.rejectionReason },
   })
-
-  if (input.decision === 'approve') {
-    await attemptShopifyReturnSync(input.returnId)
-  }
 }
 
-/** A manual staff confirmation that the real-world refund/replacement happened — independent of whether the best-effort Shopify sync above succeeded. */
+/** A manual staff confirmation that the real-world refund/replacement happened. */
 export async function markReturnOutcome(db: Db, actor: Actor, input: MarkReturnOutcomeInput): Promise<void> {
   if (!isNccAdmin(actor)) throw new ForbiddenError()
   const [ret] = await db.select({ status: returns.status }).from(returns).where(eq(returns.id, input.returnId)).limit(1)
