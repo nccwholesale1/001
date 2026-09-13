@@ -21,6 +21,7 @@ describe('createTestDb', () => {
 
     expect(tableNames).toEqual(
       [
+        'attachments',
         'audit_events',
         'basket_lines',
         'baskets',

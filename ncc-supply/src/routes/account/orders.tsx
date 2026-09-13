@@ -127,6 +127,11 @@ function AccountOrdersRoute() {
                           ? 'Adding…'
                           : 'Reorder'}
                     </Button>
+                    {order.status === 'confirmed' ? (
+                      <Button variant="secondary" asChild>
+                        <a href={`/returns?orderId=${order.id}`}>Request a return</a>
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 

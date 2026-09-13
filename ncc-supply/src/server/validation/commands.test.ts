@@ -47,10 +47,19 @@ describe('returnRequestSchema', () => {
   it('accepts a well-formed return request', () => {
     const result = returnRequestSchema.safeParse({
       orderRequestId: 'order_1',
-      reason: 'Damaged in transit',
+      reason: 'damaged',
       lines: [{ orderRequestLineId: 'line_1', quantity: 1 }],
     })
     expect(result.success).toBe(true)
+  })
+
+  it('rejects a reason outside PRD §6.16\'s defined list', () => {
+    const result = returnRequestSchema.safeParse({
+      orderRequestId: 'order_1',
+      reason: 'Damaged in transit',
+      lines: [{ orderRequestLineId: 'line_1', quantity: 1 }],
+    })
+    expect(result.success).toBe(false)
   })
 })
 

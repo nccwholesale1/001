@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { blob, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 /**
  * Schema for every app-owned entity in docs/domain-model.md. Shopify remains
@@ -321,6 +321,28 @@ export const supportTicketMessages = sqliteTable('support_ticket_messages', {
   authorBuyerUserId: text('author_buyer_user_id').references(() => buyerUsers.id),
   isInternalNote: integer('is_internal_note', { mode: 'boolean' }).notNull().default(false),
   message: text('message').notNull(),
+  ...timestamps,
+})
+
+// ---------------------------------------------------------------------------
+// Attachments (PRD §6.16, §6.18 "optional note and photo upload" /
+// "optional attachment") — stored in-app, never on local disk (no path-
+// traversal surface) and never a public static path (served only through
+// the owning resource's own authorization check, CLAUDE.md rule 21).
+// ---------------------------------------------------------------------------
+
+export const ATTACHMENT_OWNER_TYPES = ['return', 'support_ticket_message'] as const
+export type AttachmentOwnerType = (typeof ATTACHMENT_OWNER_TYPES)[number]
+
+export const attachments = sqliteTable('attachments', {
+  id: text('id').primaryKey(),
+  ownerType: text('owner_type', { enum: ATTACHMENT_OWNER_TYPES }).notNull(),
+  ownerId: text('owner_id').notNull(),
+  filename: text('filename').notNull(),
+  /** The sniffed content type from the file's own magic bytes, never the client's claimed MIME type. */
+  contentType: text('content_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  data: blob('data', { mode: 'buffer' }).notNull(),
   ...timestamps,
 })
 

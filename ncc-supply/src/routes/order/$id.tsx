@@ -26,9 +26,10 @@ const orderSearchSchema = z.object({ token: z.string().optional() })
 export const Route = createFileRoute('/order/$id')({
   validateSearch: orderSearchSchema,
   loaderDeps: ({ search }) => search,
-  loader: ({ params, deps }) => {
-    if (!deps.token) return null
-    return getOrderRequestView({ data: { orderId: params.id, token: deps.token } })
+  loader: async ({ params, deps }) => {
+    if (!deps.token) return { order: null, token: undefined }
+    const order = await getOrderRequestView({ data: { orderId: params.id, token: deps.token } })
+    return { order, token: deps.token }
   },
   head: () => ({
     meta: [{ name: 'robots', content: 'noindex' }, { title: 'Order Status · NCC Supply' }],
@@ -37,7 +38,7 @@ export const Route = createFileRoute('/order/$id')({
 })
 
 function OrderStatusRoute() {
-  const order = Route.useLoaderData()
+  const { order, token } = Route.useLoaderData()
 
   if (!order) {
     return (
@@ -56,5 +57,19 @@ function OrderStatusRoute() {
     )
   }
 
-  return <OrderRequestDetail order={order} />
+  return (
+    <OrderRequestDetail
+      order={order}
+      actions={
+        order.status === 'confirmed' ? (
+          <a
+            href={`/returns?orderId=${order.id}&token=${encodeURIComponent(token ?? '')}`}
+            className="inline-flex w-fit items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+          >
+            Request a return
+          </a>
+        ) : null
+      }
+    />
+  )
 }
