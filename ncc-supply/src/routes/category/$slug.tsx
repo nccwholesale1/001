@@ -3,14 +3,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getCatalogueAdapter } from '../../server/integrations/shopify'
 import type { CollectionResult, FacetFilter } from '../../server/integrations/shopify/types'
+import { Banner } from '../../components/ui/Banner'
 import { Breadcrumbs } from '../../components/ui/Breadcrumbs'
 import { Container, Section } from '../../components/ui/Layout'
-import {
-  FacetSidebar,
-  type AppliedChipView,
-  type FacetGroupView,
-  type SortOptionView,
-} from '../../components/ui/FacetSidebar'
+import { FacetLayout } from '../../components/ui/FacetLayout'
+import type { AppliedChipView, FacetGroupView, SortOptionView } from '../../components/ui/FacetSidebar'
 import { Pagination } from '../../components/ui/Pagination'
 import { ProductCard } from '../../components/ui/ProductCard'
 
@@ -208,50 +205,50 @@ function CategoryRoute() {
   const noResults = result.products.length === 0
 
   return (
-    <Section>
-      <Container className="flex flex-col gap-6">
-        <Breadcrumbs
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Categories', href: '/categories' },
-            { label: result.title },
-          ]}
-        />
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground">{result.title}</h1>
-          {result.description ? (
-            <p className="mt-1 text-sm text-muted-foreground">{result.description}</p>
-          ) : null}
-          <p className="mt-1 text-sm text-muted-foreground">
-            {result.lineCount} {result.lineCount === 1 ? 'line' : 'lines'} · all available to order
-          </p>
-        </div>
+    <>
+      <Section className="pb-0">
+        <Container>
+          <Breadcrumbs
+            items={[
+              { label: 'Home', href: '/' },
+              { label: 'Categories', href: '/categories' },
+              { label: result.title },
+            ]}
+          />
+        </Container>
+      </Section>
 
-        {noResults ? (
-          <div className="rounded-xl border border-border bg-card p-8 text-center">
-            <p className="font-semibold text-foreground">No products found</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try clearing some filters, or{' '}
-              <a href="/contact" className="text-primary hover:underline">
-                contact NCC
-              </a>{' '}
-              for help finding what you need.
+      <Section>
+        <Container>
+          <Banner variant="compact" title={result.title} description={result.description || undefined}>
+            <p className="text-sm font-medium text-foreground/80">
+              {result.lineCount} {result.lineCount === 1 ? 'line' : 'lines'} · all available to order
             </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
-            <aside className="lg:sticky lg:top-24 lg:self-start">
-              <FacetSidebar
-                groups={groups}
-                appliedChips={appliedChips}
-                clearAllHref={
-                  appliedChips.length > 0 ? buildHref(slug, { sort: activeSort }) : null
-                }
-                sortOptions={sortOptions}
-                resultCount={result.lineCount}
-              />
-            </aside>
-            <div className="flex flex-col gap-6">
+          </Banner>
+        </Container>
+      </Section>
+
+      <Section className="pt-0">
+        <Container className="flex flex-col gap-6">
+          {noResults ? (
+            <div className="rounded-xl border border-border bg-card p-8 text-center">
+              <p className="font-semibold text-foreground">No products found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try clearing some filters, or{' '}
+                <a href="/contact" className="text-primary hover:underline">
+                  contact NCC
+                </a>{' '}
+                for help finding what you need.
+              </p>
+            </div>
+          ) : (
+            <FacetLayout
+              groups={groups}
+              appliedChips={appliedChips}
+              clearAllHref={appliedChips.length > 0 ? buildHref(slug, { sort: activeSort }) : null}
+              sortOptions={sortOptions}
+              resultCount={result.lineCount}
+            >
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                 {result.products.map((product) => (
                   <ProductCard key={product.sku} product={product} />
@@ -273,10 +270,10 @@ function CategoryRoute() {
                     : null
                 }
               />
-            </div>
-          </div>
-        )}
-      </Container>
-    </Section>
+            </FacetLayout>
+          )}
+        </Container>
+      </Section>
+    </>
   )
 }

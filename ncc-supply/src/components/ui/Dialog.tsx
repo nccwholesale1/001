@@ -7,9 +7,10 @@ import { cn } from '../../lib/cn'
  * Modal dialog / mobile sheet built on Radix Dialog for correct focus
  * trapping, ESC-to-close, and focus restoration on close (WCAG 2.2 AA —
  * design system §7 "dialogs/sheets" primitive, §11 accessibility).
- * `side` renders as a centred dialog on desktop or a full-screen bottom
- * sheet on mobile, matching the facet-sidebar "full-screen sheet" pattern
- * from PRD §5.3.
+ * `sheet` renders as a full-screen bottom sheet below the `lg` breakpoint
+ * (1024px) or a centred dialog at `lg` and above — matching PRD §5.3's
+ * facet-sidebar breakpoint table exactly ("< 640px" and "640–1024px" both
+ * get the full-screen sheet; only "≥ 1024px" shows the static sidebar).
  */
 export const Dialog = DialogPrimitive.Root
 export const DialogTrigger = DialogPrimitive.Trigger
@@ -38,8 +39,8 @@ export const DialogContent = forwardRef<
       className={cn(
         'fixed z-50 bg-card text-card-foreground shadow-lift focus:outline-none',
         sheet
-          ? 'inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-2xl border-t border-border p-6 sm:hidden'
-          : 'left-1/2 top-1/2 hidden w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border p-6 sm:block',
+          ? 'inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-2xl border-t border-border p-6 lg:hidden'
+          : 'left-1/2 top-1/2 hidden w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border p-6 lg:block',
         className,
       )}
       {...props}

@@ -10,12 +10,8 @@ import type {
 } from '../server/integrations/shopify/types'
 import { Breadcrumbs } from '../components/ui/Breadcrumbs'
 import { Container, Section } from '../components/ui/Layout'
-import {
-  FacetSidebar,
-  type AppliedChipView,
-  type FacetGroupView,
-  type SortOptionView,
-} from '../components/ui/FacetSidebar'
+import { FacetLayout } from '../components/ui/FacetLayout'
+import type { AppliedChipView, FacetGroupView, SortOptionView } from '../components/ui/FacetSidebar'
 import { Pagination } from '../components/ui/Pagination'
 import { ProductCard } from '../components/ui/ProductCard'
 import { SearchBar } from '../components/ui/SearchBar'
@@ -238,39 +234,34 @@ function SearchRoute() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
-            <aside className="lg:sticky lg:top-24 lg:self-start">
-              <FacetSidebar
-                groups={groups}
-                appliedChips={appliedChips}
-                clearAllHref={appliedChips.length > 0 ? buildHref({ q, sort: activeSort }) : null}
-                sortOptions={sortOptions}
-                resultCount={result.totalCount}
-              />
-            </aside>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                {result.products.map((product) => (
-                  <ProductCard key={product.sku} product={product} />
-                ))}
-              </div>
-              <Pagination
-                previousHref={
-                  search.after ? buildHref({ q, sort: activeSort, filters: search.filters }) : null
-                }
-                nextHref={
-                  result.pageInfo.hasNextPage
-                    ? buildHref({
-                        q,
-                        sort: activeSort,
-                        filters: search.filters,
-                        after: result.pageInfo.endCursor ?? undefined,
-                      })
-                    : null
-                }
-              />
+          <FacetLayout
+            groups={groups}
+            appliedChips={appliedChips}
+            clearAllHref={appliedChips.length > 0 ? buildHref({ q, sort: activeSort }) : null}
+            sortOptions={sortOptions}
+            resultCount={result.totalCount}
+          >
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+              {result.products.map((product) => (
+                <ProductCard key={product.sku} product={product} />
+              ))}
             </div>
-          </div>
+            <Pagination
+              previousHref={
+                search.after ? buildHref({ q, sort: activeSort, filters: search.filters }) : null
+              }
+              nextHref={
+                result.pageInfo.hasNextPage
+                  ? buildHref({
+                      q,
+                      sort: activeSort,
+                      filters: search.filters,
+                      after: result.pageInfo.endCursor ?? undefined,
+                    })
+                  : null
+              }
+            />
+          </FacetLayout>
         )}
       </Container>
     </Section>
