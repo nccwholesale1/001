@@ -10,6 +10,18 @@ import { Container, Section } from '../../components/ui/Layout'
 
 const fixtureLoginSearchSchema = z.object({ state: z.string(), redirect_uri: z.string() })
 
+/**
+ * A server function, not a direct `env` read in `beforeLoad` — `beforeLoad`
+ * is isomorphic (it also runs for client-side navigations), so referencing
+ * `env` there directly would bundle the whole env module — every var's
+ * default value included — into client-side JS. Confirmed the hard way:
+ * this exact mistake shipped SESSION_SECRET's and SITE_ACCESS_PASSWORD's
+ * literal default values into the client bundle (see DECISIONS.md).
+ */
+const checkFixtureAdapterEnabled = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<boolean> => env.CUSTOMER_ACCOUNT_ADAPTER === 'fixture',
+)
+
 const buildFixtureRedirect = createServerFn({ method: 'POST' })
   .validator(
     z.object({ email: z.string().email(), redirectUri: z.string(), state: z.string() }).parse,
@@ -34,8 +46,9 @@ const buildFixtureRedirect = createServerFn({ method: 'POST' })
  */
 export const Route = createFileRoute('/dev/fixture-shopify-login')({
   validateSearch: fixtureLoginSearchSchema,
-  beforeLoad: () => {
-    if (env.CUSTOMER_ACCOUNT_ADAPTER !== 'fixture') throw notFound()
+  beforeLoad: async () => {
+    const enabled = await checkFixtureAdapterEnabled()
+    if (!enabled) throw notFound()
   },
   head: () => ({
     meta: [

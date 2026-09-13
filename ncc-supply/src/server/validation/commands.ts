@@ -111,9 +111,19 @@ export const nccApprovalSchema = z
     deliveryPence: z.number().int().nonnegative(),
     vatPence: z.number().int().nonnegative(),
     finalTotalPence: z.number().int().nonnegative(),
+    internalNotes: z.string().max(5000).optional(),
   })
   .strict()
 export type NccApprovalInput = z.infer<typeof nccApprovalSchema>
+
+/** NCC-admin-only (see nccApprovalSchema's note) — a required reason per the phase's own rule. */
+export const cancelOrderSchema = z
+  .object({
+    orderRequestId: z.string().min(1),
+    reason: z.string().min(1),
+  })
+  .strict()
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>
 
 export const returnRequestSchema = z
   .object({

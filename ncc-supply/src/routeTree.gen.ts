@@ -19,16 +19,20 @@ import { Route as OrderSubmittedRouteImport } from './routes/order-submitted'
 import { Route as PreviewAccessRouteImport } from './routes/preview-access'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as StaffLoginRouteImport } from './routes/staff-login'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountOrdersRouteImport } from './routes/account/orders'
 import { Route as AccountPricingRouteImport } from './routes/account/pricing'
 import { Route as AccountUsersRouteImport } from './routes/account/users'
 import { Route as CategorySlugRouteImport } from './routes/category/$slug'
+import { Route as CheckoutIdRouteImport } from './routes/checkout/$id'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
 import { Route as DevFixtureShopifyLoginRouteImport } from './routes/dev/fixture-shopify-login'
 import { Route as DevShopifyHealthRouteImport } from './routes/dev/shopify-health'
 import { Route as OrderIdRouteImport } from './routes/order/$id'
 import { Route as ProductSkuRouteImport } from './routes/product/$sku'
+import { Route as StaffOrdersRouteImport } from './routes/staff/orders'
+import { Route as StaffOrderIdRouteImport } from './routes/staff/order/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -80,6 +84,11 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffLoginRoute = StaffLoginRouteImport.update({
+  id: '/staff-login',
+  path: '/staff-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -103,6 +112,11 @@ const AccountUsersRoute = AccountUsersRouteImport.update({
 const CategorySlugRoute = CategorySlugRouteImport.update({
   id: '/category/$slug',
   path: '/category/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutIdRoute = CheckoutIdRouteImport.update({
+  id: '/checkout/$id',
+  path: '/checkout/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevComponentsRoute = DevComponentsRouteImport.update({
@@ -130,6 +144,16 @@ const ProductSkuRoute = ProductSkuRouteImport.update({
   path: '/product/$sku',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffOrdersRoute = StaffOrdersRouteImport.update({
+  id: '/staff/orders',
+  path: '/staff/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffOrderIdRoute = StaffOrderIdRouteImport.update({
+  id: '/staff/order/$id',
+  path: '/staff/order/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -142,16 +166,20 @@ export interface FileRoutesByFullPath {
   '/preview-access': typeof PreviewAccessRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/staff-login': typeof StaffLoginRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/pricing': typeof AccountPricingRoute
   '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
+  '/checkout/$id': typeof CheckoutIdRoute
   '/dev/components': typeof DevComponentsRoute
   '/dev/fixture-shopify-login': typeof DevFixtureShopifyLoginRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/staff/orders': typeof StaffOrdersRoute
   '/account/': typeof AccountIndexRoute
+  '/staff/order/$id': typeof StaffOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -163,16 +191,20 @@ export interface FileRoutesByTo {
   '/preview-access': typeof PreviewAccessRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/staff-login': typeof StaffLoginRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/pricing': typeof AccountPricingRoute
   '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
+  '/checkout/$id': typeof CheckoutIdRoute
   '/dev/components': typeof DevComponentsRoute
   '/dev/fixture-shopify-login': typeof DevFixtureShopifyLoginRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/staff/orders': typeof StaffOrdersRoute
   '/account': typeof AccountIndexRoute
+  '/staff/order/$id': typeof StaffOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -186,16 +218,20 @@ export interface FileRoutesById {
   '/preview-access': typeof PreviewAccessRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/staff-login': typeof StaffLoginRoute
   '/account/orders': typeof AccountOrdersRoute
   '/account/pricing': typeof AccountPricingRoute
   '/account/users': typeof AccountUsersRoute
   '/category/$slug': typeof CategorySlugRoute
+  '/checkout/$id': typeof CheckoutIdRoute
   '/dev/components': typeof DevComponentsRoute
   '/dev/fixture-shopify-login': typeof DevFixtureShopifyLoginRoute
   '/dev/shopify-health': typeof DevShopifyHealthRoute
   '/order/$id': typeof OrderIdRoute
   '/product/$sku': typeof ProductSkuRoute
+  '/staff/orders': typeof StaffOrdersRoute
   '/account/': typeof AccountIndexRoute
+  '/staff/order/$id': typeof StaffOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -210,16 +246,20 @@ export interface FileRouteTypes {
     | '/preview-access'
     | '/register'
     | '/search'
+    | '/staff-login'
     | '/account/orders'
     | '/account/pricing'
     | '/account/users'
     | '/category/$slug'
+    | '/checkout/$id'
     | '/dev/components'
     | '/dev/fixture-shopify-login'
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/staff/orders'
     | '/account/'
+    | '/staff/order/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -231,16 +271,20 @@ export interface FileRouteTypes {
     | '/preview-access'
     | '/register'
     | '/search'
+    | '/staff-login'
     | '/account/orders'
     | '/account/pricing'
     | '/account/users'
     | '/category/$slug'
+    | '/checkout/$id'
     | '/dev/components'
     | '/dev/fixture-shopify-login'
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/staff/orders'
     | '/account'
+    | '/staff/order/$id'
   id:
     | '__root__'
     | '/'
@@ -253,16 +297,20 @@ export interface FileRouteTypes {
     | '/preview-access'
     | '/register'
     | '/search'
+    | '/staff-login'
     | '/account/orders'
     | '/account/pricing'
     | '/account/users'
     | '/category/$slug'
+    | '/checkout/$id'
     | '/dev/components'
     | '/dev/fixture-shopify-login'
     | '/dev/shopify-health'
     | '/order/$id'
     | '/product/$sku'
+    | '/staff/orders'
     | '/account/'
+    | '/staff/order/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,12 +324,16 @@ export interface RootRouteChildren {
   PreviewAccessRoute: typeof PreviewAccessRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
+  StaffLoginRoute: typeof StaffLoginRoute
   CategorySlugRoute: typeof CategorySlugRoute
+  CheckoutIdRoute: typeof CheckoutIdRoute
   DevComponentsRoute: typeof DevComponentsRoute
   DevFixtureShopifyLoginRoute: typeof DevFixtureShopifyLoginRoute
   DevShopifyHealthRoute: typeof DevShopifyHealthRoute
   OrderIdRoute: typeof OrderIdRoute
   ProductSkuRoute: typeof ProductSkuRoute
+  StaffOrdersRoute: typeof StaffOrdersRoute
+  StaffOrderIdRoute: typeof StaffOrderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -356,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff-login': {
+      id: '/staff-login'
+      path: '/staff-login'
+      fullPath: '/staff-login'
+      preLoaderRoute: typeof StaffLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account/': {
       id: '/account/'
       path: '/'
@@ -389,6 +448,13 @@ declare module '@tanstack/react-router' {
       path: '/category/$slug'
       fullPath: '/category/$slug'
       preLoaderRoute: typeof CategorySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/$id': {
+      id: '/checkout/$id'
+      path: '/checkout/$id'
+      fullPath: '/checkout/$id'
+      preLoaderRoute: typeof CheckoutIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/components': {
@@ -426,6 +492,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSkuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/orders': {
+      id: '/staff/orders'
+      path: '/staff/orders'
+      fullPath: '/staff/orders'
+      preLoaderRoute: typeof StaffOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/order/$id': {
+      id: '/staff/order/$id'
+      path: '/staff/order/$id'
+      fullPath: '/staff/order/$id'
+      preLoaderRoute: typeof StaffOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -458,12 +538,16 @@ const rootRouteChildren: RootRouteChildren = {
   PreviewAccessRoute: PreviewAccessRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
+  StaffLoginRoute: StaffLoginRoute,
   CategorySlugRoute: CategorySlugRoute,
+  CheckoutIdRoute: CheckoutIdRoute,
   DevComponentsRoute: DevComponentsRoute,
   DevFixtureShopifyLoginRoute: DevFixtureShopifyLoginRoute,
   DevShopifyHealthRoute: DevShopifyHealthRoute,
   OrderIdRoute: OrderIdRoute,
   ProductSkuRoute: ProductSkuRoute,
+  StaffOrdersRoute: StaffOrdersRoute,
+  StaffOrderIdRoute: StaffOrderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

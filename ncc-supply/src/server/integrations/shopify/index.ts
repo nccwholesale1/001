@@ -1,10 +1,13 @@
 import { env } from '../../env'
+import { createAdminCommerceAdapter } from './admin-adapter'
 import { withCache } from './cache'
 import { createCustomerAccountAdapter } from './customer-account-adapter'
+import { createFixtureAdminCommerceAdapter } from './fixture-admin-adapter'
 import { createFixtureCatalogueAdapter } from './fixture-adapter'
 import { createFixtureCustomerAccountAdapter } from './fixture-customer-account-adapter'
 import { createStorefrontCatalogueAdapter } from './storefront-adapter'
 import type {
+  AdminCommerceAdapter,
   CatalogueAdapter,
   CollectionResult,
   CollectionSummary,
@@ -61,4 +64,17 @@ export function getCustomerAccountAdapter(): CustomerAccountAdapter {
     return createCustomerAccountAdapter()
   }
   return createFixtureCustomerAccountAdapter()
+}
+
+/**
+ * Same fixture/live split, for Phase 8's Draft Order creation. Live once
+ * SHOPIFY_ADMIN_ACCESS_TOKEN is configured; the fixture (default) fakes a
+ * draft order id/invoice URL so the whole NCC-approval flow is demonstrable
+ * without it — see fixture-admin-adapter.ts.
+ */
+export function getAdminCommerceAdapter(): AdminCommerceAdapter {
+  if (env.ADMIN_COMMERCE_ADAPTER === 'live') {
+    return createAdminCommerceAdapter()
+  }
+  return createFixtureAdminCommerceAdapter()
 }

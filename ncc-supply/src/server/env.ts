@@ -1,6 +1,15 @@
 import { z } from 'zod'
 
 /**
+ * A `.env` line like `KEY=` sets `process.env.KEY` to `''`, not undefined —
+ * so a plain `.string().min(1).optional()` fails validation on a variable
+ * the file only *mentions* (as `.env.example` does, for every var) rather
+ * than actually sets. Treat empty-string the same as absent for every
+ * optional credential below.
+ */
+const optionalString = () => z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional())
+
+/**
  * Server-only. Validated once at import time so a missing/invalid variable
  * fails loudly at startup rather than surfacing as a confusing runtime error
  * deep in a request handler. Never import this from client code.
@@ -16,17 +25,20 @@ const envSchema = z.object({
   /** Which CatalogueAdapter getCatalogueAdapter() returns — see integrations/shopify/index.ts. */
   CATALOGUE_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
   /** The store's *.myshopify.com domain — NOT its custom storefront domain. Only required when CATALOGUE_ADAPTER=live. */
-  SHOPIFY_STORE_DOMAIN: z.string().min(1).optional(),
+  SHOPIFY_STORE_DOMAIN: optionalString(),
   /** Storefront API access token (public or private) — only required when CATALOGUE_ADAPTER=live. */
-  SHOPIFY_STOREFRONT_ACCESS_TOKEN: z.string().min(1).optional(),
-  /** Admin API access token — not needed until Phase 8's real draft-order/invoice/refund operations. */
-  SHOPIFY_ADMIN_ACCESS_TOKEN: z.string().min(1).optional(),
+  SHOPIFY_STOREFRONT_ACCESS_TOKEN: optionalString(),
+  /** Admin API access token — only required when ADMIN_COMMERCE_ADAPTER=live. */
+  SHOPIFY_ADMIN_ACCESS_TOKEN: optionalString(),
   SHOPIFY_API_VERSION: z.string().min(1).default('2026-07'),
   /** Customer Account API client id from the Headless channel — required when CUSTOMER_ACCOUNT_ADAPTER=live. */
-  SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: z.string().min(1).optional(),
+  SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: optionalString(),
 
   /** Which CustomerAccountAdapter getCustomerAccountAdapter() returns — see integrations/shopify/index.ts. */
   CUSTOMER_ACCOUNT_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
+
+  /** Which AdminCommerceAdapter getAdminCommerceAdapter() returns — see integrations/shopify/index.ts. */
+  ADMIN_COMMERCE_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
 
   /**
    * Pre-launch site-wide gate (temporary, operational — not a PRD feature).
@@ -68,6 +80,14 @@ function loadEnv(): Env {
   ) {
     throw new Error(
       'CUSTOMER_ACCOUNT_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID to be set.',
+    )
+  }
+  if (
+    result.data.ADMIN_COMMERCE_ADAPTER === 'live' &&
+    (!result.data.SHOPIFY_STORE_DOMAIN || !result.data.SHOPIFY_ADMIN_ACCESS_TOKEN)
+  ) {
+    throw new Error(
+      'ADMIN_COMMERCE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN to be set.',
     )
   }
   return result.data

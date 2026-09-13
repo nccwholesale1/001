@@ -25,6 +25,10 @@ export interface OrderRequestView {
   deliveryPence: number | null
   vatPence: number | null
   finalTotalPence: number | null
+  /** Staff-only in practice (never rendered on the guest/buyer views) — real once ADMIN_COMMERCE_ADAPTER=live. */
+  invoiceUrl: string | null
+  shopifyDraftOrderId: string | null
+  internalNotes: string | null
   lines: OrderRequestLineView[]
 }
 
@@ -73,6 +77,9 @@ export async function buildOrderRequestView(db: Db, orderRequestId: string): Pro
     deliveryPence: orderRequest.deliveryPence,
     vatPence: orderRequest.vatPence,
     finalTotalPence: orderRequest.finalTotalPence,
+    invoiceUrl: orderRequest.invoiceUrl,
+    shopifyDraftOrderId: orderRequest.shopifyDraftOrderId,
+    internalNotes: orderRequest.internalNotes,
     lines,
   }
 }

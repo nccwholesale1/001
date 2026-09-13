@@ -4,69 +4,77 @@ This file is overwritten at the end of every phase with that phase's actual hand
 
 ---
 
-## Last completed phase: Phase 7 — Company accounts, buyer identity, company approval
+## Last completed phase: Phase 8 — NCC order console, Shopify draft order, confirmed checkout
 
-**Completed scope:** company buyer identity and the company-side approval step from PRD §§2, 4, 6.10–6.13, 7.4 (runbook §10), on branch `phase/7-company-accounts`. NCC-side staff auth (`server/auth/session.ts`/`password.ts`, built in Phase 2) is unused by any route until Phase 11 — out of this phase's scope by design.
+**Completed scope:** the NCC-admin side of the two-stage workflow from PRD §§4, 6.7, 6.9, 7.1 (runbook §11), on branch `phase/8-ncc-order-console`. This is also the first phase with a real, working Shopify write credential in hand — used for real, not just contract-tested.
 
-- **Buyer identity is Shopify's own OIDC/PKCE Customer Account flow (ADR-003)** — no app-owned password system. `server/integrations/shopify/customer-account-adapter.ts` (built Phase 3, never live-tested) finally gets its real HTTPS callback route, `/auth-callback`. Added `verifyIdentity(idToken)` to the adapter contract: real JWKS signature verification against Shopify's discovery document (via `jose`, a new dependency), checking `aud`/`iss` before trusting the `email`/`sub` claims — the actual authentication boundary, not just token exchange.
-- **`CUSTOMER_ACCOUNT_ADAPTER=fixture|live`** (default `fixture`), mirroring `CATALOGUE_ADAPTER` — `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` is still unconfigured (same blocker as Phase 3's Storefront token, still unconfirmed by the user). The fixture adapter (`fixture-customer-account-adapter.ts`) drives a dev-only simulated Shopify login page (`/dev/fixture-shopify-login`) using a self-signed JWT, so the entire sign-in → callback → session → account → approval flow was genuinely exercised end-to-end in a real browser, not just unit-mocked (ADR-019).
-- **`/auth`** (buyer sign-in entry) and **`/register`** (first-time company creation for a verified identity with no matching `buyerUsers` row). Invite acceptance happens via `/auth` itself — an admin-created `invited` row activates on that buyer's first successful sign-in (mirrors ADR-007's staff activation pattern) — there is no separate "accept invite" step (ADR-022).
-- **Buyer session** (`ncc_buyer` cookie, `server/buyers/buyer-session.ts`) is entirely separate from the guest basket session (`ncc_basket`) — signing in never disturbs an in-progress guest basket. A short-lived `ncc_oidc_pending` session carries OIDC round-trip state and, briefly, a verified-but-unmatched identity for `/register` (ADR-021).
-- **`/account`** shell (sidebar layout + guard), dashboard, **`/account/orders`** (buyer-own vs. company-admin-all, reusing the existing `canViewCompanyResource` unchanged), **`/account/users`** (admin-only invite/edit-role-and-spend-limit/remove), **`/account/pricing`** (plain statement of uniform list pricing — ADR-005 already resolved there's no tier table to show).
-- **Reorder** (`server/orders/order-view.ts::reorderIntoBasket`) duplicates a past order's lines — confirmed quantity if NCC already set one, else requested — into a fresh basket via the existing `addLine`, no bespoke copy path.
-- **Basket ownership unified with minimal diff**: `getOrCreateBasketId` (`server/basket/session.ts`) now checks for a buyer session first (resolving/creating that buyer's own basket by identity, no cookie pointer needed) before falling through to the unchanged guest-cookie logic — every existing basket call site (`ProductCard`, `/product/:sku`, `basket/server-functions.ts`) works unchanged for both guest and buyer.
-- **Buyer order submission** (`server/basket/submit-order-request.ts`) creates the order request directly at `awaiting_company_approval` — unlike a guest, who still skips straight to `awaiting_ncc_review` (rule 6). **`server/orders/company-approval.ts::decideCompanyApproval`** is what actually exercises the existing guarded `transitionOrderRequest('company_approve'|'company_reject')` — a replayed decision on an already-decided order fails cleanly via the existing `InvalidTransitionError`, with no new idempotency wrapper needed (ADR-023).
-- **Audit events** for company registration, buyer invite/activation/role/spend-limit/removal, and every company approval/rejection — all via the existing `recordAuditEvent`.
-- **Header** shows the signed-in company name + role, with sign-out — extends the existing root-loader pattern alongside the category loader.
-- **A real pre-existing bug found and fixed**: `authorization.ts`'s `isCompanyAdmin` type predicate always narrowed to `never` (an `Extract<Union, {discriminant, narrowerLiteral}>` gotcha) — written in Phase 2, never exercised by any caller until this phase's code was the first to actually use it. Fixed to extract-then-intersect. See DECISIONS.md ADR notes for the full explanation.
+- **Staff authentication**, wired up for the first time: `server/auth/session.ts`/`password.ts` (built Phase 2, unused since) sit behind a new `/staff-login` route (email-or-username-in-one-field), session carried as a plain opaque bearer token in an httpOnly cookie (ADR-024 — deliberately not `useSession`-sealed, since a hash-verified opaque token is already unforgeable, unlike the buyer/basket pointer cookies). This also means **ADR-007's sales-rep first-login activation fires for real for the first time** — confirmed against the actual seeded dev database (`pnpm db:seed`'s fixture sales rep flipped `pending_id_verification` → `active` on real sign-in), not just a unit test.
+- **`/staff/orders`** (queue) and **`/staff/order/:id`** (detail/approval) — reuse the existing `canViewCompanyResource` unchanged: an ncc_admin sees and mutates everything; a sales rep is read-only, sees only assigned companies, and never sees a guest order at all (`companyId: null` is never assignable). Detail screen: per-line confirmed-quantity input (0 allowed, never above requested — reuses `assertConfirmedQuantityAllowed`), delivery/VAT inputs, live recalculated total, internal notes, one atomic **Approve** (`server/orders/ncc-approval.ts::confirmOrder`, a single `db.transaction`), **Cancel** with a required reason, and a **copy-to-clipboard customer link** that mints a fresh guest token on demand (the raw token is never stored, rule 16, so it can't be re-derived any other way).
+- **Real Shopify Draft Order creation** behind `getAdminCommerceAdapter()` (ADR-025 — same fixture/live split as the other two Shopify boundaries). **Reconciliation needs no new schema column** (ADR-026): confirmation is one DB transaction; the Shopify sync that follows is a separate, swallowed-on-failure, individually-idempotent step — a `confirmed` order with `shopifyDraftOrderId`/`invoiceUrl` still `null` **is** the explicit "needs Shopify sync" state, with a working **Retry Shopify sync** action.
+- **`/checkout/:id`** — reuses `/order/:id`'s guest-token/buyer-session dual-access pattern (staff never reach checkout, per the matrix), redirects to the equivalent order-status view unless `confirmed`, and offers (never processes) invoice-link or cash-on-delivery (ADR-027). No shipping-address collection — flagged as a fact, not invented.
+- **Audit events** for every approval and cancellation via the existing `recordAuditEvent`.
 
-**Files created/changed:** see `TASKS.md` Phase 7 checklist for the exhaustive list. New modules: `server/buyers/{buyer-session,oidc-flow,companies,server-functions}.ts`, `server/orders/{order-view,company-approval,server-functions}.ts`, `server/integrations/shopify/fixture-customer-account-adapter.ts`; new routes `auth.tsx`, `auth-callback.tsx`, `register.tsx`, `dev/fixture-shopify-login.tsx`, `account/{route,index,orders,users,pricing}.tsx`; new components `OrderRequestDetail.tsx` (extracted from `/order/$id` for reuse), `BuyerUserTable.tsx`. Also touched: `validation/commands.ts` (new schemas), `env.ts`/`.env.example` (`CUSTOMER_ACCOUNT_ADAPTER`), `integrations/shopify/{types,index,customer-account-adapter}.ts`, `basket/{session,submit-order-request}.ts`, `auth/authorization.ts` (the `isCompanyAdmin` fix + a shared `ForbiddenError`), `components/ui/Header.tsx`, `routes/__root.tsx`, `routes/order/$id.tsx`, `routes/basket.tsx`. `DECISIONS.md` (ADR-019 through ADR-023 plus the type-bug note).
+**A real, pre-existing security bug found and fixed:** `routes/dev/fixture-shopify-login.tsx`'s `beforeLoad` read `env` directly — since `beforeLoad` is isomorphic, this shipped the *entire* `env.ts` module, literal default values included, into the public client JS bundle. Concretely: **`SESSION_SECRET`'s and `SITE_ACCESS_PASSWORD`'s actual default values (`ncc-preview-2026`) were sitting in plain text in `dist/client/assets/*.js`**, completely defeating last session's password gate for anyone who opened devtools. This predated Phase 8 (shipped in Phase 7) and had gone unnoticed because prior per-phase bundle sweeps grepped for dependency names (`jose`, `libsql`), never for `env.ts` itself or literal default values. Fixed by moving the check into a `createServerFn`; re-swept the whole client bundle for every known secret value and dependency name afterward — clean. Full account in DECISIONS.md's "Security fix" section — **read this before trusting any future `beforeLoad`/`loader` that touches `env`.**
+
+**A real Shopify credential arrived and got used for real this session:** the user pasted a token labelled "Storefront," which turned out on direct verification (401 vs 200 against the two real endpoints) to actually be an **Admin API** token. Wired in as `SHOPIFY_ADMIN_ACCESS_TOKEN` with `ADMIN_COMMERCE_ADAPTER=live` — the first phase to exercise a live Shopify write. Approving a real order produced a real, informative failure (`draftOrderCreate`: missing `write_draft_orders` scope) — the ADR-026 reconciliation design handled it exactly as intended on the very first real-world failure it ever hit (order stayed `confirmed`, sync state stayed visibly "incomplete," Retry reproduced the same clean failure, no crash, no double-write). `CATALOGUE_ADAPTER` is still `fixture` — this token doesn't help the Storefront/catalogue blocker, which is separate (see Phase 3's note).
+
+**Two more real bugs found via manual testing against real leftover order data** (not fixture-invented): a guest order with no contact email at all (basket contact fields are optional) can never get a real Shopify invoice — recorded as a business-decision gap for a future phase, not fixed here. And `getGuestOrderLink` used `guestContactEmail` presence as its "is this a guest order" signal, which that exact same order proved wrong (a guest can have no email and still be a guest) — fixed to check `buyerUserId` instead, the only field that actually distinguishes the two cases; a new test locks in the specific case that was wrong.
+
+**Files created/changed:** see `TASKS.md` Phase 8 checklist for the exhaustive list. New modules: `server/staff/{staff-session,login,server-functions,order-console-server-functions}.ts`, `server/orders/{ncc-approval,staff-queue}.ts`, `server/integrations/shopify/fixture-admin-adapter.ts`; new routes `staff-login.tsx`, `staff/orders.tsx`, `staff/order/$id.tsx`, `checkout/$id.tsx`. Also touched: `env.ts`/`.env.example` (`ADMIN_COMMERCE_ADAPTER`, and the empty-string-vs-undefined env parsing fix below), `integrations/shopify/index.ts` (`getAdminCommerceAdapter`), `orders/order-view.ts` (exposed `invoiceUrl`/`shopifyDraftOrderId`/`internalNotes`), `validation/commands.ts` (`cancelOrderSchema`, `internalNotes` on `nccApprovalSchema`), `routes/dev/fixture-shopify-login.tsx` (the security fix). `DECISIONS.md` (ADR-024 through ADR-027, the security-fix writeup, the two real-bug writeups).
+
+**A small but real robustness fix along the way:** `.env` lines like `KEY=` (present, empty string) were failing Zod's `.min(1).optional()` validation instead of being treated as absent, crashing the server at startup with a confusing error the moment any optional Shopify var was mentioned-but-unset. Fixed with a shared `optionalString()` preprocessor in `env.ts` that treats `''` the same as missing.
 
 **Verification performed (actual output, not inspection-only):**
 ```
 $ pnpm typecheck  → tsc --noEmit, no output, exit 0
 $ pnpm lint       → eslint ., no output, exit 0
-$ pnpm test       → Test Files 39 passed (39), Tests 291 passed | 1 skipped (292)
+$ pnpm test       → Test Files 43 passed (43), Tests 316 passed | 1 skipped (317)
 $ pnpm build      → client + SSR bundles both built successfully
 ```
-Also re-checked the client bundle specifically for this phase: grepped `dist/client/assets/*.js` for `libsql`/`node:crypto`/`jose`/`jwtVerify`/`createRemoteJWKSet` — none present, confirming the new JWKS-verification code and the db client stayed server-only despite being reachable from routes now guarded by session logic.
+Client bundle re-swept post-build for every known secret literal (`ncc-preview-2026`, the `SESSION_SECRET` dev default, the real `shpat_...` token) and every server-only dependency name (`libsql`, `jose`, `scrypt`, `passwordHash`) — all clear, including the fields that were previously leaking.
 
-Manual, via the Browser tool against `pnpm dev` (fixture adapter, the default): registered a new company ("Acme Repairs") end-to-end through the simulated Shopify login → `/register` → landed on `/account` with the sidebar/role/company name all correct; invited a second buyer ("Bob Buyer") from `/account/users` and confirmed his row showed "Pending invite"; signed in as Bob via the fixture login and confirmed his `invited` row activated and he landed straight on `/account` as "Buyer" (no Users link, no admin-only dashboard card); added a fixture product to his basket and submitted it, confirming buyer-mode copy ("sends this to your company admin") and no contact fields; confirmed the order showed `awaiting_company_approval` on `/account/orders` for both Bob's own view and Jane's (the admin's) all-orders view with "· Bob Buyer" attribution; approved it as Jane and confirmed it flipped to `awaiting_ncc_review`; re-expanded the row afterward and confirmed no stale Approve/Reject controls remained (see the real bug found below); reordered it into a fresh basket confirmed by quantity/SKU; registered a second company ("Beta Supplies") and confirmed its admin saw zero orders and zero users from Acme — real cross-tenant isolation, not just asserted in tests.
+Manual, via the Browser tool against `pnpm dev` with `pnpm db:seed` run against the real dev database: signed in as the seeded NCC admin at `/staff-login`; approved a real pending guest order (one with no contact email, a real leftover from earlier testing) and watched it correctly land on "Shopify sync incomplete" with a working Retry, confirmed "Copy customer link" produces a real, usable guest link even for that no-email order; approved a second, real company-buyer order and hit the real `write_draft_orders` scope error live against the actual dev store; followed a confirmed guest order's link to `/checkout/:id` and confirmed both payment options render correctly with the real breakdown; created a fresh guest order and confirmed `/checkout/:id` redirects it to the order-status page since it isn't confirmed yet; signed in as the seeded sales rep and confirmed the empty queue (no assignments), confirmed direct navigation to another company's order redirects cleanly to the queue instead of hitting the generic error boundary (a real UX bug found and fixed in this same pass), and confirmed the real database row shows the rep's status flipped to `active`.
 
-**A real bug the manual verification caught:** after approving/rejecting an order, the row's cached detail was cleared but the "which row is expanded" state wasn't reset alongside it — the next click on that row (still logically "expanded" with no detail to show) silently collapsed it instead of re-expanding with fresh data. Fixed in `routes/account/orders.tsx` by resetting `expandedId` in the same place `detailById` is cleared, so a decided row visibly collapses and a subsequent click re-fetches current detail.
+**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 8 decisions and facts" (ADR-024 through ADR-027) plus the security-fix and two real-bug write-ups immediately above them.
 
-**Assumptions and facts recorded:** see `DECISIONS.md` "Phase 7 decisions and facts" (ADR-019 through ADR-023, the `jose`/jsdom `CryptoKey` realm bug, the `isCompanyAdmin` type-narrowing bug).
+**Unresolved blockers / risks carried forward:**
+- `CATALOGUE_ADAPTER` is still `fixture` — the Storefront token blocker (Phase 3 onward) is unchanged; the Admin token received this session does not help it.
+- The connected Admin API token needs the `write_draft_orders` scope added (Shopify admin → Settings → Apps and sales channels → Develop apps → the app → Configuration → Admin API scopes → reinstall) before real Draft Order creation will actually succeed — currently fails cleanly and recoverably via the Retry flow.
+- A guest order with no contact email can never get a real Shopify invoice — needs a business decision (require email at guest checkout, or accept phone-follow-up for those orders) before Phase 9 or later.
+- PRD §13 Questions 1, 4, 5, 6 unchanged. `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` still unconfigured (Phase 7's blocker, unchanged).
 
-**Unresolved blockers / risks carried forward:** the Phase 3 Storefront-token blocker is unchanged. `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` is also still unconfigured — the same manual Shopify-admin Headless-channel step would supply both tokens; neither is confirmed done by the user. Both adapters default to `fixture`/complete, tested defaults in the meantime. PRD §13 Questions 1, 4, 5, 6 unchanged.
-
-**Database migrations / environment variables:** no new migration — every column Phase 7 needed (`companies`, `buyerUsers.{role,status,spendLimit,shopifyCustomerId}`, `baskets.buyerUserId`, `orderRequests.{buyerUserId,companyApprovedByBuyerUserId,companyApprovedAt}`, `auditEvents.actorType` including `'buyer'`) already existed from Phase 2's forward-looking schema. New environment variable: `CUSTOMER_ACCOUNT_ADAPTER` (optional, default `fixture`). New dependency: `jose`.
+**Database migrations / environment variables:** no new migration — every column Phase 8 needed already existed from Phase 2's forward-looking schema (`orderRequests.{shopifyDraftOrderId,invoiceUrl,internalNotes,deliveryPence,vatPence,finalTotalPence,nccApprovedByStaffUserId,nccApprovedAt,cancelledReason}`). New environment variable: `ADMIN_COMMERCE_ADAPTER` (optional, default `fixture`). `.env` now has a real `SHOPIFY_ADMIN_ACCESS_TOKEN` and `SHOPIFY_STORE_DOMAIN` set locally (not committed — gitignored as always).
 
 ---
 
-## Next phase: Phase 8 — NCC order console, Shopify draft order and confirmed checkout
+## Next phase: Phase 9 — Bulk ordering, quotes and reorder completion
 
-**Phase 8 entry criteria (Phase 7 exit gate, satisfied):** company buyer identity, registration, invites, and the company-approval step all work end-to-end against real data (fixture Shopify adapter); every order still reaches `awaiting_ncc_review` before any question of confirmation; cross-company and buyer-vs-admin isolation both hold; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
+**Phase 9 entry criteria (Phase 8 exit gate, satisfied):** the full NCC-approval → Shopify Draft Order → checkout flow works end-to-end against real data (fixture catalogue, live Admin API); staff authentication and authorization both hold under real testing; the reconciliation design has now proven itself against a genuine Shopify failure; `pnpm typecheck`/`lint`/`test`/`build` all pass. ✅
 
 ```text
-Read all context and the Phase 7 handoff. Inspect git status. Implement only Phase 8.
+Read all context and the Phase 8 handoff. Inspect git status. Implement only Phase 9.
 
-Build the NCC order review and confirmation workflow from PRD §§4, 6.7, 6.9 and 7.1.
+Build the high-speed wholesale tools from PRD §§4, 6.6, 6.8, 6.11 and 6.14:
 
-Implement:
-- protected /staff/orders and /staff/order/:id routes;
-- staff authentication boundary needed for NCC admins;
-- queue states that distinguish awaiting review from confirmed;
-- per-line confirmed quantities, allowing zero and preventing increases above requested quantity;
-- delivery and VAT inputs, server-side recalculated final totals, internal notes and invoice-link field;
-- one atomic NCC-admin Approve action that validates and records quantities, delivery, VAT, total and status together;
-- Cancel with required reason and audit record;
-- Shopify Draft Order creation/update only after successful NCC approval;
-- secure invoice/payment link handling using the current supported Shopify flow;
-- /checkout/:id guard that redirects to order view unless status is confirmed;
-- confirmed customer order view showing original versus confirmed lines, removals, delivery, VAT and final total;
-- cash-on-delivery and invoice-payment options only when confirmed.
+Bulk order:
+- /bulk-order CSV upload and SKU/quantity paste alternative;
+- downloadable template;
+- up to 500 rows as an implementation default;
+- secure server parsing with file-size/type limits;
+- matched/unmatched preview where every row receives an outcome and reason;
+- add matched rows to basket without silently dropping failures.
 
-Design external mutations for idempotency and partial-failure recovery. Never leave the app confirmed while Shopify creation failed without an explicit recoverable reconciliation state. Never expose Admin API access to the client.
+Quotes:
+- /quote request flow and token/account-based /quote/:id detail;
+- requested, quoted, accepted and expired status flow;
+- /staff/quotes queue and NCC-admin-only line pricing/issue action;
+- explicit customer Accept Quote action;
+- accepted quote becomes an order request entering normal NCC review and never skipping approval;
+- quote does not imply confirmed availability or create payment obligation before acceptance.
 
-Use a development Shopify store only. Place every live mutation behind an explicit environment safety check. Test unauthorized access, quantity increase attempts, double approval, Shopify timeout/failure, reconciliation, unconfirmed checkout access and final-total integrity. Run all checks, update records and stop.
+Reorder:
+- ensure reorder uses current catalogue identity and current entitled pricing;
+- clearly report unavailable/discontinued/unmatched lines rather than silently omitting them.
+
+Test hostile/malformed CSV, duplicate SKU rows, formula injection in exports, over-500 handling, unmatched rows, quote token isolation, quote expiry, repeated acceptance and unauthorized pricing. Run all checks, update records and stop.
 ```
