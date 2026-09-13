@@ -31,6 +31,8 @@ export interface HeaderProps {
  */
 const PRIMARY_NAV = [
   { label: 'Categories', href: '/categories' },
+  { label: 'Bulk Order', href: '/bulk-order' },
+  { label: 'Request a Quote', href: '/quote' },
   { label: 'How to Order', href: '/how-to-order' },
   { label: 'Contact', href: '/contact' },
 ]

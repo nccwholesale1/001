@@ -79,6 +79,51 @@ export type RemoveBuyerUserInput = z.infer<typeof removeBuyerUserSchema>
 export const reorderSchema = z.object({ orderRequestId: z.string().min(1) }).strict()
 export type ReorderInput = z.infer<typeof reorderSchema>
 
+/** Raw file/paste text — parsed and row-capped server-side (see server/bulk-order/csv.ts). */
+export const bulkOrderCsvSchema = z.object({ csvText: z.string().min(1).max(256_000) }).strict()
+export type BulkOrderCsvInput = z.infer<typeof bulkOrderCsvSchema>
+
+export const addBulkOrderLinesSchema = z
+  .object({
+    lines: z
+      .array(z.object({ sku: z.string().min(1), quantity: z.number().int().positive() }).strict())
+      .min(1)
+      .max(500),
+  })
+  .strict()
+export type AddBulkOrderLinesInput = z.infer<typeof addBulkOrderLinesSchema>
+
+export const quoteRequestSchema = z
+  .object({
+    lines: z
+      .array(z.object({ sku: z.string().min(1), quantity: z.number().int().positive() }).strict())
+      .min(1)
+      .max(100),
+    contactEmail: z.string().email().optional(),
+    contactName: z.string().min(1).optional(),
+  })
+  .strict()
+export type QuoteRequestInput = z.infer<typeof quoteRequestSchema>
+
+/** NCC-admin-only (enforced in server/quotes/quote-pricing.ts, not here — schema validation and authorization are separate concerns). */
+export const issueQuoteSchema = z
+  .object({
+    quoteId: z.string().min(1),
+    lines: z
+      .array(
+        z
+          .object({ quoteLineId: z.string().min(1), quotedUnitPricePence: z.number().int().nonnegative() })
+          .strict(),
+      )
+      .min(1),
+    expiresInDays: z.number().int().positive().max(365).optional(),
+  })
+  .strict()
+export type IssueQuoteInput = z.infer<typeof issueQuoteSchema>
+
+export const acceptQuoteSchema = z.object({ quoteId: z.string().min(1) }).strict()
+export type AcceptQuoteInput = z.infer<typeof acceptQuoteSchema>
+
 export const companyApprovalDecisionSchema = z
   .object({
     orderRequestId: z.string().min(1),
