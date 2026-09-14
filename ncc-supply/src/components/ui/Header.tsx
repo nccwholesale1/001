@@ -102,17 +102,14 @@ export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProp
           <a
             href="/basket"
             aria-label={`Basket, ${basketCount} ${basketCount === 1 ? 'item' : 'items'}`}
-            className={cn(
-              iconLinkClasses,
-              'flex items-center gap-1.5 border border-transparent px-2.5 hover:border-border',
-            )}
+            className="glow-hover flex items-center gap-1.5 rounded-lg border border-primary/50 bg-primary/5 px-2.5 py-2 text-primary transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <Icon icon={ShoppingBasket} />
-            <span className="hidden text-sm font-medium sm:inline">Basket</span>
+            <span className="hidden text-sm font-semibold sm:inline">Basket</span>
             <span
               className={cn(
                 'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold transition-colors',
-                basketCount > 0 ? 'sky-gradient' : 'bg-secondary text-muted-foreground',
+                basketCount > 0 ? 'sky-gradient' : 'bg-card text-primary',
               )}
             >
               {basketCount}
