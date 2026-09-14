@@ -1,4 +1,6 @@
-import { Check, Square, X } from 'lucide-react'
+import { Check, ChevronDown, Square, X } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { cn } from '../../lib/cn'
 import { Icon } from './Icon'
 
 export interface FacetOptionView {
@@ -36,12 +38,47 @@ export interface FacetSidebarProps {
   resultCount: number
 }
 
+const pillTriggerClasses =
+  'inline-flex list-none cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground marker:content-none hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden'
+
 /**
- * Design system §5.2 "Facet sidebar" / "Filter bar". Every control is a
- * plain link, not a JS-driven checkbox/select — facet state lives entirely
- * in the URL (PRD §6.3: "shareable and crawlable"), so filtering works
- * with no client JS at all and search engines can follow every combination
- * directly.
+ * Every dropdown is a native <details>/<summary> — same zero-JS, fully
+ * keyboard-operable disclosure primitive already used for the FAQ
+ * accordion (see Disclosure.tsx). No JS means no "only one open at a
+ * time"/click-outside-to-close coordination between dropdowns; that's an
+ * accepted tradeoff for keeping every filter a plain link with no client
+ * JS required (facet state lives entirely in the URL — shareable and
+ * crawlable, PRD §6.3).
+ */
+function FilterDropdown({ label, badge, children }: { label: string; badge?: number; children: ReactNode }) {
+  return (
+    <details className="group relative">
+      <summary className={pillTriggerClasses}>
+        {label}
+        {badge ? (
+          <span className="sky-gradient inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold">
+            {badge}
+          </span>
+        ) : null}
+        <Icon
+          icon={ChevronDown}
+          size="sm"
+          className="text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+        />
+      </summary>
+      <div className="surface-card absolute left-0 z-20 mt-2 min-w-56 rounded-lg p-2">{children}</div>
+    </details>
+  )
+}
+
+/**
+ * Filter bar — a compact row of dropdown pills (one per facet attribute,
+ * plus sort) that wraps naturally at any width, replacing the previous
+ * fixed-width sidebar + full-screen mobile sheet with one layout for every
+ * breakpoint. Every option is still a plain link (no client JS needed for
+ * filtering to work) and every group still supports multiple simultaneous
+ * selections — only the chrome changed, not the underlying facet
+ * mechanics.
  */
 export function FacetSidebar({
   groups,
@@ -50,31 +87,60 @@ export function FacetSidebar({
   sortOptions,
   resultCount,
 }: FacetSidebarProps) {
+  const activeSort = sortOptions.find((option) => option.active)
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-sm text-muted-foreground">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {groups.map((group) => {
+          const activeCount = group.options.filter((option) => option.active).length
+          return (
+            <FilterDropdown key={group.attribute} label={group.attribute} badge={activeCount || undefined}>
+              <fieldset className="flex flex-col gap-0.5">
+                <legend className="sr-only">{group.attribute}</legend>
+                {group.options.map((option) => (
+                  <a
+                    key={option.value}
+                    href={option.href}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-sm text-foreground/80 hover:bg-secondary"
+                  >
+                    <Icon
+                      icon={option.active ? Check : Square}
+                      size="sm"
+                      className={option.active ? 'text-primary' : 'text-muted-foreground'}
+                    />
+                    <span className="flex-1">{option.value}</span>
+                    <span className="text-xs text-muted-foreground">{option.count}</span>
+                  </a>
+                ))}
+              </fieldset>
+            </FilterDropdown>
+          )
+        })}
+
+        {sortOptions.length > 0 ? (
+          <FilterDropdown label={`Sort: ${activeSort?.label ?? sortOptions[0]?.label ?? ''}`}>
+            <div className="flex flex-col gap-0.5">
+              {sortOptions.map((option) => (
+                <a
+                  key={option.value}
+                  href={option.href}
+                  aria-current={option.active ? 'true' : undefined}
+                  className={cn(
+                    'whitespace-nowrap rounded-md px-2 py-1.5 text-sm',
+                    option.active ? 'bg-secondary font-semibold text-foreground' : 'text-foreground/80 hover:bg-secondary',
+                  )}
+                >
+                  {option.label}
+                </a>
+              ))}
+            </div>
+          </FilterDropdown>
+        ) : null}
+
+        <span className="ml-auto text-sm text-muted-foreground">
           {resultCount} {resultCount === 1 ? 'result' : 'results'}
         </span>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Sort</span>
-          <span className="flex overflow-hidden rounded-lg border border-border">
-            {sortOptions.map((option) => (
-              <a
-                key={option.value}
-                href={option.href}
-                aria-current={option.active ? 'true' : undefined}
-                className={
-                  option.active
-                    ? 'sky-gradient px-3 py-1.5 text-xs font-semibold'
-                    : 'px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:bg-secondary'
-                }
-              >
-                {option.label}
-              </a>
-            ))}
-          </span>
-        </label>
       </div>
 
       {appliedChips.length > 0 ? (
@@ -96,33 +162,6 @@ export function FacetSidebar({
           ) : null}
         </div>
       ) : null}
-
-      {groups.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No filters available for these results.</p>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {groups.map((group) => (
-            <fieldset key={group.attribute} className="flex flex-col gap-2">
-              <legend className="text-sm font-semibold text-foreground">{group.attribute}</legend>
-              {group.options.map((option) => (
-                <a
-                  key={option.value}
-                  href={option.href}
-                  className="flex items-center gap-2 rounded-md px-1 py-1 text-sm text-foreground/80 hover:bg-secondary"
-                >
-                  <Icon
-                    icon={option.active ? Check : Square}
-                    size="sm"
-                    className={option.active ? 'text-primary' : 'text-muted-foreground'}
-                  />
-                  <span className="flex-1">{option.value}</span>
-                  <span className="text-xs text-muted-foreground">{option.count}</span>
-                </a>
-              ))}
-            </fieldset>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

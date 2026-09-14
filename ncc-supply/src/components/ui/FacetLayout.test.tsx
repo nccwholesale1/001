@@ -1,5 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { FacetLayout } from './FacetLayout'
 
@@ -27,29 +26,52 @@ function renderLayout(appliedChips: Array<{ attribute: string; value: string; hr
 }
 
 describe('FacetLayout', () => {
-  it('renders the static sidebar (for lg+ viewports) without opening anything', () => {
+  it('renders one filter bar (no separate mobile/desktop layout) with every facet group and sort as a dropdown', () => {
     renderLayout()
-    // Two copies of the same facet content exist for CSS-only breakpoint
-    // switching (PRD §5.3) — the static aside is always in the DOM.
-    expect(screen.getAllByText('Brand').length).toBeGreaterThan(0)
+    // "Brand" appears twice by design — the visible summary label and the fieldset's sr-only legend naming it for assistive tech.
+    expect(screen.getAllByText('Brand').length).toBe(2)
+    expect(screen.getByText('Sort: Relevance')).toBeInTheDocument()
+    expect(screen.getByText('Anker')).toBeInTheDocument()
+    expect(screen.getByText('12 results')).toBeInTheDocument()
     expect(screen.getByText('Product grid placeholder')).toBeInTheDocument()
   })
 
-  it('opens a full-screen sheet with the same filters when the mobile trigger is clicked', async () => {
-    renderLayout()
-    const trigger = screen.getByRole('button', { name: /Filters & Sort/i })
-    await userEvent.click(trigger)
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Filters & Sort' })).toBeInTheDocument()
-    })
-    const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByText('Anker')).toBeInTheDocument()
+  it('shows a count badge on a facet group only when it has active options', () => {
+    const { container } = render(
+      <FacetLayout
+        groups={[
+          {
+            attribute: 'Brand',
+            options: [{ value: 'Anker', count: 3, active: true, href: '/category/chargers' }],
+          },
+        ]}
+        appliedChips={[{ attribute: 'Brand', value: 'Anker', href: '/category/chargers' }]}
+        clearAllHref="/category/chargers"
+        sortOptions={SORT_OPTIONS}
+        resultCount={3}
+      >
+        <p>Product grid placeholder</p>
+      </FacetLayout>,
+    )
+    const summary = screen.getAllByText('Brand').map((el) => el.closest('summary')).find(Boolean)
+    expect(summary).toBeTruthy()
+    expect(summary?.textContent).toContain('1')
+    expect(container.querySelectorAll('details')).toHaveLength(2) // one per facet group, plus sort
   })
 
-  it('shows a count badge on the trigger when filters are applied', () => {
+  it('renders applied-filter chips and a clear-all link', () => {
     renderLayout([{ attribute: 'Brand', value: 'Anker', href: '/category/chargers' }])
-    const trigger = screen.getByRole('button', { name: /Filters & Sort/i })
-    expect(within(trigger).getByText('1')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Brand: Anker/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Clear all' })).toBeInTheDocument()
+  })
+
+  it('renders no facet dropdown at all when there are no filterable attributes', () => {
+    render(
+      <FacetLayout groups={[]} appliedChips={[]} clearAllHref={null} sortOptions={SORT_OPTIONS} resultCount={0}>
+        <p>Product grid placeholder</p>
+      </FacetLayout>,
+    )
+    expect(screen.queryByText('Brand')).not.toBeInTheDocument()
+    expect(screen.getByText('Sort: Relevance')).toBeInTheDocument()
   })
 })
