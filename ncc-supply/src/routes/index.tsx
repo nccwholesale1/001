@@ -151,10 +151,17 @@ function IndexRoute() {
       <Section>
         <Container>
           <Reveal>
-            <div className="grid grid-cols-1 overflow-hidden rounded-2xl bg-ink text-ink-foreground md:grid-cols-2">
-              <div className="relative z-10 flex flex-col justify-center gap-5 p-8 sm:p-12">
+            <div className="relative overflow-hidden rounded-2xl text-ink-foreground">
+              {/* Brand marketing image supplied directly by NCC for this decorative band — not tied to any product record, so not gated by "real catalogue image only" the way product/category imagery is. */}
+              <img
+                src="/banner-earbuds.jpg"
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/20" />
+              <div className="relative z-10 flex min-h-[380px] max-w-xl flex-col justify-center gap-5 p-8 sm:p-12">
                 <span className="w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide backdrop-blur-sm">
-                  Confirmed before you pay
+                  Confirm before you pay
                 </span>
                 <h2 className="text-2xl font-semibold sm:text-3xl">
                   Build one basket, let NCC confirm the rest
@@ -178,14 +185,6 @@ function IndexRoute() {
                     How Ordering Works
                   </a>
                 </div>
-              </div>
-              {/* Brand marketing image supplied directly by NCC for this decorative band — not tied to any product record, so not gated by "real catalogue image only" the way product/category imagery is. */}
-              <div className="relative min-h-[220px]">
-                <img
-                  src="/banner-earbuds.jpg"
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                />
               </div>
             </div>
           </Reveal>
