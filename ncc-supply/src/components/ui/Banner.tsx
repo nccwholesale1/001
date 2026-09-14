@@ -89,7 +89,7 @@ export function Banner({
         )}
       >
         {eyebrow ? (
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          <span className="w-fit rounded-full border border-primary/25 bg-card/80 px-3 py-1 text-xs font-semibold tracking-wide text-primary shadow-sm backdrop-blur-sm">
             {eyebrow}
           </span>
         ) : null}

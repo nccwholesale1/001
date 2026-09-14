@@ -14,6 +14,7 @@ import { FacetLayout } from '../components/ui/FacetLayout'
 import type { AppliedChipView, FacetGroupView, SortOptionView } from '../components/ui/FacetSidebar'
 import { Pagination } from '../components/ui/Pagination'
 import { ProductCard } from '../components/ui/ProductCard'
+import { Reveal } from '../components/ui/Reveal'
 import { SearchBar } from '../components/ui/SearchBar'
 
 const PAGE_SIZE = 12
@@ -248,8 +249,10 @@ function SearchRoute() {
             resultCount={result.totalCount}
           >
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-              {result.products.map((product) => (
-                <ProductCard key={product.sku} product={product} />
+              {result.products.map((product, index) => (
+                <Reveal key={product.sku} delayMs={(index % 6) * 70}>
+                  <ProductCard product={product} />
+                </Reveal>
               ))}
             </div>
             <Pagination

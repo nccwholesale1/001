@@ -29,9 +29,13 @@ const getHomeData = createServerFn({ method: 'GET' }).handler(async (): Promise<
   const adapter = getCatalogueAdapter()
   try {
     const collections = await adapter.listCollections()
-    const firstCollection = collections[0]
-    const popularProducts = firstCollection
-      ? (await adapter.getCollection(firstCollection.slug, { first: 8 })).products
+    // Same "first collection that actually has lines" rule the featured-CTA
+    // pick uses below — collections[0] alone can be an empty one (e.g. a
+    // category with 0 real products yet), which would silently make this
+    // whole section empty for no good reason.
+    const firstStockedCollection = collections.find((collection) => collection.lineCount > 0)
+    const popularProducts = firstStockedCollection
+      ? (await adapter.getCollection(firstStockedCollection.slug, { first: 8 })).products
       : []
     return { collections, popularProducts, error: null }
   } catch (error) {
@@ -103,6 +107,10 @@ function IndexRoute() {
   // (e.g. "chargers"), as going live surfaced. First real collection with
   // at least one line, so the CTA never points at an empty category.
   const featuredCollection = collections.find((collection) => collection.lineCount > 0) ?? collections[0]
+  const heroImages = popularProducts
+    .filter((product) => product.thumbnail.url)
+    .slice(0, 2)
+    .map((product) => product.thumbnail)
 
   return (
     <>
@@ -128,36 +136,34 @@ function IndexRoute() {
         >
           See how ordering works →
         </a>
-      </Banner>
 
-      <Section className="border-b border-border/60">
-        <Container>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {TRUST_STATS.map((stat, index) => (
-              <Reveal key={stat.label} delayMs={index * 80}>
-                <div className="group glow-hover flex flex-col items-center gap-2 rounded-xl p-3 text-center transition-transform duration-300 hover:-translate-y-1">
-                  <Icon icon={stat.icon} size="lg" className="text-primary transition-transform duration-300 group-hover:scale-110" />
+        <div className="mt-6 grid grid-cols-1 gap-6 border-t border-border/60 pt-6 sm:grid-cols-3">
+          {TRUST_STATS.map((stat, index) => (
+            <Reveal key={stat.label} delayMs={index * 80}>
+              <div className="group glow-hover flex items-center gap-3 rounded-xl p-2 text-left transition-transform duration-300 hover:-translate-y-1">
+                <Icon icon={stat.icon} size="lg" className="shrink-0 text-primary transition-transform duration-300 group-hover:scale-110" />
+                <div className="flex flex-col">
                   <span className="text-sm font-semibold text-foreground">{stat.label}</span>
                   <span className="text-xs text-muted-foreground">{stat.description}</span>
                 </div>
-              </Reveal>
-            ))}
-          </div>
-        </Container>
-      </Section>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </Banner>
 
       <Section>
         <Container>
           <Reveal>
-            <div className="surface-card grid grid-cols-1 overflow-hidden rounded-2xl p-0 md:grid-cols-2">
-              <div className="flex flex-col justify-center gap-5 p-8 sm:p-12">
-                <span className="w-fit rounded-full bg-sky-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+            <div className="grid grid-cols-1 overflow-hidden rounded-2xl bg-ink text-ink-foreground md:grid-cols-2">
+              <div className="relative z-10 flex flex-col justify-center gap-5 p-8 sm:p-12">
+                <span className="w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide backdrop-blur-sm">
                   Confirmed before you pay
                 </span>
-                <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                <h2 className="text-2xl font-semibold sm:text-3xl">
                   Build one basket, let NCC confirm the rest
                 </h2>
-                <p className="text-sm text-muted-foreground sm:text-base">
+                <p className="text-sm text-ink-foreground/70 sm:text-base">
                   Submit lines from any category with no payment up front — NCC checks stock,
                   confirms delivery and VAT, and you approve the final total before anything is
                   charged.
@@ -171,14 +177,29 @@ function IndexRoute() {
                   </a>
                   <a
                     href="/how-to-order"
-                    className="glow-hover inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:bg-secondary active:translate-y-0"
+                    className="inline-flex items-center justify-center rounded-lg border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-ink-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/10 active:translate-y-0"
                   >
                     How Ordering Works
                   </a>
                 </div>
               </div>
-              {/* Image slot — placeholder until real product photography is supplied (design system §7's placeholder rule); never left blank. */}
-              <div className="sky-gradient grid-mesh min-h-[220px] transition-transform duration-700 hover:scale-105" role="img" aria-label="NCC Supply product range" />
+              {/* Real catalogue photography as elevated photo cards on the dark band, mirroring the reference site's hero banner — never a fabricated stock photo (CLAUDE.md rule 20). Falls back to the grid-mesh treatment only when no real product image is available at all. */}
+              <div className="relative min-h-[220px]">
+                {heroImages.length > 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center gap-4 p-8">
+                    {heroImages.map((image) => (
+                      <img
+                        key={image.url}
+                        src={image.url}
+                        alt=""
+                        className="h-40 w-32 rounded-xl border border-white/10 object-cover shadow-2xl transition-transform duration-700 hover:-translate-y-1 sm:h-52 sm:w-40"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid-mesh absolute inset-0 opacity-30" role="img" aria-label="NCC Supply product range" />
+                )}
+              </div>
             </div>
           </Reveal>
         </Container>
