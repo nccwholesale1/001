@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from '@tanstack/react-router'
+import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
@@ -74,7 +74,7 @@ export const Route = createFileRoute('/product/$sku')({
             '@type': 'Product',
             name: product.title,
             sku: product.sku,
-            description: product.description,
+            description: product.descriptionText,
             image: product.images.map((image) => image.url),
             offers: {
               '@type': 'Offer',
@@ -95,6 +95,7 @@ function ProductRoute() {
   const [quantity, setQuantity] = useState(1)
   const [status, setStatus] = useState<AddStatus>('idle')
   const addLine = useServerFn(addBasketLine)
+  const router = useRouter()
   const images = product.images.length > 0 ? product.images : [product.thumbnail]
 
   async function handleAdd() {
@@ -102,6 +103,7 @@ function ProductRoute() {
     try {
       await addLine({ data: { sku: product.sku, quantity } })
       setStatus('added')
+      router.invalidate()
     } catch {
       setStatus('error')
     } finally {
@@ -153,7 +155,13 @@ function ProductRoute() {
             </div>
 
             {product.description ? (
-              <p className="text-sm text-muted-foreground">{product.description}</p>
+              // Sanitized server-side before this ever reaches the client (see
+              // integrations/shopify/sanitize-description.ts) — real merchant-authored
+              // rich text (paragraphs/lists/emphasis), not raw markup shown as text.
+              <div
+                className="prose-sm flex flex-col gap-2 text-sm text-muted-foreground [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
             ) : null}
 
             {product.specs.length > 0 ? (

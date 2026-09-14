@@ -307,7 +307,43 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
 
     expect(product?.variantId).toBe('gid://shopify/ProductVariant/2')
     expect(product?.sku).toBe('NCC-CHG-002')
+    expect(product?.description).toBe('<p>Fast charging</p>')
+    expect(product?.descriptionText).toBe('Fast charging')
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('sanitizes descriptionHtml — strips scripts/attributes rather than trusting Shopify content outright', async () => {
+    const adapter = await loadAdapterWithEnv({})
+    mockFetchSequence([
+      {
+        data: {
+          products: {
+            edges: [{ node: { handle: 'fast-charger', variants: { edges: [{ node: { sku: 'NCC-CHG-001' } }] } } }],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      },
+      {
+        data: {
+          productByHandle: {
+            ...PRODUCT_NODE,
+            descriptionHtml:
+              '<p onclick="alert(1)">Real <strong>bold</strong> text</p><script>alert(1)</script><img src=x onerror=alert(1)>',
+            options: [],
+            images: { edges: [] },
+            allVariants: { edges: [{ node: { id: 'gid://shopify/ProductVariant/1', sku: 'NCC-CHG-001' } }] },
+          },
+        },
+      },
+    ])
+
+    const product = await adapter.getProduct('NCC-CHG-001')
+
+    expect(product?.description).toBe('<p>Real <strong>bold</strong> text</p>')
+    expect(product?.description).not.toContain('script')
+    expect(product?.description).not.toContain('onclick')
+    expect(product?.description).not.toContain('onerror')
+    expect(product?.descriptionText).toBe('Real bold text')
   })
 
   it('getProduct returns null if the matched handle no longer resolves', async () => {

@@ -1,3 +1,4 @@
+import { sanitizeProductDescriptionHtml, stripToPlainText } from './sanitize-description'
 import { storefrontRequest } from './storefront-client'
 import type {
   CatalogueAdapter,
@@ -375,11 +376,13 @@ async function getProductLive(sku: string): Promise<ProductDetail | null> {
   )
   if (!matchingVariant) return null
 
+  const rawDescriptionHtml = node.descriptionHtml ?? ''
   return {
     ...toSummary(node),
     sku,
     variantId: matchingVariant.node.id,
-    description: node.descriptionHtml ?? '',
+    description: sanitizeProductDescriptionHtml(rawDescriptionHtml),
+    descriptionText: stripToPlainText(rawDescriptionHtml),
     images: (node.images?.edges ?? []).map((edge) => toImage(edge.node, node.title)),
     specs: (node.options ?? []).map((option) => ({
       label: option.name,

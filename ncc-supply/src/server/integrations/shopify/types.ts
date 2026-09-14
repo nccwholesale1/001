@@ -31,7 +31,10 @@ export interface ProductSummary {
 }
 
 export interface ProductDetail extends ProductSummary {
+  /** Sanitized HTML — safe to render with dangerouslySetInnerHTML, never raw markup as text. */
   description: string
+  /** Plain text (tags stripped) — for JSON-LD/meta contexts, never rendered as HTML. */
+  descriptionText: string
   images: ProductImage[]
   specs: Array<{ label: string; value: string }>
 }
