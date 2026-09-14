@@ -67,7 +67,7 @@ export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProp
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-xl">
       <div className="sky-gradient py-1.5 text-center text-xs font-medium text-ink-foreground">
-        Trade pricing on chargers, batteries, screens and repair parts — Available to order.
+        Every line available to order — NCC confirms stock, VAT and delivery before you pay.
       </div>
 
       <Container className="flex h-16 items-center justify-between gap-4">
