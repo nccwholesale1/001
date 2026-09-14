@@ -177,7 +177,7 @@ function StaffQuoteDetailRoute() {
 
         {canPrice ? (
           <div className="surface-card flex flex-col gap-4 rounded-xl p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Issue quote</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Issue Quote</h2>
             <div className="flex items-center justify-between border-t border-border pt-3 text-base font-semibold text-foreground">
               <span>Subtotal (ex VAT)</span>
               <span>{formatPrice(subtotalPence)}</span>

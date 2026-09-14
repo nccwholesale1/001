@@ -75,7 +75,7 @@ function AccountDashboard() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Recent orders</h2>
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Recent Orders</h2>
         {recent.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No orders yet.{' '}

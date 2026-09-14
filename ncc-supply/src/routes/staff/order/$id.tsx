@@ -240,7 +240,7 @@ function StaffOrderDetailRoute() {
 
         {canDecide ? (
           <div className="surface-card flex flex-col gap-4 rounded-xl p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Confirm order</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Confirm Order</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Delivery (£)" inputMode="decimal" value={deliveryInput} onChange={(e) => setDeliveryInput(e.target.value)} />
               <Field label="VAT (£)" inputMode="decimal" value={vatInput} onChange={(e) => setVatInput(e.target.value)} />

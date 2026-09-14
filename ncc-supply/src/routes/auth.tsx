@@ -32,7 +32,7 @@ function AuthRoute() {
   return (
     <Section>
       <Container className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
-        <h1 className="text-3xl font-semibold text-foreground">Sign in or create a company account</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Sign In or Create a Company Account</h1>
         <p className="text-sm text-muted-foreground">
           One step, no password to remember — verify your work email and we'll take you to the
           right place. New here? The same button starts your company's account. Already set up?

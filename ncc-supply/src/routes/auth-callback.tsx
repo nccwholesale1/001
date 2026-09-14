@@ -37,7 +37,7 @@ function AuthCallbackRoute() {
   return (
     <Section>
       <Container className="mx-auto flex max-w-md flex-col items-center gap-3 text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Sign-in unsuccessful</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Sign-In Unsuccessful</h1>
         <p className="text-sm text-muted-foreground">{message}</p>
         <a href="/auth" className="text-sm font-medium text-primary hover:underline">
           Back to sign in

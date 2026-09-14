@@ -160,7 +160,7 @@ function StaffTeamRoute() {
         <h1 className="text-2xl font-semibold text-foreground">Team</h1>
 
         <form onSubmit={handleAdd} className="surface-card flex flex-col gap-4 rounded-xl p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Add account</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Add Account</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
             <Field label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

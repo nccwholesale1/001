@@ -85,7 +85,7 @@ function FixtureLoginRoute() {
           Dev-only fixture — simulates Shopify's hosted customer login. Never reachable when
           CUSTOMER_ACCOUNT_ADAPTER=live.
         </div>
-        <h1 className="text-center text-2xl font-semibold text-foreground">Sign in to NCC Supply</h1>
+        <h1 className="text-center text-2xl font-semibold text-foreground">Sign In to NCC Supply</h1>
         <form onSubmit={handleSubmit} className="surface-card flex flex-col gap-4 rounded-xl p-5">
           <Field
             label="Email"

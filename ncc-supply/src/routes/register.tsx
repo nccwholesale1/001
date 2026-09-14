@@ -62,7 +62,7 @@ function RegisterRoute() {
     return (
       <Section>
         <Container className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
-          <h1 className="text-2xl font-semibold text-foreground">Register your company</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Register Your Company</h1>
           <p className="text-sm text-muted-foreground">
             First, verify your work email — the same sign-in company buyers use.
           </p>
@@ -78,7 +78,7 @@ function RegisterRoute() {
     <Section>
       <Container className="mx-auto flex max-w-md flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-foreground">Register your company</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Register Your Company</h1>
           <p className="mt-1 text-sm text-muted-foreground">Signed in as {pending.email}.</p>
         </div>
         <form onSubmit={handleSubmit} className="surface-card flex flex-col gap-4 rounded-xl p-5">

@@ -59,7 +59,7 @@ function ReturnsNotFound() {
   return (
     <Section>
       <Container className="mx-auto flex max-w-xl flex-col items-center gap-3 text-center">
-        <h1 className="text-2xl font-semibold text-foreground">We couldn't request a return here</h1>
+        <h1 className="text-2xl font-semibold text-foreground">We Couldn't Request a Return Here</h1>
         <p className="text-sm text-muted-foreground">
           Returns can only be requested from a confirmed order's own status page — the link may be
           incorrect, or this order isn't confirmed yet. If you have a question,{' '}
@@ -136,7 +136,7 @@ function ReturnsRequestRoute() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-foreground">Which lines are you returning?</h2>
+            <h2 className="text-sm font-semibold text-foreground">Which Lines Are You Returning?</h2>
             {order.lines.map((line) => {
               const maxQuantity = line.confirmedQuantity ?? line.requestedQuantity
               const checked = line.id in quantities

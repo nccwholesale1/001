@@ -8,7 +8,7 @@ export function AppNotFound() {
   return (
     <Container className="flex min-h-[60vh] flex-col items-center justify-center gap-4 py-20 text-center">
       <Icon icon={SearchX} decorative size="lg" className="text-muted-foreground" />
-      <h1 className="text-2xl font-semibold text-foreground">Page not found</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Page Not Found</h1>
       <p className="max-w-md text-sm text-muted-foreground">
         The page you're looking for doesn't exist or may have moved.
       </p>

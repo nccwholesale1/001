@@ -68,7 +68,7 @@ function CheckoutNotFound() {
   return (
     <Section>
       <Container className="mx-auto flex max-w-xl flex-col items-center gap-3 text-center">
-        <h1 className="text-2xl font-semibold text-foreground">We couldn't find that order</h1>
+        <h1 className="text-2xl font-semibold text-foreground">We Couldn't Find That Order</h1>
         <p className="text-sm text-muted-foreground">
           The link may be incorrect, expired, or no longer valid. If you have a support query,{' '}
           <a href="/support" className="text-primary hover:underline">
@@ -89,7 +89,7 @@ function CheckoutRoute() {
       order={order}
       actions={
         <div className="surface-card flex flex-col gap-4 rounded-xl p-5">
-          <h2 className="text-base font-semibold text-foreground">How would you like to pay?</h2>
+          <h2 className="text-base font-semibold text-foreground">How Would You Like to Pay?</h2>
           <p className="text-sm text-muted-foreground">
             No card details are collected here — choose invoice payment or cash on delivery.
           </p>

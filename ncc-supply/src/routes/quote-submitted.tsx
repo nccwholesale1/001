@@ -22,7 +22,7 @@ function QuoteSubmittedRoute() {
   return (
     <Section>
       <Container className="mx-auto flex max-w-xl flex-col items-center gap-4 text-center">
-        <h1 className="text-3xl font-semibold text-foreground">Your quote request has been sent</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Your Quote Request Has Been Sent</h1>
         <p className="text-sm text-muted-foreground">
           NCC will price each line and get back to you here — no availability or price is
           confirmed until then.

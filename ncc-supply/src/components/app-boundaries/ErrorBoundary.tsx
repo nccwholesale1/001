@@ -9,7 +9,7 @@ export function AppErrorBoundary({ error, reset }: ErrorComponentProps) {
   return (
     <Container className="flex min-h-[60vh] flex-col items-center justify-center gap-4 py-20 text-center">
       <Icon icon={AlertTriangle} decorative size="lg" className="text-destructive" />
-      <h1 className="text-2xl font-semibold text-foreground">Something went wrong</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Something Went Wrong</h1>
       <p className="max-w-md text-sm text-muted-foreground">
         We hit an unexpected error loading this page. You can try again, or contact us if it
         keeps happening.

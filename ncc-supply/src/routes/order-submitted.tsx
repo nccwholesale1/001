@@ -23,7 +23,7 @@ function OrderSubmittedRoute() {
     <Section>
       <Container className="mx-auto flex max-w-xl flex-col items-center gap-4 text-center">
         <h1 className="text-3xl font-semibold text-foreground">
-          Your order request has been submitted
+          Your Order Request Has Been Submitted
         </h1>
         <p className="text-sm text-muted-foreground">
           No payment has been taken. NCC will review your order, confirm quantities, delivery and
