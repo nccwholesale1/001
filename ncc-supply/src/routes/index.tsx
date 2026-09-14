@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { BadgeCheck, PackageCheck, ShieldCheck, Truck } from 'lucide-react'
+import { PackageCheck, ShieldCheck, Truck } from 'lucide-react'
 import { getCatalogueAdapter } from '../server/integrations/shopify'
 import type { CollectionSummary, ProductSummary } from '../server/integrations/shopify/types'
 import { Banner } from '../components/ui/Banner'
@@ -93,7 +93,6 @@ const TRUST_STATS = [
   },
   { icon: ShieldCheck, label: 'Reviewed before dispatch', description: 'NCC confirms every order' },
   { icon: Truck, label: 'No card details upfront', description: 'Pay only after confirmation' },
-  { icon: BadgeCheck, label: 'Any quantity', description: 'No minimum or maximum order size' },
 ]
 
 function IndexRoute() {
@@ -133,7 +132,7 @@ function IndexRoute() {
 
       <Section className="border-b border-border/60">
         <Container>
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {TRUST_STATS.map((stat, index) => (
               <Reveal key={stat.label} delayMs={index * 80}>
                 <div className="group glow-hover flex flex-col items-center gap-2 rounded-xl p-3 text-center transition-transform duration-300 hover:-translate-y-1">

@@ -181,6 +181,51 @@ describe('storefront catalogue adapter (contract only, mocked fetch)', () => {
     ])
   })
 
+  it('falls back to a real product photo from inside the collection when it has no dedicated image set', async () => {
+    const adapter = await loadAdapterWithEnv({})
+    mockFetchOnce({
+      data: {
+        collections: {
+          edges: [
+            {
+              node: {
+                handle: 'chargers',
+                title: 'Chargers',
+                description: 'All chargers',
+                image: null,
+                products: {
+                  edges: [
+                    { node: { id: '1', featuredImage: null } },
+                    {
+                      node: {
+                        id: '2',
+                        featuredImage: {
+                          url: 'https://cdn.shopify.com/product-2.jpg',
+                          altText: null,
+                          width: 300,
+                          height: 300,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    const collections = await adapter.listCollections()
+
+    expect(collections[0]?.thumbnail).toEqual({
+      url: 'https://cdn.shopify.com/product-2.jpg',
+      altText: 'Chargers',
+      width: 300,
+      height: 300,
+    })
+  })
+
   it('search maps the real totalCount rather than the current page length', async () => {
     const adapter = await loadAdapterWithEnv({})
     mockFetchOnce({

@@ -74,7 +74,7 @@ export function Header({ categories, buyer = null }: HeaderProps) {
           <Logo />
         </a>
 
-        <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-6 lg:flex">
           {PRIMARY_NAV.map((item) => (
             <a
               key={item.href}
@@ -128,7 +128,7 @@ export function Header({ categories, buyer = null }: HeaderProps) {
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            className={cn(iconLinkClasses, 'md:hidden')}
+            className={cn(iconLinkClasses, 'lg:hidden')}
           >
             <Icon icon={mobileOpen ? X : Menu} />
           </button>
@@ -154,7 +154,7 @@ export function Header({ categories, buyer = null }: HeaderProps) {
       ) : null}
 
       {mobileOpen ? (
-        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-border/60 md:hidden">
+        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-border/60 lg:hidden">
           <Container className="flex flex-col gap-1 py-3">
             {PRIMARY_NAV.map((item) => (
               <a

@@ -188,7 +188,7 @@ async function listCollectionsLive(): Promise<CollectionSummary[]> {
             title
             description
             image { url altText width height }
-            products(first: 250) { edges { node { id } } }
+            products(first: 250) { edges { node { id featuredImage { url altText width height } } } }
           }
         }
       }
@@ -202,19 +202,28 @@ async function listCollectionsLive(): Promise<CollectionSummary[]> {
           title: string
           description: string
           image: StorefrontImage | null
-          products: { edges: unknown[] }
+          products: { edges: Array<{ node: { id: string; featuredImage: StorefrontImage | null } }> }
         }
       }>
     }
   }>('listCollections', query)
 
-  return data.collections.edges.map(({ node }) => ({
-    slug: node.handle,
-    title: node.title,
-    description: node.description,
-    lineCount: node.products.edges.length,
-    thumbnail: node.image ? toImage(node.image, node.title) : null,
-  }))
+  return data.collections.edges.map(({ node }) => {
+    // A collection's own dedicated image (set manually in Shopify admin)
+    // takes priority; when that's unset (true for every real collection in
+    // this store today), fall back to a real product photo from inside it
+    // rather than a flat placeholder — still genuine catalogue imagery,
+    // never a fabricated stock photo (CLAUDE.md rule 20).
+    const fallbackImage = node.products.edges.find((edge) => edge.node.featuredImage)?.node.featuredImage ?? null
+    const image = node.image ?? fallbackImage
+    return {
+      slug: node.handle,
+      title: node.title,
+      description: node.description,
+      lineCount: node.products.edges.length,
+      thumbnail: image ? toImage(image, node.title) : null,
+    }
+  })
 }
 
 async function getCollectionLive(
