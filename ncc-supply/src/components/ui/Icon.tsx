@@ -12,6 +12,7 @@ type DecorativeProps = {
   label?: never
   className?: string
   size?: 'sm' | 'md' | 'lg'
+  strokeWidth?: number
 }
 
 type LabelledProps = {
@@ -20,6 +21,7 @@ type LabelledProps = {
   label: string
   className?: string
   size?: 'sm' | 'md' | 'lg'
+  strokeWidth?: number
 }
 
 export type IconProps = DecorativeProps | LabelledProps
@@ -30,11 +32,31 @@ const sizeClasses = {
   lg: 'h-12 w-12',
 }
 
-export function Icon({ icon: LucideIconComponent, decorative = true, label, className, size = 'sm' }: IconProps) {
+/**
+ * Lucide's own default (2) is drawn for icons at typical 16-20px inline
+ * sizes — stretched up to `lg` (48px) it reads as thick/clunky rather than
+ * clean. Thinner at that size by default; still overridable per call site.
+ */
+const defaultStrokeWidth = {
+  sm: 2,
+  md: 2,
+  lg: 1.5,
+}
+
+export function Icon({
+  icon: LucideIconComponent,
+  decorative = true,
+  label,
+  className,
+  size = 'sm',
+  strokeWidth,
+}: IconProps) {
+  const resolvedStrokeWidth = strokeWidth ?? defaultStrokeWidth[size]
   if (decorative) {
     return (
       <LucideIconComponent
         aria-hidden="true"
+        strokeWidth={resolvedStrokeWidth}
         className={cn(sizeClasses[size], className)}
       />
     )
@@ -43,6 +65,7 @@ export function Icon({ icon: LucideIconComponent, decorative = true, label, clas
     <LucideIconComponent
       role="img"
       aria-label={label}
+      strokeWidth={resolvedStrokeWidth}
       className={cn(sizeClasses[size], className)}
     />
   )
