@@ -11,6 +11,7 @@ import type { AppliedChipView, FacetGroupView, SortOptionView } from '../../comp
 import { Pagination } from '../../components/ui/Pagination'
 import { ProductCard } from '../../components/ui/ProductCard'
 import { Reveal } from '../../components/ui/Reveal'
+import { cn } from '../../lib/cn'
 
 const PAGE_SIZE = 12
 const SORT_OPTIONS = [
@@ -223,8 +224,18 @@ function CategoryRoute() {
 
       <Section>
         <Container>
-          <Banner variant="compact" title={result.title} description={result.description || undefined}>
-            <p className="text-sm font-medium text-foreground/80">
+          <Banner
+            variant="compact"
+            title={result.title}
+            description={result.description || undefined}
+            imageUrl={result.thumbnail?.url}
+          >
+            <p
+              className={cn(
+                'text-sm font-medium',
+                result.thumbnail?.url ? 'text-ink-foreground/80' : 'text-foreground/80',
+              )}
+            >
               {result.lineCount} {result.lineCount === 1 ? 'line' : 'lines'} · all available to order
             </p>
           </Banner>

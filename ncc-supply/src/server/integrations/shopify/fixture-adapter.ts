@@ -284,6 +284,7 @@ function getCollectionFixture(
     pageInfo,
     availableFacets: [],
     lineCount: matches.length,
+    thumbnail: matches[0]?.thumbnail ?? null,
   })
 }
 

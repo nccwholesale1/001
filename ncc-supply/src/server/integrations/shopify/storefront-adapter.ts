@@ -236,6 +236,7 @@ async function getCollectionLive(
       collectionByHandle(handle: $handle) {
         title
         description
+        image { url altText width height }
         products(first: $first, after: $after, filters: $filters) {
           edges { node { ${PRODUCT_SUMMARY_FIELDS} } }
           pageInfo { hasNextPage endCursor }
@@ -251,6 +252,7 @@ async function getCollectionLive(
     collectionByHandle: {
       title: string
       description: string
+      image: StorefrontImage | null
       products: {
         edges: Array<{ node: StorefrontProductNode }>
         pageInfo: PageInfo
@@ -274,20 +276,30 @@ async function getCollectionLive(
       pageInfo: { hasNextPage: false, endCursor: null },
       availableFacets: [],
       lineCount: 0,
+      thumbnail: null,
     }
   }
 
   const collection = data.collectionByHandle
+  const products = collection.products.edges.map((edge) =>
+    toSummary(edge.node, { handle: slug, title: collection.title }),
+  )
+  // Same rule as listCollectionsLive: the collection's own dedicated image
+  // takes priority, falling back to a real product photo from inside it
+  // rather than a flat placeholder.
+  const thumbnail = collection.image
+    ? toImage(collection.image, collection.title)
+    : (products.find((product) => product.thumbnail.url)?.thumbnail ?? null)
+
   return {
     slug,
     title: collection.title,
     description: collection.description,
-    products: collection.products.edges.map((edge) =>
-      toSummary(edge.node, { handle: slug, title: collection.title }),
-    ),
+    products,
     pageInfo: collection.products.pageInfo,
     availableFacets: toFacetOptions(collection.products.filters),
     lineCount: collection.allProducts.edges.length,
+    thumbnail,
   }
 }
 

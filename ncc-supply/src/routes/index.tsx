@@ -158,9 +158,9 @@ function IndexRoute() {
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/70 to-ink/20" />
               <div className="relative z-10 flex min-h-[380px] max-w-xl flex-col justify-center gap-5 p-8 sm:p-12">
-                <span className="w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide backdrop-blur-sm">
+                <span className="w-fit rounded-full border border-ink-foreground/15 bg-ink-foreground/10 px-3 py-1 text-xs font-semibold tracking-wide backdrop-blur-sm">
                   Confirm before you pay
                 </span>
                 <h2 className="text-2xl font-semibold sm:text-3xl">
@@ -180,7 +180,7 @@ function IndexRoute() {
                   </a>
                   <a
                     href="/how-to-order"
-                    className="inline-flex items-center justify-center rounded-lg border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-ink-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/10 active:translate-y-0"
+                    className="inline-flex items-center justify-center rounded-lg border border-ink-foreground/20 bg-ink-foreground/5 px-5 py-3 text-sm font-semibold text-ink-foreground transition-transform duration-200 hover:-translate-y-0.5 hover:bg-ink-foreground/10 active:translate-y-0"
                   >
                     How Ordering Works
                   </a>

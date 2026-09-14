@@ -80,6 +80,8 @@ export interface CollectionResult {
   availableFacets: FacetOption[]
   /** Real count (Shopify's Collection type has no aggregate field for this — see ADR-014/ADR-015). */
   lineCount: number
+  /** The collection's own image, falling back to a real product photo from inside it — see CollectionSummary.thumbnail for the same rule. */
+  thumbnail: ProductImage | null
 }
 
 export interface SearchResult {
