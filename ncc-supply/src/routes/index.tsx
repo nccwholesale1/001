@@ -107,10 +107,6 @@ function IndexRoute() {
   // (e.g. "chargers"), as going live surfaced. First real collection with
   // at least one line, so the CTA never points at an empty category.
   const featuredCollection = collections.find((collection) => collection.lineCount > 0) ?? collections[0]
-  const heroImages = popularProducts
-    .filter((product) => product.thumbnail.url)
-    .slice(0, 2)
-    .map((product) => product.thumbnail)
 
   return (
     <>
@@ -183,22 +179,13 @@ function IndexRoute() {
                   </a>
                 </div>
               </div>
-              {/* Real catalogue photography as elevated photo cards on the dark band, mirroring the reference site's hero banner — never a fabricated stock photo (CLAUDE.md rule 20). Falls back to the grid-mesh treatment only when no real product image is available at all. */}
+              {/* Brand marketing image supplied directly by NCC for this decorative band — not tied to any product record, so not gated by "real catalogue image only" the way product/category imagery is. */}
               <div className="relative min-h-[220px]">
-                {heroImages.length > 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center gap-4 p-8">
-                    {heroImages.map((image) => (
-                      <img
-                        key={image.url}
-                        src={image.url}
-                        alt=""
-                        className="h-40 w-32 rounded-xl border border-white/10 object-cover shadow-2xl transition-transform duration-700 hover:-translate-y-1 sm:h-52 sm:w-40"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid-mesh absolute inset-0 opacity-30" role="img" aria-label="NCC Supply product range" />
-                )}
+                <img
+                  src="/banner-earbuds.jpg"
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                />
               </div>
             </div>
           </Reveal>
