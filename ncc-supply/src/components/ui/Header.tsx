@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { logout } from '../../server/buyers/server-functions'
 import { Icon } from './Icon'
 import { Container } from './Layout'
+import { Logo } from './Logo'
 import { cn } from '../../lib/cn'
 
 export interface HeaderCategory {
@@ -69,11 +70,8 @@ export function Header({ categories, buyer = null }: HeaderProps) {
       </div>
 
       <Container className="flex h-16 items-center justify-between gap-4">
-        <a
-          href="/"
-          className="rounded-sm text-lg font-semibold text-foreground no-underline hover:no-underline"
-        >
-          NCC <span className="text-primary">Supply</span>
+        <a href="/" className="rounded-sm no-underline hover:no-underline">
+          <Logo />
         </a>
 
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">

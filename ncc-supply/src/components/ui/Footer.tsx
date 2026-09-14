@@ -1,4 +1,5 @@
 import { Container } from './Layout'
+import { Logo } from './Logo'
 
 /**
  * Design system §7 "Footer": bg-ink text-ink-foreground, 4-column grid at
@@ -38,7 +39,7 @@ export function Footer() {
     <footer className="mt-24 bg-ink text-ink-foreground">
       <Container className="grid gap-10 py-14 md:grid-cols-4">
         <div className="flex flex-col gap-3">
-          <span className="text-lg font-semibold">NCC Supply</span>
+          <Logo variant="white" />
           <p className="max-w-xs text-sm text-ink-foreground/70">
             Trade pricing on mobile and device accessories and repair parts. Available to order —
             NCC reviews and confirms every order before checkout.
