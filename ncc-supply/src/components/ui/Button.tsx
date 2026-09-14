@@ -14,7 +14,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          'sky-gradient px-5 py-3 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100',
+          'sky-gradient px-5 py-3 hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0 motion-reduce:hover:translate-y-0',
         secondary:
           'border border-border bg-transparent px-5 py-3 text-foreground hover:bg-secondary',
         tertiary:

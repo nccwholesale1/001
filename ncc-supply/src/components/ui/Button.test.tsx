@@ -47,6 +47,6 @@ describe('Button', () => {
   it('reduced-motion: primary variant declares a motion-reduce override on the hover transform', () => {
     render(<Button>Primary</Button>)
     const button = screen.getByRole('button', { name: 'Primary' })
-    expect(button.className).toMatch(/motion-reduce:hover:scale-100/)
+    expect(button.className).toMatch(/motion-reduce:hover:translate-y-0/)
   })
 })

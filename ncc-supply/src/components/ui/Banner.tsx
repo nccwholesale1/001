@@ -37,7 +37,7 @@ function CtaLink({ cta, variant }: { cta: BannerCta; variant: 'primary' | 'secon
   const className = cn(
     'inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none',
     variant === 'primary'
-      ? 'sky-gradient shimmer-sweep hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100'
+      ? 'sky-gradient shimmer-sweep hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0 motion-reduce:hover:translate-y-0'
       : 'glow-hover border border-border bg-card/80 text-foreground hover:bg-secondary hover:-translate-y-0.5 active:translate-y-0',
   )
   if (cta.href) {

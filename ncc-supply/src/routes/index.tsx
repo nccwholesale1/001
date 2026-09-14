@@ -171,7 +171,7 @@ function IndexRoute() {
                 <div className="flex flex-wrap gap-3 pt-2">
                   <a
                     href="/categories"
-                    className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
+                    className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0 motion-reduce:hover:translate-y-0"
                   >
                     Browse Catalogue
                   </a>
@@ -294,7 +294,7 @@ function IndexRoute() {
                 </div>
                 <a
                   href="/contact"
-                  className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100"
+                  className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0 motion-reduce:hover:translate-y-0"
                 >
                   Contact Us
                 </a>

@@ -202,7 +202,7 @@ function ProductRoute() {
                     ? 'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary/40 bg-secondary px-5 py-3 text-sm font-semibold text-primary'
                     : status === 'error'
                       ? 'inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-destructive/40 px-5 py-3 text-sm font-semibold text-destructive'
-                      : 'sky-gradient inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-5 py-3 text-sm font-semibold transition-transform hover:scale-[1.02] active:scale-95 motion-reduce:hover:scale-100'
+                      : 'sky-gradient inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0 motion-reduce:hover:translate-y-0'
                 }
               >
                 <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
