@@ -39,4 +39,19 @@ describe('Header', () => {
     render(<Header categories={[]} />)
     expect(screen.queryByRole('navigation', { name: 'Categories' })).not.toBeInTheDocument()
   })
+
+  it('shows a basket badge with the real item count, defaulting to 0', () => {
+    render(<Header categories={CATEGORIES} />)
+    const basketLink = screen.getByRole('link', { name: /basket, 0 items/i })
+    expect(basketLink).toBeInTheDocument()
+    expect(basketLink).toHaveTextContent('0')
+  })
+
+  it('shows the exact count when the basket has items, singular vs plural', () => {
+    const { rerender } = render(<Header categories={CATEGORIES} basketCount={1} />)
+    expect(screen.getByRole('link', { name: /basket, 1 item\b/i })).toHaveTextContent('1')
+
+    rerender(<Header categories={CATEGORIES} basketCount={7} />)
+    expect(screen.getByRole('link', { name: /basket, 7 items/i })).toHaveTextContent('7')
+  })
 })

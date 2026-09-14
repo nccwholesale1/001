@@ -20,6 +20,7 @@ export interface HeaderBuyer {
 export interface HeaderProps {
   categories: HeaderCategory[]
   buyer?: HeaderBuyer | null
+  basketCount?: number
 }
 
 /**
@@ -41,7 +42,7 @@ const PRIMARY_NAV = [
 const iconLinkClasses =
   'rounded-lg p-2 text-foreground/80 transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
-export function Header({ categories, buyer = null }: HeaderProps) {
+export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const signOut = useServerFn(logout)
@@ -98,8 +99,24 @@ export function Header({ categories, buyer = null }: HeaderProps) {
             <Icon icon={LifeBuoy} />
             <span className="hidden text-sm font-medium sm:inline">Help</span>
           </a>
-          <a href="/basket" aria-label="Basket" className={iconLinkClasses}>
+          <a
+            href="/basket"
+            aria-label={`Basket, ${basketCount} ${basketCount === 1 ? 'item' : 'items'}`}
+            className={cn(
+              iconLinkClasses,
+              'flex items-center gap-1.5 border border-transparent px-2.5 hover:border-border',
+            )}
+          >
             <Icon icon={ShoppingBasket} />
+            <span className="hidden text-sm font-medium sm:inline">Basket</span>
+            <span
+              className={cn(
+                'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold transition-colors',
+                basketCount > 0 ? 'sky-gradient' : 'bg-secondary text-muted-foreground',
+              )}
+            >
+              {basketCount}
+            </span>
           </a>
           <a
             href={buyer ? '/account' : '/auth'}

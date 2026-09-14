@@ -134,6 +134,15 @@ export async function setBasketReferringSalesRep(
   await db.update(baskets).set({ referringSalesRepId }).where(eq(baskets.id, basketId))
 }
 
+/** Total item quantity across every line — cheap, no catalogue lookups, for the header's basket badge. */
+export async function getBasketItemCount(db: Db, basketId: string): Promise<number> {
+  const rows = await db
+    .select({ quantity: basketLines.quantity })
+    .from(basketLines)
+    .where(eq(basketLines.basketId, basketId))
+  return rows.reduce((sum, row) => sum + row.quantity, 0)
+}
+
 /**
  * Every line's price is re-resolved from the catalogue adapter right now,
  * never read from a stored value — the basket view is never stale and

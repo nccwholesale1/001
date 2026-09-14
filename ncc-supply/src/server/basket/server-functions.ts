@@ -10,6 +10,7 @@ import {
 } from '../validation/commands'
 import {
   addLine,
+  getBasketItemCount,
   getBasketView,
   removeLine,
   setBasketReferringSalesRep,
@@ -35,6 +36,12 @@ export const getBasket = createServerFn({ method: 'GET' }).handler(
     return view
   },
 )
+
+/** Header badge — deliberately cheap (no catalogue lookups) since this loads on every page. */
+export const getBasketCount = createServerFn({ method: 'GET' }).handler(async (): Promise<number> => {
+  const basketId = await getOrCreateBasketId(db)
+  return getBasketItemCount(db, basketId)
+})
 
 export const addBasketLine = createServerFn({ method: 'POST' })
   .validator(addBasketLineSchema.parse)

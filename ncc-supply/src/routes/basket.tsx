@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { Minus, Plus, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
@@ -41,6 +41,7 @@ function BasketRoute() {
   const updateLine = useServerFn(updateBasketLine)
   const removeLine = useServerFn(removeBasketLine)
   const submit = useServerFn(submitCurrentBasket)
+  const router = useRouter()
 
   const hasUnavailableLines = basket.lines.some((line) => !line.available)
 
@@ -49,6 +50,7 @@ function BasketRoute() {
     setBusyLineId(lineId)
     try {
       setBasket(await updateLine({ data: { lineId, quantity } }))
+      router.invalidate() // refreshes the header's basket count badge
     } finally {
       setBusyLineId(null)
     }
@@ -58,6 +60,7 @@ function BasketRoute() {
     setBusyLineId(lineId)
     try {
       setBasket(await removeLine({ data: { lineId } }))
+      router.invalidate() // refreshes the header's basket count badge
     } finally {
       setBusyLineId(null)
     }

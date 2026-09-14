@@ -7,6 +7,7 @@ import { AppNotFound } from '../components/app-boundaries/NotFound'
 import { AppPending } from '../components/app-boundaries/Pending'
 import { Footer } from '../components/ui/Footer'
 import { Header, type HeaderBuyer, type HeaderCategory } from '../components/ui/Header'
+import { getBasketCount } from '../server/basket/server-functions'
 import { checkSiteAccess } from '../server/auth/site-access-server-functions'
 import { getCurrentBuyerSummary } from '../server/buyers/server-functions'
 import { getCatalogueAdapter } from '../server/integrations/shopify'
@@ -47,8 +48,12 @@ export const Route = createRootRoute({
     }
   },
   loader: async () => {
-    const [categories, buyer] = await Promise.all([getHeaderCategories(), getHeaderBuyer()])
-    return { categories, buyer }
+    const [categories, buyer, basketCount] = await Promise.all([
+      getHeaderCategories(),
+      getHeaderBuyer(),
+      getBasketCount(),
+    ])
+    return { categories, buyer, basketCount }
   },
   head: () => ({
     meta: [
@@ -74,7 +79,7 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { categories, buyer } = Route.useLoaderData()
+  const { categories, buyer, basketCount } = Route.useLoaderData()
   const isPreviewAccessGate = useRouterState({
     select: (state) => state.location.pathname === '/preview-access',
   })
@@ -85,7 +90,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {isPreviewAccessGate ? null : <Header categories={categories} buyer={buyer} />}
+        {isPreviewAccessGate ? null : (
+          <Header categories={categories} buyer={buyer} basketCount={basketCount} />
+        )}
         <main>{children}</main>
         {isPreviewAccessGate ? null : <Footer />}
         <TanStackDevtools

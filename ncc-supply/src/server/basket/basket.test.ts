@@ -4,6 +4,7 @@ import { baskets } from '../db/schema'
 import {
   addLine,
   BasketLineNotFoundError,
+  getBasketItemCount,
   getBasketView,
   InvalidQuantityError,
   removeLine,
@@ -45,6 +46,16 @@ describe('basket CRUD (against the fixture catalogue adapter)', () => {
   it('rejects an unknown SKU rather than adding a fabricated line', async () => {
     const { db, basketId } = await seedBasket()
     await expect(addLine(db, basketId, 'NOT-A-REAL-SKU', 1)).rejects.toThrow(UnknownProductError)
+  })
+
+  it('getBasketItemCount sums quantity across every line, for the header badge', async () => {
+    const { db, basketId } = await seedBasket()
+    expect(await getBasketItemCount(db, basketId)).toBe(0)
+
+    await addLine(db, basketId, 'FIXTURE-CHG-001', 2)
+    await addLine(db, basketId, 'FIXTURE-CAB-001', 3)
+
+    expect(await getBasketItemCount(db, basketId)).toBe(5)
   })
 
   it('rejects a non-integer or non-positive quantity', async () => {

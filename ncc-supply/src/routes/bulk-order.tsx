@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { Download, Upload } from 'lucide-react'
 import { useState } from 'react'
@@ -56,6 +56,7 @@ function BulkOrderRoute() {
   const doPreview = useServerFn(previewBulkOrder)
   const doAddLines = useServerFn(addBulkOrderLines)
   const doSetReferringSalesRep = useServerFn(setReferringSalesRep)
+  const router = useRouter()
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -92,6 +93,7 @@ function BulkOrderRoute() {
       }
       setAddedCount(result.added.length)
       setStage('added')
+      router.invalidate() // refreshes the header's basket count badge
     } finally {
       setLoading(false)
     }

@@ -6,6 +6,7 @@ import { ProductCard } from './ProductCard'
 import { addBasketLine } from '../../server/basket/server-functions'
 
 vi.mock('@tanstack/react-start', () => ({ useServerFn: (fn: unknown) => fn }))
+vi.mock('@tanstack/react-router', () => ({ useRouter: () => ({ invalidate: vi.fn() }) }))
 vi.mock('../../server/basket/server-functions', () => ({ addBasketLine: vi.fn() }))
 
 const PRODUCT: ProductSummary = {

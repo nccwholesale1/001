@@ -1,5 +1,6 @@
 import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
+import { useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { addBasketLine } from '../../server/basket/server-functions'
 import type { ProductSummary } from '../../server/integrations/shopify/types'
@@ -35,12 +36,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const [status, setStatus] = useState<AddStatus>('idle')
   const [imageFailed, setImageFailed] = useState(false)
   const addLine = useServerFn(addBasketLine)
+  const router = useRouter()
 
   async function handleAdd() {
     setStatus('adding')
     try {
       await addLine({ data: { sku: product.sku, quantity: 1 } })
       setStatus('added')
+      // Refreshes the header's basket count badge — it's loaded by the root
+      // route, not this component, so it has no other way to know a line
+      // was just added.
+      router.invalidate()
     } catch {
       setStatus('error')
     } finally {
