@@ -3,6 +3,7 @@ import { createClient as createRemoteClient } from '@libsql/client/web'
 import { drizzle } from 'drizzle-orm/libsql'
 import * as schema from './schema'
 import { env } from '../env'
+import { debugSessionLog } from '../debug-session-log'
 
 /**
  * Server-only. Never import this module from client code — CLAUDE.md rule 8.
@@ -17,12 +18,45 @@ import { env } from '../env'
  * Node function 500s every SSR request as an opaque HTTPError.
  */
 function createDbClient() {
-  if (env.DATABASE_URL) {
-    return createRemoteClient({ url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN })
+  try {
+    if (env.DATABASE_URL) {
+      const client = createRemoteClient({ url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN })
+      // #region agent log
+      debugSessionLog({
+        location: 'src/server/db/client.ts:createDbClient',
+        message: 'using remote libsql web client',
+        hypothesisId: 'B',
+        data: { mode: 'remote-web' },
+      })
+      // #endregion
+      return client
+    }
+    const nodeRequire = createRequire(import.meta.url)
+    const { createClient } = nodeRequire('@libsql/client') as typeof import('@libsql/client')
+    const client = createClient({ url: `file:${env.DATABASE_FILE}` })
+    // #region agent log
+    debugSessionLog({
+      location: 'src/server/db/client.ts:createDbClient',
+      message: 'using local native libsql client',
+      hypothesisId: 'B',
+      data: { mode: 'local-file' },
+    })
+    // #endregion
+    return client
+  } catch (error) {
+    // #region agent log
+    debugSessionLog({
+      location: 'src/server/db/client.ts:createDbClient',
+      message: 'createDbClient threw',
+      hypothesisId: 'B',
+      data: {
+        name: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+    })
+    // #endregion
+    throw error
   }
-  const nodeRequire = createRequire(import.meta.url)
-  const { createClient } = nodeRequire('@libsql/client') as typeof import('@libsql/client')
-  return createClient({ url: `file:${env.DATABASE_FILE}` })
 }
 
 export const db = drizzle({ client: createDbClient(), schema })

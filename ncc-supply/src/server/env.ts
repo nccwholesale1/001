@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { debugSessionLog } from './debug-session-log'
 
 /**
  * A `.env` line like `KEY=` sets `process.env.KEY` to `''`, not undefined —
@@ -24,7 +25,18 @@ const envSchema = z.object({
     .string()
     .min(32, 'SESSION_SECRET must be at least 32 characters')
     .default('dev-only-insecure-secret-do-not-use-in-production-xxxxx'),
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /**
+   * Vercel’s dashboard “Preview” environment is not a Node NODE_ENV. If that
+   * string is pasted into NODE_ENV, Zod rejects boot and every request 500s
+   * as HTTPError. Map Vercel env names onto Node’s enum.
+   */
+  NODE_ENV: z.preprocess((value) => {
+    if (value === '' || value === undefined || value === null) return undefined
+    if (typeof value !== 'string') return value
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'preview' || normalized === 'prod') return 'production'
+    return normalized
+  }, z.enum(['development', 'test', 'production']).default('development')),
 
   /** Which CatalogueAdapter getCatalogueAdapter() returns — see integrations/shopify/index.ts. */
   CATALOGUE_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
@@ -135,4 +147,46 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   return data
 }
 
-export const env = parseEnv()
+function parseEnvWithDebug(): Env {
+  try {
+    const parsed = parseEnv()
+    // #region agent log
+    debugSessionLog({
+      location: 'src/server/env.ts:parseEnvWithDebug',
+      message: 'parseEnv succeeded',
+      hypothesisId: 'A',
+      data: {
+        nodeEnv: parsed.NODE_ENV,
+        hosted: process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1',
+        hasDatabaseUrl: Boolean(parsed.DATABASE_URL),
+        hasAuthToken: Boolean(parsed.DATABASE_AUTH_TOKEN),
+        sessionSecretLength: parsed.SESSION_SECRET.length,
+        catalogueAdapter: parsed.CATALOGUE_ADAPTER,
+        customerAccountAdapter: parsed.CUSTOMER_ACCOUNT_ADAPTER,
+        adminAdapter: parsed.ADMIN_COMMERCE_ADAPTER,
+        rawNodeEnv: process.env.NODE_ENV,
+      },
+    })
+    // #endregion
+    return parsed
+  } catch (error) {
+    // #region agent log
+    debugSessionLog({
+      location: 'src/server/env.ts:parseEnvWithDebug',
+      message: 'parseEnv threw',
+      hypothesisId: 'A',
+      data: {
+        name: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        hosted: process.env.VERCEL === '1',
+        nodeEnv: process.env.NODE_ENV,
+        hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+        hasSessionSecret: Boolean(process.env.SESSION_SECRET),
+      },
+    })
+    // #endregion
+    throw error
+  }
+}
+
+export const env = parseEnvWithDebug()

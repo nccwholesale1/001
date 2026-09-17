@@ -94,6 +94,18 @@ describe('parseEnv', () => {
     expect(env.CUSTOMER_ACCOUNT_ADAPTER).toBe('fixture')
   })
 
+  it('treats Vercel NODE_ENV=Preview as production so hosted boot does not 500', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'Preview',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+      DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+      DATABASE_AUTH_TOKEN: 'turso-token',
+    })
+    expect(env.NODE_ENV).toBe('production')
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
   it('honours NCC_HOSTED=1 the same way as VERCEL=1', () => {
     expect(() =>
       parseEnv({

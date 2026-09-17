@@ -43,6 +43,9 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  // #region agent log
+  fetch('http://127.0.0.1:7516/ingest/3bd6d664-9013-4cd7-906e-9686e0886622',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'21cab6'},body:JSON.stringify({sessionId:'21cab6',runId:'vercel-500',hypothesisId:'C',location:'src/routes/__root.tsx:RootDocument',message:'RootDocument render started',data:{hasWindow:typeof window!=='undefined'},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const isPreviewAccessGate = useRouterState({
     select: (state) => state.location.pathname === '/preview-access',
   })
