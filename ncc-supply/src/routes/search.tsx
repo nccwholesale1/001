@@ -120,6 +120,7 @@ const getSearchSuggestions = createServerFn({ method: 'GET' })
   })
 
 export const Route = createFileRoute('/search')({
+  ssr: false,
   validateSearch: searchSearchSchema,
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getSearchData({ data: { q: deps.q ?? '', ...deps } }),

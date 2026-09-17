@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button'
 import { Container, Section } from '../components/ui/Layout'
 
 export const Route = createFileRoute('/auth')({
+  ssr: false,
   head: () => ({
     meta: [{ name: 'robots', content: 'noindex' }, { title: 'Sign In · NCC Supply' }],
   }),

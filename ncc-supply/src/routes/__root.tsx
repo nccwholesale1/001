@@ -1,26 +1,24 @@
 import { HeadContent, Scripts, createRootRoute, useRouterState } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { lazy, Suspense } from 'react'
 import { AppErrorBoundary } from '../components/app-boundaries/ErrorBoundary'
 import { AppNotFound } from '../components/app-boundaries/NotFound'
 import { AppPending } from '../components/app-boundaries/Pending'
+import { ClientOnly } from '../components/ClientOnly'
 import { Footer } from '../components/ui/Footer'
 import { Header } from '../components/ui/Header'
-import { getHeaderData } from '../server/layout/header-data-server-functions'
 
 import appCss from '../styles.css?url'
 
-const EMPTY_HEADER_DATA = { categories: [], buyer: null, basketCount: 0 }
+const LiveHeader = lazy(async () => {
+  const module = await import('../components/LiveHeader')
+  return { default: module.LiveHeader }
+})
+
+const EMPTY_HEADER = <Header categories={[]} buyer={null} basketCount={0} />
 
 export const Route = createRootRoute({
-  loader: async () => {
-    try {
-      return await getHeaderData()
-    } catch (error) {
-      console.error('[root] header loader failed', error)
-      return EMPTY_HEADER_DATA
-    }
-  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -45,7 +43,6 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { categories, buyer, basketCount } = Route.useLoaderData()
   const isPreviewAccessGate = useRouterState({
     select: (state) => state.location.pathname === '/preview-access',
   })
@@ -57,7 +54,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {isPreviewAccessGate ? null : (
-          <Header categories={categories} buyer={buyer} basketCount={basketCount} />
+          <ClientOnly fallback={EMPTY_HEADER}>
+            <Suspense fallback={EMPTY_HEADER}>
+              <LiveHeader />
+            </Suspense>
+          </ClientOnly>
         )}
         <main>{children}</main>
         {isPreviewAccessGate ? null : <Footer />}

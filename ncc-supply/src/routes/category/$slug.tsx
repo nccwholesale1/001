@@ -99,6 +99,7 @@ const getCategoryData = createServerFn({ method: 'GET' })
   })
 
 export const Route = createFileRoute('/category/$slug')({
+  ssr: false,
   validateSearch: categorySearchSchema,
   loaderDeps: ({ search }) => search,
   loader: ({ params, deps }) => getCategoryData({ data: { slug: params.slug, ...deps } }),

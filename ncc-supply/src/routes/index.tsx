@@ -49,6 +49,7 @@ const getHomeData = createServerFn({ method: 'GET' }).handler(async (): Promise<
 })
 
 export const Route = createFileRoute('/')({
+  ssr: false,
   loader: async () => {
     try {
       return await getHomeData()

@@ -24,6 +24,7 @@ const getCategoriesData = createServerFn({ method: 'GET' }).handler(
 )
 
 export const Route = createFileRoute('/categories')({
+  ssr: false,
   loader: async () => {
     try {
       return await getCategoriesData()

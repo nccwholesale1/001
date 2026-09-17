@@ -50,6 +50,7 @@ function formatPrice(pence: number): string {
 }
 
 export const Route = createFileRoute('/product/$sku')({
+  ssr: false,
   loader: async ({ params }) => {
     const product = await getProductData({ data: params.sku })
     if (!product) throw notFound()

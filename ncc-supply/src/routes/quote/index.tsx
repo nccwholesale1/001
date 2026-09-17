@@ -19,6 +19,7 @@ function emptyLine(): DraftLine {
 }
 
 export const Route = createFileRoute('/quote/')({
+  ssr: false,
   loader: async () => {
     const buyer = await getCurrentBuyerSummary()
     return { isBuyer: buyer !== null }
