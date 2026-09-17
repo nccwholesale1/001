@@ -10,6 +10,7 @@ import { Container, Section } from '../components/ui/Layout'
 const previewAccessSearchSchema = z.object({ redirectTo: z.string().optional() })
 
 export const Route = createFileRoute('/preview-access')({
+  ssr: false,
   validateSearch: previewAccessSearchSchema,
   head: () => ({
     meta: [

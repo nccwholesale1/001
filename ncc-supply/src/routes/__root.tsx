@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute, redirect, useRouterState } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute, useRouterState } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -8,7 +8,6 @@ import { AppPending } from '../components/app-boundaries/Pending'
 import { Footer } from '../components/ui/Footer'
 import { Header, type HeaderBuyer, type HeaderCategory } from '../components/ui/Header'
 import { getBasketCount } from '../server/basket/server-functions'
-import { checkSiteAccess } from '../server/auth/site-access-server-functions'
 import { getCurrentBuyerSummary } from '../server/buyers/server-functions'
 import { getCatalogueAdapter } from '../server/integrations/shopify'
 
@@ -54,23 +53,7 @@ const getHeaderBasketCount = createServerFn({ method: 'GET' }).handler(async ():
  * mid-session re-validates too, not just the first page load.
  */
 export const Route = createRootRoute({
-  beforeLoad: async ({ location }) => {
-    if (location.pathname === '/preview-access') return
-    let granted = false
-    try {
-      granted = await checkSiteAccess()
-    } catch (error) {
-      console.error('[root] site access check failed', error)
-      granted = false
-    }
-    if (!granted) {
-      throw redirect({ to: '/preview-access', search: { redirectTo: location.href } })
-    }
-  },
-  loader: async ({ location }) => {
-    if (location.pathname === '/preview-access') {
-      return { categories: [] as HeaderCategory[], buyer: null, basketCount: 0 }
-    }
+  loader: async () => {
     const [categories, buyer, basketCount] = await Promise.all([
       getHeaderCategories(),
       getHeaderBuyer(),
