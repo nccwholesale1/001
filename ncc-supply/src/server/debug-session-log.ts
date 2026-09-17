@@ -4,7 +4,7 @@ const DEBUG_ENDPOINT = 'http://127.0.0.1:7516/ingest/3bd6d664-9013-4cd7-906e-968
 export function debugSessionLog(payload: {
   location: string
   message: string
-  hypothesisId: 'A' | 'B' | 'C' | 'D' | 'E'
+  hypothesisId: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
   data?: Record<string, unknown>
 }): void {
   const body = {
@@ -17,11 +17,17 @@ export function debugSessionLog(payload: {
     timestamp: Date.now(),
   }
   // #region agent log
-  fetch(DEBUG_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '21cab6' },
-    body: JSON.stringify(body),
-  }).catch(() => {})
+  try {
+    if (process.env.VERCEL !== '1') {
+      fetch(DEBUG_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '21cab6' },
+        body: JSON.stringify(body),
+      }).catch(() => {})
+    }
+  } catch {
+    // Vercel/Nitro fetch to 127.0.0.1 can throw HTTPError and take down SSR.
+  }
   // #endregion
   console.error('[ncc-debug]', payload.hypothesisId, payload.location, payload.message, payload.data)
 }

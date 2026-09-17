@@ -27,6 +27,7 @@ const config = defineConfig({
         '!@libsql/linux-x64-musl',
         '!@neon-rs/load',
       ],
+      errorHandler: './error.ts',
     }),
     viteReact(),
   ],
