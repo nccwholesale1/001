@@ -9,6 +9,7 @@ import { nitro } from 'nitro/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const libsqlWeb = fileURLToPath(import.meta.resolve('@libsql/client/web'))
 const jsxDevRuntimeShim = fileURLToPath(new URL('./src/shims/jsx-dev-runtime.ts', import.meta.url))
 const emptyLibsql = fileURLToPath(new URL('./src/shims/empty-libsql.ts', import.meta.url))
 const nativeLibsqlStub = fileURLToPath(new URL('./src/server/db/client-native-stub.ts', import.meta.url))
@@ -21,7 +22,12 @@ const NATIVE_LIBSQL_IDS = new Set([
   '@neon-rs/load',
 ])
 
-/** Keep native libsql out of `vite build` / the Vercel Linux function. */
+/**
+ * drizzle-orm/libsql imports `@libsql/client` (Node/native). On Vercel that
+ * pulls `@libsql/linux-x64-gnu` and `/_serverFn` 500s. Point the bare
+ * specifier at the real web.js file — returning "@libsql/client/web" as an
+ * id made the build fail with UNLOADABLE_DEPENDENCY.
+ */
 function stubNativeLibsql(): Plugin {
   return {
     name: 'ncc-stub-native-libsql',
@@ -33,7 +39,7 @@ function stubNativeLibsql(): Plugin {
         return emptyLibsql
       }
       if (id === '@libsql/client' || normalized === '@libsql/client') {
-        return '@libsql/client/web'
+        return libsqlWeb
       }
       if (
         normalized.endsWith('/client-native.ts') ||
