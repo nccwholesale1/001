@@ -28,11 +28,25 @@ const getHeaderCategories = createServerFn({ method: 'GET' }).handler(
 
 const getHeaderBuyer = createServerFn({ method: 'GET' }).handler(
   async (): Promise<HeaderBuyer | null> => {
-    const summary = await getCurrentBuyerSummary()
-    if (!summary) return null
-    return { companyName: summary.companyName, role: summary.role }
+    try {
+      const summary = await getCurrentBuyerSummary()
+      if (!summary) return null
+      return { companyName: summary.companyName, role: summary.role }
+    } catch (error) {
+      console.error('[root] failed to load header buyer', error)
+      return null
+    }
   },
 )
+
+const getHeaderBasketCount = createServerFn({ method: 'GET' }).handler(async (): Promise<number> => {
+  try {
+    return await getBasketCount()
+  } catch (error) {
+    console.error('[root] failed to load basket count', error)
+    return 0
+  }
+})
 
 /**
  * Temporary pre-launch gate (server/auth/site-access.ts) — checked before
@@ -47,11 +61,14 @@ export const Route = createRootRoute({
       throw redirect({ to: '/preview-access', search: { redirectTo: location.href } })
     }
   },
-  loader: async () => {
+  loader: async ({ location }) => {
+    if (location.pathname === '/preview-access') {
+      return { categories: [] as HeaderCategory[], buyer: null, basketCount: 0 }
+    }
     const [categories, buyer, basketCount] = await Promise.all([
       getHeaderCategories(),
       getHeaderBuyer(),
-      getBasketCount(),
+      getHeaderBasketCount(),
     ])
     return { categories, buyer, basketCount }
   },
