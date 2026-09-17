@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 
@@ -9,6 +10,29 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const jsxDevRuntimeShim = fileURLToPath(new URL('./src/shims/jsx-dev-runtime.ts', import.meta.url))
+const nativeLibsql = fileURLToPath(new URL('./src/server/db/client-native.ts', import.meta.url))
+const nativeLibsqlStub = fileURLToPath(new URL('./src/server/db/client-native-stub.ts', import.meta.url))
+
+/** Keep native `@libsql/client` out of `vite build` / the Vercel Linux function. */
+function stubNativeLibsql(): Plugin {
+  return {
+    name: 'ncc-stub-native-libsql',
+    enforce: 'pre',
+    apply: 'build',
+    resolveId(id) {
+      const normalized = id.replaceAll('\\', '/')
+      const nativeNormalized = nativeLibsql.replaceAll('\\', '/')
+      if (
+        normalized === nativeNormalized ||
+        normalized.endsWith('server/db/client-native.ts') ||
+        normalized.endsWith('server/db/client-native')
+      ) {
+        return nativeLibsqlStub
+      }
+      return undefined
+    },
+  }
+}
 
 // Vercel env vars sometimes set NODE_ENV=Preview (a dashboard name). Vite's
 // React plugin then emits jsxDEV into the production Nitro bundle, and every
@@ -27,6 +51,7 @@ const config = defineConfig({
   },
   define: isBuild ? { 'process.env.NODE_ENV': JSON.stringify('production') } : undefined,
   plugins: [
+    stubNativeLibsql(),
     devtools(),
     tailwindcss(),
     tanstackStart(),
@@ -39,6 +64,7 @@ const config = defineConfig({
       inlineDynamicImports: true,
       alias: {
         'react/jsx-dev-runtime': jsxDevRuntimeShim,
+        [nativeLibsql]: nativeLibsqlStub,
       },
       traceDeps: [
         '!libsql',

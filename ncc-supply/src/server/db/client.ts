@@ -1,21 +1,18 @@
-import { createRequire } from 'node:module'
 import { createClient as createRemoteClient } from '@libsql/client/web'
 import { drizzle } from 'drizzle-orm/libsql'
 import * as schema from './schema'
 import { env } from '../env'
 import { debugSessionLog } from '../debug-session-log'
+import { createLocalFileClient } from './client-native'
 
 /**
  * Server-only. Never import this module from client code — CLAUDE.md rule 8.
  *
- * Remote `DATABASE_URL` (Turso) uses the fetch-based web client so the
- * Vercel serverless bundle never includes `@libsql/client`'s native
- * bindings (those are OS-specific — a win32 build traced into a Linux
- * function 500s). Local file: URLs still use the Node client, loaded only
- * when DATABASE_URL is unset.
+ * Hosted/Turso uses `@libsql/client/web` only. Native `@libsql/client` lives
+ * in `client-native.ts` and is stubbed out of `vite build` so the Vercel
+ * Linux function never `require`s `@libsql/linux-x64-gnu`.
  *
- * Keep this module free of top-level await. A TLA graph in the Vercel
- * Node function 500s every SSR request as an opaque HTTPError.
+ * Keep this module free of top-level await.
  */
 function createDbClient() {
   try {
@@ -31,22 +28,18 @@ function createDbClient() {
       // #endregion
       return client
     }
-    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1') {
-      // Native @libsql/client is excluded from the Vercel linux bundle.
-      // An inert web client keeps import from crashing; queries fail softly.
+    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1' || import.meta.env.PROD) {
       // #region agent log
       debugSessionLog({
         location: 'src/server/db/client.ts:createDbClient',
-        message: 'hosted deploy missing DATABASE_URL, using inert web client',
+        message: 'hosted/prod missing DATABASE_URL, using inert web client',
         hypothesisId: 'B',
         data: { mode: 'hosted-inert' },
       })
       // #endregion
       return createRemoteClient({ url: 'https://127.0.0.1' })
     }
-    const nodeRequire = createRequire(import.meta.url)
-    const { createClient } = nodeRequire('@libsql/client') as typeof import('@libsql/client')
-    const client = createClient({ url: `file:${env.DATABASE_FILE}` })
+    const client = createLocalFileClient(env.DATABASE_FILE)
     // #region agent log
     debugSessionLog({
       location: 'src/server/db/client.ts:createDbClient',
@@ -68,7 +61,7 @@ function createDbClient() {
       },
     })
     // #endregion
-    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1') {
+    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1' || import.meta.env.PROD) {
       return createRemoteClient({ url: 'https://127.0.0.1' })
     }
     throw error
