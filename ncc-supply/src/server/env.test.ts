@@ -80,10 +80,18 @@ describe('parseEnv', () => {
     expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
   })
 
-  it('still requires Storefront credentials when CATALOGUE_ADAPTER=live', () => {
-    expect(() =>
-      parseEnv({ ...hostedBase, SHOPIFY_STOREFRONT_ACCESS_TOKEN: undefined }),
-    ).toThrow(/SHOPIFY_STOREFRONT_ACCESS_TOKEN/)
+  it('falls back to the fixture catalogue when CATALOGUE_ADAPTER=live but Storefront credentials are missing', () => {
+    const env = parseEnv({ ...hostedBase, SHOPIFY_STOREFRONT_ACCESS_TOKEN: undefined })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
+  it('falls back to the fixture customer adapter when CLIENT_ID is missing', () => {
+    const env = parseEnv({
+      ...hostedBase,
+      CUSTOMER_ACCOUNT_ADAPTER: 'live',
+      SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: undefined,
+    })
+    expect(env.CUSTOMER_ACCOUNT_ADAPTER).toBe('fixture')
   })
 
   it('honours NCC_HOSTED=1 the same way as VERCEL=1', () => {

@@ -111,29 +111,26 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
       data.ADMIN_COMMERCE_ADAPTER = 'live'
     }
   }
+  // Never crash the whole process because an adapter is "live" without
+  // credentials — Vercel surfaces that as {"message":"HTTPError"} on every
+  // route. Fall back to the fixture adapter instead.
   if (
     data.CATALOGUE_ADAPTER === 'live' &&
     (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_STOREFRONT_ACCESS_TOKEN)
   ) {
-    throw new Error(
-      'CATALOGUE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_ACCESS_TOKEN to be set.',
-    )
+    data.CATALOGUE_ADAPTER = 'fixture'
   }
   if (
     data.CUSTOMER_ACCOUNT_ADAPTER === 'live' &&
     (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID)
   ) {
-    throw new Error(
-      'CUSTOMER_ACCOUNT_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID to be set.',
-    )
+    data.CUSTOMER_ACCOUNT_ADAPTER = 'fixture'
   }
   if (
     data.ADMIN_COMMERCE_ADAPTER === 'live' &&
     (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_ADMIN_ACCESS_TOKEN)
   ) {
-    throw new Error(
-      'ADMIN_COMMERCE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN to be set.',
-    )
+    data.ADMIN_COMMERCE_ADAPTER = 'fixture'
   }
   return data
 }
