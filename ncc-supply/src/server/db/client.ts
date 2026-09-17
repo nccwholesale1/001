@@ -1,16 +1,16 @@
+import { createRequire } from 'node:module'
 import { createClient as createRemoteClient } from '@libsql/client/web'
 import { drizzle } from 'drizzle-orm/libsql'
 import * as schema from './schema'
 import { env } from '../env'
 import { debugSessionLog } from '../debug-session-log'
-import { createLocalFileClient } from './client-native'
 
 /**
  * Server-only. Never import this module from client code — CLAUDE.md rule 8.
  *
- * Hosted/Turso uses `@libsql/client/web` only. Native `@libsql/client` lives
- * in `client-native.ts` and is stubbed out of `vite build` so the Vercel
- * Linux function never `require`s `@libsql/linux-x64-gnu`.
+ * Do not statically import `@libsql/client` or `./client-native`. The Node
+ * entry loads `libsql` → `@libsql/linux-x64-gnu`, which is missing in the
+ * Vercel Linux function and 500s every `/_serverFn`.
  *
  * Keep this module free of top-level await.
  */
@@ -28,7 +28,7 @@ function createDbClient() {
       // #endregion
       return client
     }
-    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1' || import.meta.env.PROD) {
+    if (import.meta.env.PROD || process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1') {
       // #region agent log
       debugSessionLog({
         location: 'src/server/db/client.ts:createDbClient',
@@ -39,7 +39,7 @@ function createDbClient() {
       // #endregion
       return createRemoteClient({ url: 'https://127.0.0.1' })
     }
-    const client = createLocalFileClient(env.DATABASE_FILE)
+    const client = loadLocalFileClient(env.DATABASE_FILE)
     // #region agent log
     debugSessionLog({
       location: 'src/server/db/client.ts:createDbClient',
@@ -61,11 +61,17 @@ function createDbClient() {
       },
     })
     // #endregion
-    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1' || import.meta.env.PROD) {
+    if (import.meta.env.PROD || process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1') {
       return createRemoteClient({ url: 'https://127.0.0.1' })
     }
     throw error
   }
+}
+
+function loadLocalFileClient(databaseFile: string) {
+  const nodeRequire = createRequire(import.meta.url)
+  const { createLocalFileClient } = nodeRequire('./client-nat' + 'ive.ts') as typeof import('./client-native')
+  return createLocalFileClient(databaseFile)
 }
 
 export const db = drizzle({ client: createDbClient(), schema })

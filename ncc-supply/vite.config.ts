@@ -10,10 +10,18 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const jsxDevRuntimeShim = fileURLToPath(new URL('./src/shims/jsx-dev-runtime.ts', import.meta.url))
-const nativeLibsql = fileURLToPath(new URL('./src/server/db/client-native.ts', import.meta.url))
+const emptyLibsql = fileURLToPath(new URL('./src/shims/empty-libsql.ts', import.meta.url))
 const nativeLibsqlStub = fileURLToPath(new URL('./src/server/db/client-native-stub.ts', import.meta.url))
 
-/** Keep native `@libsql/client` out of `vite build` / the Vercel Linux function. */
+const NATIVE_LIBSQL_IDS = new Set([
+  'libsql',
+  '@libsql/linux-x64-gnu',
+  '@libsql/linux-x64-musl',
+  '@libsql/win32-x64-msvc',
+  '@neon-rs/load',
+])
+
+/** Keep native libsql out of `vite build` / the Vercel Linux function. */
 function stubNativeLibsql(): Plugin {
   return {
     name: 'ncc-stub-native-libsql',
@@ -21,11 +29,17 @@ function stubNativeLibsql(): Plugin {
     apply: 'build',
     resolveId(id) {
       const normalized = id.replaceAll('\\', '/')
-      const nativeNormalized = nativeLibsql.replaceAll('\\', '/')
+      if (NATIVE_LIBSQL_IDS.has(id) || NATIVE_LIBSQL_IDS.has(normalized)) {
+        return emptyLibsql
+      }
+      if (id === '@libsql/client' || normalized === '@libsql/client') {
+        return '@libsql/client/web'
+      }
       if (
-        normalized === nativeNormalized ||
-        normalized.endsWith('server/db/client-native.ts') ||
-        normalized.endsWith('server/db/client-native')
+        normalized.endsWith('/client-native.ts') ||
+        normalized.endsWith('/client-native') ||
+        normalized === './client-native' ||
+        normalized === './client-native.ts'
       ) {
         return nativeLibsqlStub
       }
@@ -42,11 +56,19 @@ if (isBuild) {
   process.env.NODE_ENV = 'production'
 }
 
+const nativePackageAliases = {
+  libsql: emptyLibsql,
+  '@libsql/linux-x64-gnu': emptyLibsql,
+  '@libsql/linux-x64-musl': emptyLibsql,
+  '@libsql/win32-x64-msvc': emptyLibsql,
+}
+
 const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
     alias: {
       'react/jsx-dev-runtime': jsxDevRuntimeShim,
+      ...(isBuild ? nativePackageAliases : {}),
     },
   },
   define: isBuild ? { 'process.env.NODE_ENV': JSON.stringify('production') } : undefined,
@@ -64,7 +86,7 @@ const config = defineConfig({
       inlineDynamicImports: true,
       alias: {
         'react/jsx-dev-runtime': jsxDevRuntimeShim,
-        [nativeLibsql]: nativeLibsqlStub,
+        ...nativePackageAliases,
       },
       traceDeps: [
         '!libsql',
