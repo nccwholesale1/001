@@ -53,7 +53,7 @@ The PRD deliberately leaves several implementation choices open. Per the build r
 | Package manager | pnpm | Fast, disk-efficient, standard in the TanStack ecosystem |
 | Database | ~~Postgres~~ **SQLite via libSQL** (revised Phase 2, 2026-09-12 — see note below) | Works on every likely host; strong fit for the relational approval/audit model in §7.2 |
 | ORM | Drizzle | Typed, lightweight, integrates cleanly with TanStack Start server functions |
-| Deployment target | Not yet chosen (Vercel or a Node-friendly host) | No cost/ops implication until nearer Phase 14 — deliberately deferred, not defaulted |
+| Deployment target | **Vercel + Turso** (confirmed 2026-09-17 — ADR-038) | TanStack Start SSR via Nitro; local SQLite does not survive serverless |
 | Staff auth | Hand-rolled scrypt password + opaque session token (revised Phase 2 — see note below) | Internal tool only; company buyers already use Shopify's flow (ADR-003) |
 | File storage | S3-compatible (e.g. Cloudflare R2) | Private objects, expiring authorized access, needed for return/support attachments |
 | Email delivery | Resend | Transactional guest-token links and staff notifications |
@@ -340,6 +340,12 @@ Both phases were built together in one pass (the user asked to move quickly and 
 2. **No rate limiting anywhere.** The only pre-existing "rate limit" code handles Shopify's own 429s, not this app's endpoints. Added a small in-memory fixed-window limiter (`server/shared/rate-limit.ts`) on staff sign-in (by IP and by identifier, independently), the pre-launch site-access password gate, and every guest-writable submission (order, quote, return, support ticket, support reply). Recorded limitation: in-process only, doesn't survive a restart or coordinate across multiple instances — acceptable for a single-instance deployment, not a substitute for a shared store if this ever scales out.
 **Also decided:** the app's authorization matrix, tenant isolation, session/CSRF posture, injection surface, XSS surface, upload validation, and password hashing were all reviewed against real code (not assumed) and found already sound, with existing test coverage cited as evidence rather than re-derived from scratch.
 **Verification:** `pnpm typecheck`/`lint`/`test` (60 files, 441 passed/1 skipped)/`build` all clean; client bundle re-swept, clean.
+
+### ADR-038: Hosted deploy is Vercel + Turso; live catalogue is mandatory there
+**Decision:** The user asked to prepare a live production setup with the real Shopify catalogue (all products), on a separate headless deploy that does not replace the current NCC website. Hosting is **Vercel (TanStack Start via the Nitro Vite plugin) + Turso (hosted libSQL)**. On a hosted deploy (`VERCEL=1`, or `NCC_HOSTED=1` elsewhere) the app refuses to start unless `CATALOGUE_ADAPTER=live` (fixture SKUs must never appear as real inventory — CLAUDE.md rule 20), `ADMIN_COMMERCE_ADAPTER=live` (the fixture adapter invents invoice URLs), and `DATABASE_URL` + `DATABASE_AUTH_TOKEN` point at a hosted libSQL database. Local `pnpm build` stays `NODE_ENV=production` without `VERCEL=1`, so it can still complete without those secrets.
+**Also:** `/dev/*` routes 404 when `NODE_ENV=production`; TanStack Devtools render only when `import.meta.env.DEV`; first NCC admin on an empty hosted DB is created via CLI `pnpm db:bootstrap-admin` (never an HTTP endpoint, never the fixture seed). `SITE_ACCESS_PASSWORD` stays the pre-launch gate — unsetting it is a launch action, not inferred from this prep. `CUSTOMER_ACCOUNT_ADAPTER` may remain `fixture` until `SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID` and an HTTPS callback are configured; company-buyer Shopify login is therefore not live on day one.
+**Not this pass:** DNS/custom domain, replacing the current NCC site, UAT matrix, rollback runbook, or the gated production-launch prompt (runbook §18).
+**Verification:** `pnpm typecheck`/`lint`/`test` (62 files, 596 passed | 1 skipped)/`build` all clean; client public bundle re-swept for known secret literals, clean. Local Nitro build used the `node-server` preset (no `VERCEL=1`); Vercel Git/CLI builds set `VERCEL=1` and select the Vercel preset.
 
 ## Resolved by business decision, 2026-09-12
 

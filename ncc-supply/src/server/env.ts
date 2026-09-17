@@ -61,41 +61,74 @@ export type Env = z.infer<typeof envSchema>
 
 const INSECURE_DEV_SECRET = 'dev-only-insecure-secret-do-not-use-in-production-xxxxx'
 
-function loadEnv(): Env {
-  const result = envSchema.safeParse(process.env)
+/**
+ * Vercel sets `VERCEL=1` at build and runtime. Other hosts can opt into the
+ * same guards with `NCC_HOSTED=1`. Local `pnpm build` is NODE_ENV=production
+ * without those flags, so it can still complete without Turso/Shopify secrets.
+ */
+function isHostedDeploy(source: Record<string, string | undefined>): boolean {
+  return source.VERCEL === '1' || source.NCC_HOSTED === '1'
+}
+
+export function parseEnv(source: Record<string, string | undefined> = process.env): Env {
+  const result = envSchema.safeParse(source)
   if (!result.success) {
     throw new Error(`Invalid environment configuration: ${result.error.message}`)
   }
-  if (result.data.NODE_ENV === 'production' && result.data.SESSION_SECRET === INSECURE_DEV_SECRET) {
+  const data = result.data
+  if (data.NODE_ENV === 'production' && data.SESSION_SECRET === INSECURE_DEV_SECRET) {
     throw new Error(
       'SESSION_SECRET must be set to a real value in production — refusing to start with the dev default.',
     )
   }
+  if (isHostedDeploy(source)) {
+    if (!data.DATABASE_URL) {
+      throw new Error(
+        'DATABASE_URL is required on a hosted deploy — a local SQLite file does not survive serverless hosting.',
+      )
+    }
+    if (data.DATABASE_URL.startsWith('file:')) {
+      throw new Error('DATABASE_URL must be a hosted libsql:// URL on a hosted deploy, not a local file.')
+    }
+    if (!data.DATABASE_AUTH_TOKEN) {
+      throw new Error('DATABASE_AUTH_TOKEN is required on a hosted deploy alongside DATABASE_URL.')
+    }
+    if (data.CATALOGUE_ADAPTER !== 'live') {
+      throw new Error(
+        'CATALOGUE_ADAPTER must be live on a hosted deploy — fixture products must never appear as real inventory.',
+      )
+    }
+    if (data.ADMIN_COMMERCE_ADAPTER !== 'live') {
+      throw new Error(
+        'ADMIN_COMMERCE_ADAPTER must be live on a hosted deploy — the fixture adapter invents invoice URLs.',
+      )
+    }
+  }
   if (
-    result.data.CATALOGUE_ADAPTER === 'live' &&
-    (!result.data.SHOPIFY_STORE_DOMAIN || !result.data.SHOPIFY_STOREFRONT_ACCESS_TOKEN)
+    data.CATALOGUE_ADAPTER === 'live' &&
+    (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_STOREFRONT_ACCESS_TOKEN)
   ) {
     throw new Error(
       'CATALOGUE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_ACCESS_TOKEN to be set.',
     )
   }
   if (
-    result.data.CUSTOMER_ACCOUNT_ADAPTER === 'live' &&
-    (!result.data.SHOPIFY_STORE_DOMAIN || !result.data.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID)
+    data.CUSTOMER_ACCOUNT_ADAPTER === 'live' &&
+    (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID)
   ) {
     throw new Error(
       'CUSTOMER_ACCOUNT_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID to be set.',
     )
   }
   if (
-    result.data.ADMIN_COMMERCE_ADAPTER === 'live' &&
-    (!result.data.SHOPIFY_STORE_DOMAIN || !result.data.SHOPIFY_ADMIN_ACCESS_TOKEN)
+    data.ADMIN_COMMERCE_ADAPTER === 'live' &&
+    (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_ADMIN_ACCESS_TOKEN)
   ) {
     throw new Error(
       'ADMIN_COMMERCE_ADAPTER=live requires both SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN to be set.',
     )
   }
-  return result.data
+  return data
 }
 
-export const env = loadEnv()
+export const env = parseEnv()

@@ -180,6 +180,21 @@ Checkboxes are grouped by phase. Nothing is checked unless it exists in the repo
 - [ ] Dependency/configuration audit — deferred.
 
 ## Phase 13 — Real catalogue, assets, content readiness
+
+- [ ] Shopify catalogue completeness (pricing, images) — live-store data gap, not a code defect (see DECISIONS.md 2026-09-13 note)
+- [ ] Remaining copy/content readiness from the Phase 13 runbook prompt
+
 ## Phase 14 — Staging, end-to-end acceptance, launch preparation
 
-(Task lists for Phases 4–14 will be expanded from the runbook's per-phase prompts as each phase starts, so the checklist reflects what was actually agreed at that point rather than being drafted speculatively far in advance.)
+**Hosted-deploy prep slice (2026-09-17) — not the full Phase 14 UAT/runbook pass.** User asked to prepare a live production setup with all real products. See ADR-038.
+
+- [x] Nitro Vite plugin so TanStack Start can deploy to Vercel
+- [x] Hosted-deploy env guards: live catalogue, live admin adapter, hosted `DATABASE_URL` (not local SQLite, not fixture inventory)
+- [x] `/dev/*` routes 404 in production; Devtools gated on `import.meta.env.DEV`
+- [x] First-admin CLI `pnpm db:bootstrap-admin` (empty staff table only; never an HTTP endpoint)
+- [x] `.env.example` hosted/Vercel checklist (names only)
+- [ ] Turso database created and migrated (`pnpm db:migrate` against `DATABASE_URL`) — user action
+- [ ] Vercel project (Root Directory `ncc-supply`) + env vars set — user action
+- [ ] `SITE_ACCESS_PASSWORD` set on the first deploy until authorized launch
+- [ ] Full UAT matrix / `docs/UAT-CHECKLIST.md` / deployment + rollback runbooks — remaining Phase 14
+- [ ] Production domain/DNS — gated launch prompt only; current NCC website stays untouched

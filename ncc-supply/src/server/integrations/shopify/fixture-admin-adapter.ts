@@ -11,8 +11,8 @@ import type {
  * Simulates Shopify Draft Order creation/invoicing with zero Shopify
  * credentials, so Phase 8's NCC-approval → checkout flow is exercisable
  * end-to-end (CLAUDE.md rule 25) while SHOPIFY_ADMIN_ACCESS_TOKEN is
- * unconfigured. Never selected in production once that token is set
- * (env.ts requires ADMIN_COMMERCE_ADAPTER=live there).
+ * unconfigured. A hosted deploy requires ADMIN_COMMERCE_ADAPTER=live
+ * (env.ts), so this adapter is never selected there.
  */
 export function createFixtureAdminCommerceAdapter(): AdminCommerceAdapter {
   return { createDraftOrder, sendDraftOrderInvoice, approveReturn }

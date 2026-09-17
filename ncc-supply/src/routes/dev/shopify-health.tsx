@@ -1,5 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { isDevOnlySurfaceEnabled } from '../../server/dev/dev-only-server-functions'
 import { checkAdminHealth, checkStorefrontHealth } from '../../server/integrations/shopify/health'
 
 /**
@@ -13,6 +14,9 @@ const getShopifyHealth = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 export const Route = createFileRoute('/dev/shopify-health')({
+  beforeLoad: async () => {
+    if (!(await isDevOnlySurfaceEnabled())) throw notFound()
+  },
   head: () => ({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] }),
   loader: () => getShopifyHealth(),
   component: ShopifyHealthRoute,
