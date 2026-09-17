@@ -56,7 +56,13 @@ const getHeaderBasketCount = createServerFn({ method: 'GET' }).handler(async ():
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
     if (location.pathname === '/preview-access') return
-    const granted = await checkSiteAccess()
+    let granted = false
+    try {
+      granted = await checkSiteAccess()
+    } catch (error) {
+      console.error('[root] site access check failed', error)
+      granted = false
+    }
     if (!granted) {
       throw redirect({ to: '/preview-access', search: { redirectTo: location.href } })
     }

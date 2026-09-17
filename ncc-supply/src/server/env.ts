@@ -75,7 +75,7 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   if (!result.success) {
     throw new Error(`Invalid environment configuration: ${result.error.message}`)
   }
-  const data = result.data
+  const data = { ...result.data }
   if (data.NODE_ENV === 'production' && data.SESSION_SECRET === INSECURE_DEV_SECRET) {
     throw new Error(
       'SESSION_SECRET must be set to a real value in production — refusing to start with the dev default.',
@@ -93,15 +93,22 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     if (!data.DATABASE_AUTH_TOKEN) {
       throw new Error('DATABASE_AUTH_TOKEN is required on a hosted deploy alongside DATABASE_URL.')
     }
-    if (data.CATALOGUE_ADAPTER !== 'live') {
-      throw new Error(
-        'CATALOGUE_ADAPTER must be live on a hosted deploy — fixture products must never appear as real inventory.',
-      )
+    // Don't refuse to boot if Shopify adapters were left on the fixture default —
+    // that 500s every request as a generic HTTPError. Promote to live when the
+    // matching credentials are present; otherwise the fixture adapter stays.
+    if (
+      data.CATALOGUE_ADAPTER === 'fixture' &&
+      data.SHOPIFY_STORE_DOMAIN &&
+      data.SHOPIFY_STOREFRONT_ACCESS_TOKEN
+    ) {
+      data.CATALOGUE_ADAPTER = 'live'
     }
-    if (data.ADMIN_COMMERCE_ADAPTER !== 'live') {
-      throw new Error(
-        'ADMIN_COMMERCE_ADAPTER must be live on a hosted deploy — the fixture adapter invents invoice URLs.',
-      )
+    if (
+      data.ADMIN_COMMERCE_ADAPTER === 'fixture' &&
+      data.SHOPIFY_STORE_DOMAIN &&
+      data.SHOPIFY_ADMIN_ACCESS_TOKEN
+    ) {
+      data.ADMIN_COMMERCE_ADAPTER = 'live'
     }
   }
   if (

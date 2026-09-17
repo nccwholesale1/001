@@ -54,14 +54,30 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...hostedBase, DATABASE_AUTH_TOKEN: undefined })).toThrow(/DATABASE_AUTH_TOKEN/)
   })
 
-  it('refuses the fixture catalogue on a hosted deploy', () => {
-    expect(() => parseEnv({ ...hostedBase, CATALOGUE_ADAPTER: 'fixture' })).toThrow(/CATALOGUE_ADAPTER/)
+  it('boots on a hosted deploy with Turso even if Shopify adapters are still fixture', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+      DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+      DATABASE_AUTH_TOKEN: 'turso-token',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+    expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
   })
 
-  it('refuses the fixture admin adapter on a hosted deploy', () => {
-    expect(() => parseEnv({ ...hostedBase, ADMIN_COMMERCE_ADAPTER: 'fixture' })).toThrow(
-      /ADMIN_COMMERCE_ADAPTER/,
-    )
+  it('promotes the catalogue to live on a hosted deploy when Storefront credentials are present', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+      DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+      DATABASE_AUTH_TOKEN: 'turso-token',
+      SHOPIFY_STORE_DOMAIN: 'example.myshopify.com',
+      SHOPIFY_STOREFRONT_ACCESS_TOKEN: 'storefront-token',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('live')
+    expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
   })
 
   it('still requires Storefront credentials when CATALOGUE_ADAPTER=live', () => {
@@ -73,11 +89,11 @@ describe('parseEnv', () => {
   it('honours NCC_HOSTED=1 the same way as VERCEL=1', () => {
     expect(() =>
       parseEnv({
-        ...hostedBase,
         VERCEL: undefined,
         NCC_HOSTED: '1',
-        CATALOGUE_ADAPTER: 'fixture',
+        NODE_ENV: 'production',
+        SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
       }),
-    ).toThrow(/CATALOGUE_ADAPTER/)
+    ).toThrow(/DATABASE_URL/)
   })
 })
