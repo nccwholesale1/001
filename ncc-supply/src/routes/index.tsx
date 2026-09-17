@@ -49,7 +49,18 @@ const getHomeData = createServerFn({ method: 'GET' }).handler(async (): Promise<
 })
 
 export const Route = createFileRoute('/')({
-  loader: () => getHomeData(),
+  loader: async () => {
+    try {
+      return await getHomeData()
+    } catch (error) {
+      console.error('[home] loader failed', error)
+      return {
+        collections: [],
+        popularProducts: [],
+        error: 'Could not load catalogue data right now.',
+      } satisfies HomeData
+    }
+  },
   head: () => ({
     meta: [
       {

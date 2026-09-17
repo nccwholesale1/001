@@ -24,7 +24,14 @@ const getCategoriesData = createServerFn({ method: 'GET' }).handler(
 )
 
 export const Route = createFileRoute('/categories')({
-  loader: () => getCategoriesData(),
+  loader: async () => {
+    try {
+      return await getCategoriesData()
+    } catch (error) {
+      console.error('[categories] loader failed', error)
+      return { collections: [], error: 'Could not load categories right now.' } satisfies CategoriesData
+    }
+  },
   head: ({ loaderData }) => ({
     meta: [
       { title: 'All Categories · NCC Supply' },

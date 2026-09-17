@@ -2,6 +2,7 @@ import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
+import { ClientOnly } from '../ClientOnly'
 import { addBasketLine } from '../../server/basket/server-functions'
 import type { ProductSummary } from '../../server/integrations/shopify/types'
 import { Icon } from './Icon'
@@ -31,10 +32,44 @@ function formatPrice(pence: number): string {
  * real as of Phase 6: adds one unit via the server-truth-priced basket
  * module, confirms with a check for 1.4s per the design spec.
  */
-export function ProductCard({ product, className }: ProductCardProps) {
-  const href = `/product/${product.sku}`
+function addButtonLabel(product: ProductSummary, status: AddStatus): string {
+  if (status === 'added') return `${product.title} added to basket`
+  if (status === 'error') return `Could not add ${product.title} to basket — try again`
+  return `Add ${product.title} to basket`
+}
+
+function AddButton({
+  product,
+  status,
+  onClick,
+}: {
+  product: ProductSummary
+  status: AddStatus
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={status === 'adding' || !onClick}
+      aria-label={addButtonLabel(product, status)}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
+        status === 'added'
+          ? 'border-primary/40 bg-secondary text-primary'
+          : status === 'error'
+            ? 'border-destructive/40 text-destructive'
+            : 'border-border text-foreground hover:bg-secondary',
+      )}
+    >
+      <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
+      {status === 'added' ? 'Added' : status === 'error' ? 'Retry' : 'Add'}
+    </button>
+  )
+}
+
+function AddToBasketButton({ product }: { product: ProductSummary }) {
   const [status, setStatus] = useState<AddStatus>('idle')
-  const [imageFailed, setImageFailed] = useState(false)
   const addLine = useServerFn(addBasketLine)
   const router = useRouter()
 
@@ -53,6 +88,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
       setTimeout(() => setStatus('idle'), CONFIRM_DURATION_MS)
     }
   }
+
+  return <AddButton product={product} status={status} onClick={handleAdd} />
+}
+
+export function ProductCard({ product, className }: ProductCardProps) {
+  const href = `/product/${product.sku}`
+  const [imageFailed, setImageFailed] = useState(false)
 
   return (
     <div className={cn('surface-card rise-in flex flex-col overflow-hidden rounded-xl p-0', className)}>
@@ -91,29 +133,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
           </span>
           <span className="text-xs text-muted-foreground">ex VAT · Available to order</span>
         </div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={status === 'adding'}
-          aria-label={
-            status === 'added'
-              ? `${product.title} added to basket`
-              : status === 'error'
-                ? `Could not add ${product.title} to basket — try again`
-                : `Add ${product.title} to basket`
-          }
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
-            status === 'added'
-              ? 'border-primary/40 bg-secondary text-primary'
-              : status === 'error'
-                ? 'border-destructive/40 text-destructive'
-                : 'border-border text-foreground hover:bg-secondary',
-          )}
-        >
-          <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
-          {status === 'added' ? 'Added' : status === 'error' ? 'Retry' : 'Add'}
-        </button>
+        <ClientOnly fallback={<AddButton product={product} status="idle" />}>
+          <AddToBasketButton product={product} />
+        </ClientOnly>
       </div>
     </div>
   )

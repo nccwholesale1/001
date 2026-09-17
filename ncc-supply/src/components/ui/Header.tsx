@@ -1,6 +1,7 @@
 import { LifeBuoy, LogOut, Menu, Search, ShoppingBasket, User, X } from 'lucide-react'
 import { useServerFn } from '@tanstack/react-start'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ClientOnly } from '../ClientOnly'
 import { logout } from '../../server/buyers/server-functions'
 import { Icon } from './Icon'
 import { Container } from './Layout'
@@ -42,15 +43,24 @@ const PRIMARY_NAV = [
 const iconLinkClasses =
   'rounded-lg p-2 text-foreground/80 transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
-export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProps) {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
+function SignOutButton({ className, children }: { className?: string; children: ReactNode }) {
   const signOut = useServerFn(logout)
 
   async function handleSignOut() {
     await signOut()
     window.location.href = '/'
   }
+
+  return (
+    <button type="button" onClick={handleSignOut} aria-label="Sign out" className={className}>
+      {children}
+    </button>
+  )
+}
+
+export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -126,14 +136,22 @@ export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProp
             ) : null}
           </a>
           {buyer ? (
-            <button
-              type="button"
-              onClick={handleSignOut}
-              aria-label="Sign out"
-              className={cn(iconLinkClasses, 'hidden sm:inline-flex')}
+            <ClientOnly
+              fallback={
+                <button
+                  type="button"
+                  disabled
+                  aria-label="Sign out"
+                  className={cn(iconLinkClasses, 'hidden sm:inline-flex')}
+                >
+                  <Icon icon={LogOut} />
+                </button>
+              }
             >
-              <Icon icon={LogOut} />
-            </button>
+              <SignOutButton className={cn(iconLinkClasses, 'hidden sm:inline-flex')}>
+                <Icon icon={LogOut} />
+              </SignOutButton>
+            </ClientOnly>
           ) : null}
           <button
             ref={menuButtonRef}
@@ -186,13 +204,9 @@ export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProp
               {buyer ? `Account — ${buyer.companyName}` : 'Sign in'}
             </a>
             {buyer ? (
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="rounded-md px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-secondary"
-              >
+              <SignOutButton className="rounded-md px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-secondary">
                 Sign out
-              </button>
+              </SignOutButton>
             ) : null}
           </Container>
         </nav>
