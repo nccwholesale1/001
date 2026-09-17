@@ -27,6 +27,7 @@ import { Route as AccountOrdersRouteImport } from './routes/account/orders'
 import { Route as AccountPricingRouteImport } from './routes/account/pricing'
 import { Route as AccountReturnsRouteImport } from './routes/account/returns'
 import { Route as AccountUsersRouteImport } from './routes/account/users'
+import { Route as ApiCatalogueRouteImport } from './routes/api/catalogue'
 import { Route as CategorySlugRouteImport } from './routes/category/$slug'
 import { Route as CheckoutIdRouteImport } from './routes/checkout/$id'
 import { Route as DevComponentsRouteImport } from './routes/dev/components'
@@ -140,6 +141,11 @@ const AccountUsersRoute = AccountUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AccountRouteRoute,
+} as any)
+const ApiCatalogueRoute = ApiCatalogueRouteImport.update({
+  id: '/api/catalogue',
+  path: '/api/catalogue',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CategorySlugRoute = CategorySlugRouteImport.update({
   id: '/category/$slug',
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/account/pricing': typeof AccountPricingRoute
   '/account/returns': typeof AccountReturnsRoute
   '/account/users': typeof AccountUsersRoute
+  '/api/catalogue': typeof ApiCatalogueRoute
   '/category/$slug': typeof CategorySlugRoute
   '/checkout/$id': typeof CheckoutIdRoute
   '/dev/components': typeof DevComponentsRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/account/pricing': typeof AccountPricingRoute
   '/account/returns': typeof AccountReturnsRoute
   '/account/users': typeof AccountUsersRoute
+  '/api/catalogue': typeof ApiCatalogueRoute
   '/category/$slug': typeof CategorySlugRoute
   '/checkout/$id': typeof CheckoutIdRoute
   '/dev/components': typeof DevComponentsRoute
@@ -361,6 +369,7 @@ export interface FileRoutesById {
   '/account/pricing': typeof AccountPricingRoute
   '/account/returns': typeof AccountReturnsRoute
   '/account/users': typeof AccountUsersRoute
+  '/api/catalogue': typeof ApiCatalogueRoute
   '/category/$slug': typeof CategorySlugRoute
   '/checkout/$id': typeof CheckoutIdRoute
   '/dev/components': typeof DevComponentsRoute
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/account/pricing'
     | '/account/returns'
     | '/account/users'
+    | '/api/catalogue'
     | '/category/$slug'
     | '/checkout/$id'
     | '/dev/components'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/account/pricing'
     | '/account/returns'
     | '/account/users'
+    | '/api/catalogue'
     | '/category/$slug'
     | '/checkout/$id'
     | '/dev/components'
@@ -491,6 +502,7 @@ export interface FileRouteTypes {
     | '/account/pricing'
     | '/account/returns'
     | '/account/users'
+    | '/api/catalogue'
     | '/category/$slug'
     | '/checkout/$id'
     | '/dev/components'
@@ -531,6 +543,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   StaffLoginRoute: typeof StaffLoginRoute
+  ApiCatalogueRoute: typeof ApiCatalogueRoute
   CategorySlugRoute: typeof CategorySlugRoute
   CheckoutIdRoute: typeof CheckoutIdRoute
   DevComponentsRoute: typeof DevComponentsRoute
@@ -683,6 +696,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/users'
       preLoaderRoute: typeof AccountUsersRouteImport
       parentRoute: typeof AccountRouteRoute
+    }
+    '/api/catalogue': {
+      id: '/api/catalogue'
+      path: '/api/catalogue'
+      fullPath: '/api/catalogue'
+      preLoaderRoute: typeof ApiCatalogueRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/category/$slug': {
       id: '/category/$slug'
@@ -882,6 +902,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   StaffLoginRoute: StaffLoginRoute,
+  ApiCatalogueRoute: ApiCatalogueRoute,
   CategorySlugRoute: CategorySlugRoute,
   CheckoutIdRoute: CheckoutIdRoute,
   DevComponentsRoute: DevComponentsRoute,
@@ -909,12 +930,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -1,40 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { getCatalogueAdapter } from '../server/integrations/shopify'
-import type { CollectionSummary } from '../server/integrations/shopify/types'
+import { EMPTY_PUBLIC_CATALOGUE, fetchPublicCatalogue } from '../lib/public-catalogue'
 import { Breadcrumbs } from '../components/ui/Breadcrumbs'
 import { CategoryGrid } from '../components/ui/CategoryGrid'
 import { Container, Section } from '../components/ui/Layout'
 
-interface CategoriesData {
-  collections: CollectionSummary[]
-  error: string | null
-}
-
-const getCategoriesData = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<CategoriesData> => {
-    try {
-      const collections = await getCatalogueAdapter().listCollections()
-      return { collections, error: null }
-    } catch (error) {
-      console.error('[categories] failed to load collections', error)
-      return { collections: [], error: 'Could not load categories right now.' }
-    }
-  },
-)
-
 export const Route = createFileRoute('/categories')({
   ssr: false,
   loader: async () => {
-    try {
-      if (typeof window === 'undefined') {
-        return { collections: [], error: null } satisfies CategoriesData
-      }
-      return await getCategoriesData()
-    } catch (error) {
-      console.error('[categories] loader failed', error)
-      return { collections: [], error: 'Could not load categories right now.' } satisfies CategoriesData
-    }
+    if (typeof window === 'undefined') return EMPTY_PUBLIC_CATALOGUE
+    return fetchPublicCatalogue()
   },
   head: ({ loaderData }) => ({
     meta: [

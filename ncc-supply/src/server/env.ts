@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { debugSessionLog } from './debug-session-log'
+import { normalizeShopifyStoreDomain } from './shopify-store-domain'
 
 /**
  * A `.env` line like `KEY=` sets `process.env.KEY` to `''`, not undefined —
@@ -41,7 +42,11 @@ const envSchema = z.object({
   /** Which CatalogueAdapter getCatalogueAdapter() returns — see integrations/shopify/index.ts. */
   CATALOGUE_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
   /** The store's *.myshopify.com domain — NOT its custom storefront domain. Only required when CATALOGUE_ADAPTER=live. */
-  SHOPIFY_STORE_DOMAIN: optionalString(),
+  SHOPIFY_STORE_DOMAIN: z.preprocess((value) => {
+    if (value === '' || value === undefined || value === null) return undefined
+    if (typeof value !== 'string') return value
+    return normalizeShopifyStoreDomain(value)
+  }, z.string().min(1).optional()),
   /** Storefront API access token (public or private) — only required when CATALOGUE_ADAPTER=live. */
   SHOPIFY_STOREFRONT_ACCESS_TOKEN: optionalString(),
   /** Admin API access token — only required when ADMIN_COMMERCE_ADAPTER=live. */

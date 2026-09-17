@@ -4,12 +4,32 @@ import {
   createStart,
 } from '@tanstack/react-start'
 
+function hostFromUrl(value: string): string | null {
+  try {
+    return new URL(value).host
+  } catch {
+    return null
+  }
+}
+
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === 'serverFn',
   // Vercel SSR/self-fetch often omits Origin/Referer; the default CSRF
   // middleware then rejects the call as HTTPError and the whole HTML
   // document 500s as {"message":"HTTPError"}.
   allowRequestsWithoutOriginCheck: true,
+  secFetchSite: ['same-origin', 'same-site', 'none'],
+  // Vercel’s internal request URL is often `http://` while the browser
+  // Origin is `https://`. Compare hosts, not full origins.
+  origin: (value, ctx) => {
+    const incomingHost = hostFromUrl(value)
+    const requestHost = hostFromUrl(ctx.request.url)
+    if (!incomingHost || !requestHost) return false
+    if (incomingHost === requestHost) return true
+    const forwarded = ctx.request.headers.get('x-forwarded-host')
+    const forwardedHost = forwarded?.split(',')[0]?.trim()
+    return Boolean(forwardedHost && incomingHost === forwardedHost)
+  },
 })
 
 const debugErrorMiddleware = createMiddleware().server(async ({ next, request }) => {

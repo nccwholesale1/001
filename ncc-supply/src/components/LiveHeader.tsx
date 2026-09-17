@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouterState } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { Header } from './ui/Header'
+import { fetchPublicCatalogue } from '../lib/public-catalogue'
 import { getHeaderData } from '../server/layout/header-data-server-functions'
 import type { HeaderData } from '../server/layout/header-data'
 
@@ -30,13 +31,31 @@ export function LiveHeader() {
 
   useEffect(() => {
     let cancelled = false
+    void fetchPublicCatalogue()
+      .then((catalogue) => {
+        if (cancelled || catalogue.collections.length === 0) return
+        setData((current) => ({
+          ...current,
+          categories: catalogue.collections.map((collection) => ({
+            slug: collection.slug,
+            title: collection.title,
+          })),
+        }))
+      })
+      .catch((error: unknown) => {
+        console.error('[header] failed to load catalogue categories', error)
+      })
     void fetchHeader()
       .then((next) => {
-        if (!cancelled) setData(asHeaderData(next))
+        if (cancelled) return
+        const header = asHeaderData(next)
+        setData((current) => ({
+          ...header,
+          categories: header.categories.length > 0 ? header.categories : current.categories,
+        }))
       })
       .catch((error: unknown) => {
         console.error('[header] failed to load header data', error)
-        if (!cancelled) setData(EMPTY_HEADER_DATA)
       })
     return () => {
       cancelled = true

@@ -18,6 +18,9 @@ export async function storefrontRequest<T>(
       'storefrontRequest called without SHOPIFY_STORE_DOMAIN/SHOPIFY_STOREFRONT_ACCESS_TOKEN configured',
     )
   }
+  if (!env.SHOPIFY_STORE_DOMAIN.endsWith('.myshopify.com')) {
+    throw new Error('SHOPIFY_STORE_DOMAIN must be the store *.myshopify.com hostname')
+  }
 
   return shopifyGraphqlRequest<T>({
     endpoint: `https://${env.SHOPIFY_STORE_DOMAIN}/api/${env.SHOPIFY_API_VERSION}/graphql.json`,

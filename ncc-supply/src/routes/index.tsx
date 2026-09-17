@@ -1,8 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { PackageCheck, ShieldCheck, Truck } from 'lucide-react'
-import { getCatalogueAdapter } from '../server/integrations/shopify'
-import type { CollectionSummary, ProductSummary } from '../server/integrations/shopify/types'
+import { EMPTY_PUBLIC_CATALOGUE, fetchPublicCatalogue, type PublicCatalogueData } from '../lib/public-catalogue'
 import { Banner } from '../components/ui/Banner'
 import { CategoryGrid } from '../components/ui/CategoryGrid'
 import { FAQ, HOME_FAQ_ITEMS } from '../components/ui/FAQ'
@@ -12,73 +10,19 @@ import { OrderSteps } from '../components/ui/OrderSteps'
 import { ProductCard } from '../components/ui/ProductCard'
 import { Reveal } from '../components/ui/Reveal'
 
-interface HomeData {
-  collections: CollectionSummary[]
-  /** A sample of real catalogue data from the first collection — not a true popularity ranking (no analytics source exists yet). */
-  popularProducts: ProductSummary[]
-  error: string | null
-}
-
 const HOME_FAQ_STRUCTURED_DATA = HOME_FAQ_ITEMS.map((item) => ({
   '@type': 'Question',
   name: item.question,
   acceptedAnswer: { '@type': 'Answer', text: item.answer },
 }))
 
-const getHomeData = createServerFn({ method: 'GET' }).handler(async (): Promise<HomeData> => {
-  // #region agent log
-  try {
-    if (process.env.VERCEL !== '1') {
-      fetch('http://127.0.0.1:7516/ingest/3bd6d664-9013-4cd7-906e-9686e0886622',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'21cab6'},body:JSON.stringify({sessionId:'21cab6',runId:'post-fix',hypothesisId:'E',location:'src/routes/index.tsx:getHomeData',message:'getHomeData handler entered',data:{hasWindow:typeof window!=='undefined'},timestamp:Date.now()})}).catch(()=>{});
-    }
-  } catch {
-    // ignore instrumentation failures
-  }
-  // #endregion
-  const adapter = getCatalogueAdapter()
-  try {
-    const collections = await adapter.listCollections()
-    // Same "first collection that actually has lines" rule the featured-CTA
-    // pick uses below — collections[0] alone can be an empty one (e.g. a
-    // category with 0 real products yet), which would silently make this
-    // whole section empty for no good reason.
-    const firstStockedCollection = collections.find((collection) => collection.lineCount > 0)
-    const popularProducts = firstStockedCollection
-      ? (await adapter.getCollection(firstStockedCollection.slug, { first: 8 })).products
-      : []
-    return { collections, popularProducts, error: null }
-  } catch (error) {
-    console.error('[home] failed to load catalogue data', error)
-    return {
-      collections: [],
-      popularProducts: [],
-      error: 'Could not load catalogue data right now.',
-    }
-  }
-})
-
 export const Route = createFileRoute('/')({
   ssr: false,
-  loader: async () => {
-    // Never call createServerFn during the document request — on Vercel that
-    // self-fetch becomes {"message":"HTTPError"} even with try/catch.
-    try {
-      if (typeof window === 'undefined') {
-        return {
-          collections: [],
-          popularProducts: [],
-          error: null,
-        } satisfies HomeData
-      }
-      return await getHomeData()
-    } catch (error) {
-      console.error('[home] loader failed', error)
-      return {
-        collections: [],
-        popularProducts: [],
-        error: 'Could not load catalogue data right now.',
-      } satisfies HomeData
-    }
+  loader: async (): Promise<PublicCatalogueData> => {
+    // Never call createServerFn or self-fetch during the document request —
+    // on Vercel that becomes {"message":"HTTPError"} even with try/catch.
+    if (typeof window === 'undefined') return EMPTY_PUBLIC_CATALOGUE
+    return fetchPublicCatalogue()
   },
   head: () => ({
     meta: [

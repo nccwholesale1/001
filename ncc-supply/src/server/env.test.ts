@@ -74,6 +74,24 @@ describe('parseEnv', () => {
     expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
   })
 
+  it('normalizes admin and protocol-prefixed Shopify domains', () => {
+    const env = parseEnv({
+      ...hostedBase,
+      SHOPIFY_STORE_DOMAIN: 'https://admin.shopify.com/store/9nd0we-wt/settings/domains',
+    })
+    expect(env.SHOPIFY_STORE_DOMAIN).toBe('9nd0we-wt.myshopify.com')
+    expect(env.CATALOGUE_ADAPTER).toBe('live')
+  })
+
+  it('ignores a custom storefront domain so live catalogue does not call the wrong host', () => {
+    const env = parseEnv({
+      ...hostedBase,
+      SHOPIFY_STORE_DOMAIN: 'nccwholesale.org',
+    })
+    expect(env.SHOPIFY_STORE_DOMAIN).toBeUndefined()
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
   it('promotes the catalogue to live on a hosted deploy when Storefront credentials are present', () => {
     const env = parseEnv({
       VERCEL: '1',
