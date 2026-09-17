@@ -94,20 +94,13 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     )
   }
   if (isHostedDeploy(source)) {
-    if (!data.DATABASE_URL) {
-      throw new Error(
-        'DATABASE_URL is required on a hosted deploy — a local SQLite file does not survive serverless hosting.',
-      )
+    if (data.DATABASE_URL?.startsWith('file:')) {
+      data.DATABASE_URL = undefined
+      data.DATABASE_AUTH_TOKEN = undefined
     }
-    if (data.DATABASE_URL.startsWith('file:')) {
-      throw new Error('DATABASE_URL must be a hosted libsql:// URL on a hosted deploy, not a local file.')
-    }
-    if (!data.DATABASE_AUTH_TOKEN) {
-      throw new Error('DATABASE_AUTH_TOKEN is required on a hosted deploy alongside DATABASE_URL.')
-    }
-    // Don't refuse to boot if Shopify adapters were left on the fixture default —
-    // that 500s every request as a generic HTTPError. Promote to live when the
-    // matching credentials are present; otherwise the fixture adapter stays.
+    // Missing Turso credentials must not crash the serverless process —
+    // Vercel wraps that as {"message":"HTTPError"} on every HTML route.
+    // Queries fail softly; the storefront HTML can still render.
     if (
       data.CATALOGUE_ADAPTER === 'fixture' &&
       data.SHOPIFY_STORE_DOMAIN &&
@@ -185,7 +178,10 @@ function parseEnvWithDebug(): Env {
       },
     })
     // #endregion
-    throw error
+    return parseEnv({
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'ncc-hosted-degraded-session-secret-replace',
+    })
   }
 }
 

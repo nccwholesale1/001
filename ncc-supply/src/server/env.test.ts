@@ -42,16 +42,24 @@ describe('parseEnv', () => {
     expect(env.DATABASE_URL).toBe('libsql://ncc-supply-staging.turso.io')
   })
 
-  it('requires DATABASE_URL on a hosted deploy', () => {
-    expect(() => parseEnv({ ...hostedBase, DATABASE_URL: undefined })).toThrow(/DATABASE_URL/)
+  it('boots on a hosted deploy even when Turso credentials are missing', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+    })
+    expect(env.DATABASE_URL).toBeUndefined()
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
   })
 
-  it('rejects a local file DATABASE_URL on a hosted deploy', () => {
-    expect(() => parseEnv({ ...hostedBase, DATABASE_URL: 'file:./local.db' })).toThrow(/libsql:\/\//)
+  it('ignores a local file DATABASE_URL on a hosted deploy instead of crashing boot', () => {
+    const env = parseEnv({ ...hostedBase, DATABASE_URL: 'file:./local.db' })
+    expect(env.DATABASE_URL).toBeUndefined()
   })
 
-  it('requires DATABASE_AUTH_TOKEN on a hosted deploy', () => {
-    expect(() => parseEnv({ ...hostedBase, DATABASE_AUTH_TOKEN: undefined })).toThrow(/DATABASE_AUTH_TOKEN/)
+  it('boots on a hosted deploy without DATABASE_AUTH_TOKEN', () => {
+    const env = parseEnv({ ...hostedBase, DATABASE_AUTH_TOKEN: undefined })
+    expect(env.DATABASE_AUTH_TOKEN).toBeUndefined()
   })
 
   it('boots on a hosted deploy with Turso even if Shopify adapters are still fixture', () => {
@@ -107,13 +115,13 @@ describe('parseEnv', () => {
   })
 
   it('honours NCC_HOSTED=1 the same way as VERCEL=1', () => {
-    expect(() =>
-      parseEnv({
-        VERCEL: undefined,
-        NCC_HOSTED: '1',
-        NODE_ENV: 'production',
-        SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
-      }),
-    ).toThrow(/DATABASE_URL/)
+    const env = parseEnv({
+      VERCEL: undefined,
+      NCC_HOSTED: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+    expect(env.DATABASE_URL).toBeUndefined()
   })
 })

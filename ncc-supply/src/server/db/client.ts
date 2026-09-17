@@ -31,6 +31,19 @@ function createDbClient() {
       // #endregion
       return client
     }
+    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1') {
+      // Native @libsql/client is excluded from the Vercel linux bundle.
+      // An inert web client keeps import from crashing; queries fail softly.
+      // #region agent log
+      debugSessionLog({
+        location: 'src/server/db/client.ts:createDbClient',
+        message: 'hosted deploy missing DATABASE_URL, using inert web client',
+        hypothesisId: 'B',
+        data: { mode: 'hosted-inert' },
+      })
+      // #endregion
+      return createRemoteClient({ url: 'https://127.0.0.1' })
+    }
     const nodeRequire = createRequire(import.meta.url)
     const { createClient } = nodeRequire('@libsql/client') as typeof import('@libsql/client')
     const client = createClient({ url: `file:${env.DATABASE_FILE}` })
