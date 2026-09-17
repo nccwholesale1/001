@@ -46,7 +46,7 @@ const PRIMARY_NAV = [
 const iconLinkClasses =
   'rounded-lg p-2 text-foreground/80 transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
-export function Header({ categories, buyer = null, basketCount = 0 }: HeaderProps) {
+export function Header({ categories = [], buyer = null, basketCount = 0 }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
 
