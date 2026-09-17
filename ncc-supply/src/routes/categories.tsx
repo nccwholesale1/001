@@ -27,6 +27,9 @@ export const Route = createFileRoute('/categories')({
   ssr: false,
   loader: async () => {
     try {
+      if (typeof window === 'undefined') {
+        return { collections: [], error: null } satisfies CategoriesData
+      }
       return await getCategoriesData()
     } catch (error) {
       console.error('[categories] loader failed', error)

@@ -68,6 +68,9 @@ function createDbClient() {
       },
     })
     // #endregion
+    if (process.env.VERCEL === '1' || process.env.NCC_HOSTED === '1') {
+      return createRemoteClient({ url: 'https://127.0.0.1' })
+    }
     throw error
   }
 }

@@ -54,7 +54,16 @@ const getHomeData = createServerFn({ method: 'GET' }).handler(async (): Promise<
 export const Route = createFileRoute('/')({
   ssr: false,
   loader: async () => {
+    // Never call createServerFn during the document request — on Vercel that
+    // self-fetch becomes {"message":"HTTPError"} even with try/catch.
     try {
+      if (typeof window === 'undefined') {
+        return {
+          collections: [],
+          popularProducts: [],
+          error: null,
+        } satisfies HomeData
+      }
       return await getHomeData()
     } catch (error) {
       console.error('[home] loader failed', error)
