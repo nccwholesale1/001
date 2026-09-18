@@ -478,8 +478,11 @@ Everything else in this document — every screen, rule, route and component —
 4. **ERP, PIM or accounting system(s), if any, that this build should integrate with** — default is none; §7.6 assumes Shopify's own fields and the application database are sufficient until told otherwise.
 5. **Return window and refund-vs-replacement policy per reason** — needed to configure Shopify's native return rules (§7.1) and the return request reason list (§6.16).
 6. **Support SLA targets and escalation rules** — needed to configure the support queue's escalation action (§6.21); no default assumed.
-9. **Does VAT leave the order model entirely?** *(new — §14 A2.)* All customer-facing VAT wording is gone and prices are VAT-inclusive, but the confirmed-order breakdown still carries a `VAT` money line fed by an amount the NCC admin types during approval (§6.9). If prices already include VAT, that line double-counts and the input should probably go. Removing it changes order totals arithmetic, not just copy, so it is deliberately unresolved rather than assumed. NCC's invoicing/accounting obligations sit outside this application and should drive the answer.
-10. **Screens subcategories — tag mapping.** *(new — §14 A6.)* NCC asked for three subcategories under Screens: **Advance**, **Prime LCD**, **Soft OLED**. The Screens smart collection is driven by four product tags — `NCC prime`, `Colorx LCD`, `NCC SOFT OLED`, `LCD Screen`. `NCC SOFT OLED` → Soft OLED and `NCC prime` → Prime LCD are clear; which of `Colorx LCD` / `LCD Screen` is "Advance", and what becomes of the leftover tag, is not. Unresolved — mislabelling live products is not a guess worth making.
+9. ~~**Does VAT leave the order model entirely?**~~ ✅ **Resolved 18 September 2026: yes.** NCC confirmed prices are VAT-inclusive, so VAT is no longer collected at approval, stored on new approvals, or shown anywhere. Final total is subtotal + delivery. The `vat_pence` column remains in the schema, unused. Original question retained below for context.
+   *Original:* *(new — §14 A2.)* All customer-facing VAT wording is gone and prices are VAT-inclusive, but the confirmed-order breakdown still carries a `VAT` money line fed by an amount the NCC admin types during approval (§6.9). If prices already include VAT, that line double-counts and the input should probably go. Removing it changes order totals arithmetic, not just copy, so it is deliberately unresolved rather than assumed. NCC's invoicing/accounting obligations sit outside this application and should drive the answer.
+10. ~~**Screens subcategories — tag mapping.**~~ ✅ **Resolved 18 September 2026:** "Advance" meant the `Colorx LCD` tag, and NCC asked for the category to be labelled **Colorx LCD**. All three collections are created (§14 A6). Two things remain open, both narrower than the original question:
+    - **Publish them?** They are unpublished, so customers can't see them. Publishing adds three *top-level* categories beside Screens, because the app has no subcategory nesting — that nesting is unspecified application work.
+    - **The 17 `LCD Screen` products** (all unpriced drafts) sit in Screens under no subcategory. No decision taken.
 
 ---
 
@@ -535,10 +538,19 @@ Every change made to this document since **v3.0 (11 September 2026)**, the versi
 ### A6 — Screens subcategories requested (not yet built)
 
 - **Originally specified (v3.0):** no subcategory concept exists anywhere in the document; §3 and §6.2 assume a flat collection list.
-- **Requested:** three subcategories under Screens — **Advance**, **Prime LCD**, **Soft OLED**.
-- **Status:** **not built.** Blocked on a mapping question, tracked as §13 Q10.
-- **What was established:** Screens is a Shopify *smart* collection of 107 products, populated by four tags — `NCC prime`, `Colorx LCD`, `NCC SOFT OLED`, `LCD Screen`. Two names map cleanly (`NCC SOFT OLED` → Soft OLED, `NCC prime` → Prime LCD); which of the remaining two tags is "Advance", and what happens to the leftover, is unknown.
-- **Architectural note for when this proceeds:** subcategories are Shopify collections, not application code. The app renders whatever collections the catalogue adapter exposes (§7.1, and CLAUDE.md rule 20), so this work is creating three smart collections in Shopify — a change to the live store — not a code change here.
+- **Requested:** three subcategories under Screens. Originally named **Advance**, **Prime LCD**, **Soft OLED**; NCC then confirmed "Advance" meant the `Colorx LCD` tag and asked for it to be **labelled "Colorx LCD"** instead, to remove the ambiguity.
+- **Status:** **created in Shopify, not yet visible to customers** (18 September 2026).
+- **As created** — three smart collections, each on a single tag rule, sorted price-ascending to match §6.2's default:
+
+  | Collection | Tag rule | Products |
+  |---|---|---|
+  | Colorx LCD (`colorx-lcd`) | `Colorx LCD` | 33 |
+  | Prime LCD (`prime-lcd`) | `NCC prime` | 35 |
+  | Soft OLED (`soft-oled`) | `NCC SOFT OLED` | 22 |
+
+- **Deliberately unpublished:** none is published to any sales channel, so the Storefront API does not return them and nothing changed for customers. Publishing is a separate, explicit step.
+- **The leftover 17:** Screens holds 107 products; these three account for 90. The remaining 17 carry the `LCD Screen` tag, are all drafts tagged `needs-price`, and belong to no subcategory. They stay in Screens. NCC has not said whether they need a fourth grouping.
+- **Known gap when these are published:** the application has no concept of a subcategory. It renders whatever collections the catalogue adapter returns (§7.1, CLAUDE.md rule 20), so publishing these adds three more **top-level** categories beside Screens rather than nesting them beneath it. Making them true subcategories is application work that has not been specified or built.
 
 ### A7 — Quantity can be chosen straight from a product card
 
