@@ -168,7 +168,7 @@ function IndexRoute() {
                 </h2>
                 <p className="text-sm text-ink-foreground/70 sm:text-base">
                   Submit lines from any category with no payment up front — NCC checks stock,
-                  confirms delivery and VAT, and you approve the final total before anything is
+                  confirms delivery, and you approve the final total before anything is
                   charged.
                 </p>
                 <div className="flex flex-wrap gap-3 pt-2">
@@ -206,7 +206,7 @@ function IndexRoute() {
           ) : collections.length === 0 ? (
             <p className="text-sm text-muted-foreground">No categories found.</p>
           ) : (
-            <CategoryGrid categories={collections} />
+            <CategoryGrid categories={collections} columns={3} />
           )}
         </Container>
       </Section>

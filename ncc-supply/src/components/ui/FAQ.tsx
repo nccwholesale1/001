@@ -19,7 +19,7 @@ export const HOME_FAQ_ITEMS: FaqItem[] = [
   {
     question: 'When do I pay?',
     answer:
-      'Never at basket submission — no card details are ever collected there. NCC reviews your order first, confirming quantities, delivery and VAT, and only then is a payment link or invoice available.',
+      'Never at basket submission — no card details are ever collected there. NCC reviews your order first, confirming quantities and delivery, and only then is a payment link or invoice available.',
   },
   {
     question: 'Is there a minimum order quantity?',

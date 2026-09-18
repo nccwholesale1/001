@@ -147,6 +147,24 @@ function toProductFilters(filters: FacetOpts['filters']) {
   )
 }
 
+/**
+ * Collections use `ProductCollectionSortKeys`, which has no RELEVANCE member
+ * (that exists only on search) — an unsorted collection falls back to the
+ * collection's own configured order via COLLECTION_DEFAULT.
+ */
+function toCollectionSortKey(sort: FacetOpts['sort']): { sortKey: string; reverse: boolean } {
+  switch (sort) {
+    case 'price_asc':
+      return { sortKey: 'PRICE', reverse: false }
+    case 'price_desc':
+      return { sortKey: 'PRICE', reverse: true }
+    case 'title_asc':
+      return { sortKey: 'TITLE', reverse: false }
+    default:
+      return { sortKey: 'COLLECTION_DEFAULT', reverse: false }
+  }
+}
+
 function toSearchSortKey(sort: FacetOpts['sort']): { sortKey: string; reverse: boolean } {
   switch (sort) {
     case 'price_asc':
@@ -232,12 +250,12 @@ async function getCollectionLive(
   opts: PaginationOpts & FacetOpts,
 ): Promise<CollectionResult> {
   const query = `
-    query GetCollection($handle: String!, $first: Int!, $after: String, $filters: [ProductFilter!]) {
+    query GetCollection($handle: String!, $first: Int!, $after: String, $filters: [ProductFilter!], $sortKey: ProductCollectionSortKeys!, $reverse: Boolean!) {
       collectionByHandle(handle: $handle) {
         title
         description
         image { url altText width height }
-        products(first: $first, after: $after, filters: $filters) {
+        products(first: $first, after: $after, filters: $filters, sortKey: $sortKey, reverse: $reverse) {
           edges { node { ${PRODUCT_SUMMARY_FIELDS} } }
           pageInfo { hasNextPage endCursor }
           filters { ${FILTER_FIELDS} }
@@ -265,6 +283,7 @@ async function getCollectionLive(
     first: opts.first,
     after: opts.after ?? null,
     filters: toProductFilters(opts.filters),
+    ...toCollectionSortKey(opts.sort),
   })
 
   if (!data.collectionByHandle) {

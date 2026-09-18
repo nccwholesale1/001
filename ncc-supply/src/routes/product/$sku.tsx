@@ -151,7 +151,7 @@ function ProductRoute() {
               <span className="font-display text-3xl font-semibold text-foreground">
                 {formatPrice(product.price.amountPence)}
               </span>
-              <p className="text-sm text-muted-foreground">ex VAT · Available to order</p>
+              <p className="text-sm text-muted-foreground">Available to order</p>
             </div>
 
             {product.description ? (

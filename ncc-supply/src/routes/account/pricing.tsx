@@ -18,7 +18,7 @@ function AccountPricingRoute() {
       <div className="surface-card rounded-xl p-5">
         <p className="text-sm text-foreground">
           Your company doesn't have a separate contract or tier pricing agreement — every product
-          is priced at the same standard trade list price, shown ex-VAT on its product page.
+          is priced at the same standard trade list price shown on its product page.
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
           If your company has agreed different pricing with NCC, contact your account manager and

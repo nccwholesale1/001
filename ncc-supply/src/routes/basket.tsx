@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react'
 import {
   getBasket,
   removeBasketLine,
+  setReferringSalesRep,
   submitCurrentBasket,
   updateBasketLine,
 } from '../server/basket/server-functions'
@@ -34,6 +35,7 @@ function BasketRoute() {
   const [basket, setBasket] = useState<BasketView>(initialBasket)
   const [contactEmail, setContactEmail] = useState('')
   const [contactName, setContactName] = useState('')
+  const [salesRepId, setSalesRepId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [busyLineId, setBusyLineId] = useState<string | null>(null)
@@ -41,6 +43,7 @@ function BasketRoute() {
   const updateLine = useServerFn(updateBasketLine)
   const removeLine = useServerFn(removeBasketLine)
   const submit = useServerFn(submitCurrentBasket)
+  const doSetReferringSalesRep = useServerFn(setReferringSalesRep)
   const router = useRouter()
 
   const hasUnavailableLines = basket.lines.some((line) => !line.available)
@@ -71,6 +74,12 @@ function BasketRoute() {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      // Recorded on the basket first, because submit copies it onto the order
+      // request from there (see submit-order-request.ts) rather than taking it
+      // as a submission field.
+      if (salesRepId.trim()) {
+        await doSetReferringSalesRep({ data: { referringSalesRepId: salesRepId.trim() } })
+      }
       const result = await submit({
         data: isBuyer
           ? {}
@@ -199,13 +208,13 @@ function BasketRoute() {
             <div className="flex flex-col gap-6">
               <div className="surface-card rounded-xl p-5">
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Subtotal (ex VAT)</span>
+                  <span>Subtotal</span>
                   <span className="font-semibold text-foreground">
                     {formatPrice(basket.subtotalPence)}
                   </span>
                 </div>
                 <p className="mt-3 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-                  Delivery and VAT are confirmed by NCC after review — they are not shown here.
+                  Delivery is confirmed by NCC after review — it is not shown here.
                 </p>
               </div>
 
@@ -231,6 +240,12 @@ function BasketRoute() {
                       label="Name"
                       value={contactName}
                       onChange={(event) => setContactName(event.target.value)}
+                    />
+                    <Field
+                      label="Sales rep ID (optional)"
+                      value={salesRepId}
+                      onChange={(event) => setSalesRepId(event.target.value)}
+                      helpText="If an NCC sales rep referred you, enter their ID so your order is credited to them."
                     />
                   </>
                 )}
