@@ -1,6 +1,24 @@
 # NCC Supply — Decisions
 
-## Operational note: temporary site-wide password gate (2026-09-13)
+## Live deployment status (2026-09-18) — Vercel + Turso, second contributor
+
+**Live:** https://headlessncc.vercel.app on Vercel, application database on Turso. NCC engaged a second contributor to fix deployment; `main` (`ede3647`) carries ~12 of their commits ahead of this build session's branch. See PRD §14 A11.
+**What works live:** catalogue browsing, add to basket, guest order submission, private token order links, order status, checkout correctly gated before approval, token protection against enumeration.
+**What does not:** nothing past NCC approval. Shopify holds zero Draft Orders and zero Orders; the Admin API token returned 401 when tested; live staff credentials were unavailable so approval itself could not be exercised. Report only — no fix attempted, at the user's explicit instruction. See PRD §14 A12.
+**Known regression:** catalogue content is client-fetched via `GET /api/catalogue`, so crawlers receive HTML with no products, prices or `ItemList` structured data (PRD §9). Deployment workaround, not a design decision.
+**Product data:** 321 products — 200 active and priced, 121 draft and tagged `needs-price`. Some active products have no image.
+**Unmerged work:** this session's branch `phase/10-returns-support` is at `d4a2420`, ~12 commits behind `main`, and every change made 17–18 September (How to Order page, VAT copy removal, price-ascending sort + collection sort-key fix, footer alignment, product-card quantity, basket sales-rep field, category rail, 3-across category tiles, preview-gate removal, PRD amendments A1–A12) is **uncommitted local work — not on GitHub and not live.**
+**Test data to clean up:** guest order `631e9a2e-511e-4352-8647-c1c83ae66aa0` ("TEST ORDER - checkout flow check", checkout-test@example.com, £2.00) exists in the live database from the verification above.
+
+## Operational note: site-wide password gate removed (2026-09-17)
+
+**What:** The pre-launch password gate described in the next entry has been removed from the code entirely, at the user's direct request ("remove the preview password as well from the code"). Deleted: `src/server/auth/site-access.ts`, `src/server/auth/site-access-server-functions.ts`, `src/routes/preview-access.tsx`, the root-route `beforeLoad` redirect and the Header/Footer suppression in `src/routes/__root.tsx`, the `SITE_ACCESS_PASSWORD` variable in `src/server/env.ts` and `.env.example`, and the blank `SITE_ACCESS_PASSWORD=` line in the local `.env`. The files remain recoverable from git history (added in `9b32f65`, made optional in `5b4f3c3`).
+**Effect:** every page is now reachable by anyone who has the URL — the only remaining access control is per-user (staff sign-in, buyer sign-in, and token-gated order/quote/return/support links). `/preview-access` now returns 404.
+**Authority:** user decision. Note this happened *before* a runbook §18 authorized launch, which is the point the entry below said the gate should come off — recorded so nobody later assumes the gate was dropped by accident.
+**Follow-up outside the code:** `SITE_ACCESS_PASSWORD` should also be deleted from the Vercel project's environment variables; it is now ignored.
+**Verification:** clean rebuild (no `preview-access` reference anywhere in `dist/`); `/`, `/basket`, `/category/screens`, `/how-to-order` return 200 with no server-render errors; `/preview-access` returns 404. Typecheck and lint clean; tests 586 passed / 1 skipped (587). The count is 3 lower than before (590) only because `no-hardcoded-colors.test.ts` runs three checks per route file and one route file was deleted — confirmed by a per-file JSON comparison with and without the deleted files.
+
+## Operational note: temporary site-wide password gate (2026-09-13) — *superseded, removed 2026-09-17 (see above)*
 
 **What:** Every route except `/preview-access` now requires a shared password once per browser (`src/server/auth/site-access.ts`, `SITE_ACCESS_PASSWORD` env var, default `ncc-preview-2026` if unset — see `.env.example`). This is a pre-launch operational measure requested directly by the user ("keep it password protected for now"), not a PRD feature and not numbered as a phase ADR.
 **Design:** A root-route `beforeLoad` (`src/routes/__root.tsx`) redirects to `/preview-access` unless a session cookie (`ncc_site_access`, 30-day, sealed with the existing `SESSION_SECRET`) already marks the browser as granted. The gate page itself renders with no Header/Footer (checked via `useRouterState` in `RootDocument`), so an ungated visitor sees nothing but the password prompt — confirmed in a real browser, not just asserted. Entirely separate from buyer sign-in (`buyers/buyer-session.ts`) and staff auth (`auth/session.ts`) — this is a single shared password, not a per-user credential.

@@ -1,11 +1,13 @@
 # Product Requirements Document — NCC Supply Wholesale Storefront
 
-**Version:** 3.0 — Build Release
-**Date:** 11 September 2026
-**Status:** Ready for build — Claude Code (application) + Shopify (commerce platform)
-**Supersedes:** all earlier drafts (v1.0–v2.2) circulated for review. This is the consolidated, build-ready version of the PRD — the review history has been folded into the spec itself rather than kept as a running diff.
+**Version:** 3.1 — Build Release, amended during build
+**Date:** 11 September 2026 · last amended 17 September 2026
+**Status:** In build — Claude Code (application) + Shopify (commerce platform)
+**Supersedes:** all earlier drafts (v1.0–v2.2) circulated for review. This is the consolidated, build-ready version of the PRD — the pre-build review history has been folded into the spec itself rather than kept as a running diff.
 
-**How to use this document.** Sections 1–6 specify the product: what it does, who uses it, and every screen. Section 7 sets the working architecture — Shopify B2B plus a lean custom backend — and is written as a decision already adopted for this build, not an open menu of options. Section 13 (Open Questions) is the only place with unresolved items left in the whole document; everything else is ready to build against exactly as written. All product content shown anywhere below (titles, prices, SKUs, collection names) is placeholder lorem ipsum — real values are supplied by Shopify at build/runtime.
+**How to use this document.** Sections 1–6 specify the product: what it does, who uses it, and every screen. Section 7 sets the working architecture — Shopify plus a lean custom backend — and is written as a decision already adopted for this build, not an open menu of options. All product content shown anywhere below (titles, prices, SKUs, collection names) is placeholder lorem ipsum — real values are supplied by Shopify at build/runtime.
+
+> **This document has been amended since build started.** v3.0 described the product as specified *before* any code existed. Where the product as built now differs — because a business decision was taken, a Shopify limitation was discovered, or NCC changed its mind — the body text below has been updated to describe the product **as it actually is**, and every such change is recorded in **§14 Amendment Log** with the original v3.0 wording preserved verbatim. Amended passages carry an inline `(amended — §14 A#)` marker so any statement can be traced back to what it originally said and why it changed. Section 13 (Open Questions) tracks what remains genuinely undecided.
 
 ---
 
@@ -49,13 +51,13 @@ Every flow in this product — ordering, quoting, bulk upload, returns, support,
 
 Nobody needs an account to browse, request a quote, or place an order — guest ordering via a private token-gated link is a first-class path through every flow in this document. Company accounts and sales rep assignment are optional layers on top of that default.
 
-**Trade buyer (guest or company).** Retail shop owner or repair workshop manager. Time-poor, price-literate, orders the same lines repeatedly, wants ex-VAT trade pricing and certainty about what will actually ship. Orders as a guest via a private token link, or signs in to a company account for reorder history, contract pricing, and multi-user buying.
+**Trade buyer (guest or company).** Retail shop owner or repair workshop manager. Time-poor, price-literate, orders the same lines repeatedly, wants keen trade pricing and certainty about what will actually ship. Orders as a guest via a private token link, or signs in to a company account for reorder history and multi-user buying. *(amended — §14 A1, A2: contract pricing removed; pricing is VAT-inclusive and VAT is never shown.)*
 
 **Company admin.** Owns a company's account. Invites and removes buyer users, sets spend limits (informational context for their own review, not a gate — rule 6), and approves every order a buyer places under the company before it reaches NCC. A company may have more than one admin.
 
-**Company buyer user.** A staff member invited under a company account (e.g. a branch manager at a multi-site retailer). Orders against the company's contract pricing. Every order they place requires their company admin's approval before it reaches NCC — unconditionally, regardless of amount (rule 6).
+**Company buyer user.** A staff member invited under a company account (e.g. a branch manager at a multi-site retailer). Orders at the same list price as everyone else *(amended — §14 A1)*. Every order they place requires their company admin's approval before it reaches NCC — unconditionally, regardless of amount (rule 6).
 
-**NCC admin.** The internal role that runs the storefront. Reviews and approves every order — guest and company alike — in one action that confirms quantities, delivery and VAT and finalizes the order together (rule 13). Also resolves quotes, manages company accounts and contract pricing, triages returns and support tickets, and is the only role that can create sales rep accounts. Signs in with either an email address or an assigned username, in one field.
+**NCC admin.** The internal role that runs the storefront. Reviews and approves every order — guest and company alike — in one action that confirms quantities and delivery and finalizes the order together (rule 13) *(amended — §14 A2)*. Also resolves quotes, manages company accounts, triages returns and support tickets, and is the only role that can create sales rep accounts. Signs in with either an email address or an assigned username, in one field.
 
 **NCC sales representative.** Internal staff scoped to an assigned book of company accounts, for relationship management — a read-only view of their accounts' orders, quotes and returns for context. A sales rep cannot approve orders, price quotes, or edit spend limits; only an NCC admin holds those permissions. Created only by an NCC admin, and only once a verified ID number is on file — the account cannot be activated without one. Signs in the same way as an NCC admin: email or username, one field. A company account is never required to have a sales rep assigned, and most may have none.
 
@@ -146,17 +148,17 @@ Rules that must survive any redesign:
 
 1. No card details are captured at basket submission.
 2. Quantities may only be reduced or removed during NCC's review, never silently increased.
-3. Delivery and VAT are always shown before any payment is requested.
+3. Delivery is always shown, and the final total always agreed, before any payment is requested. Displayed prices are VAT-inclusive and VAT is never itemised or mentioned on any customer-facing surface. *(amended — §14 A2.)*
 4. `/checkout/:id` returns the customer to the order view unless the order status is `confirmed`.
 5. Order links are token-gated; no enumeration, no listing of other customers' orders.
 6. Every company buyer's basket requires company admin approval before it reaches NCC — unconditionally, not limited to baskets over a spend limit. Only a guest basket skips this step. The buyer sees a clear pending-approval state, not a silent block.
-7. Contract/tier pricing is resolved server-side from the signed-in company account, never trusted from client state, and never shown to a user not entitled to it.
+7. Pricing is resolved server-side and never trusted from client state. Every customer sees the same uniform list price; no contract or tier pricing is configured. *(amended — §14 A1.)*
 8. A quote is not an order and creates no obligation until explicitly accepted by the customer.
 9. A return request must reference an existing confirmed order and its specific line(s) — there is no "return" with no order behind it.
 10. Return status changes (approved/rejected, refund/replacement) are always visible to the customer on the same token-gated or account view as the originating order — never communicated by email alone.
 11. A support/complaint ticket always has a trackable status view, even for a guest.
 12. No screen enforces a minimum or maximum order quantity, on a line or on the basket/quote total — a buyer may order any quantity, from a single unit upward.
-13. An NCC admin reviews and approves every order in one action — confirming quantities, delivery and VAT is part of that same approval, not a separate preceding step done by someone else. This applies to every order, guest and company buyer alike, and is distinct from the company-side approval in rule 6. No order is `confirmed`, and no checkout link is reachable, until this happens.
+13. An NCC admin reviews and approves every order in one action — confirming quantities and delivery is part of that same approval, not a separate preceding step done by someone else. *(amended — §14 A2.)* This applies to every order, guest and company buyer alike, and is distinct from the company-side approval in rule 6. No order is `confirmed`, and no checkout link is reachable, until this happens.
 
 ---
 
@@ -187,8 +189,9 @@ All colour is consumed through semantic tokens in the global stylesheet. Hard-co
 
 - **Header** — blue logo, primary nav, basket indicator, account entry point (shows signed-in company name + role when authenticated), and an always-visible "Help / Report an issue" support entry point — never buried in the footer only.
 - **Footer** — white logo on near-black, no staff link exposed.
-- **CategoryGrid** — searchable/filterable image tiles with line counts.
-- **ProductCard** — gradient thumb, collection tag, title, SKU, price (no VAT label — §6.1), add control with confirm state.
+- **CategoryGrid** — searchable/filterable image tiles with line counts. On the homepage it lays out 1 / 2 / 3 per row at mobile / tablet / desktop, for wider tiles *(amended — §14 A10)*.
+- **ProductCard** — gradient thumb, collection tag, title, SKU, price (no VAT label — §6.1), a quantity input (any positive integer, default 1), and an add control with confirm state *(amended — §14 A7)*.
+- **CategoryRail** — the header's horizontal category strip. No visible scrollbar; left/right arrow buttons appear only when there is more to scroll in that direction. Wheel, touch and keyboard scrolling still work *(added — §14 A9)*.
 - **OrderSteps** — five-step icon flow, compact and full variants.
 - **FAQ disclosure grid** — natural-height cards, full-width CTA banner beneath.
 - **Filter bar** — brand select, sort select, result count.
@@ -236,13 +239,15 @@ Placeholder set for cards:
 | Product title | `Dolor sit amet consectetur adipiscing 20W` |
 | SKU line | `SKU LRM-0000` |
 | Price | `£00.00` |
-| Price subtext | `Available to order` — no VAT label on cards; VAT is shown for the first time on the order request and again on the invoice, only after NCC admin approval (§4, rule 13) |
+| Price subtext | `Available to order` — prices are VAT-inclusive and no VAT label or line appears anywhere a customer can see *(amended — §14 A2)* |
 | Grade badge | `LOREM` |
 | Tile tagline | `Consectetur adipiscing elit sed do.` |
 
 ### 6.2 Collection listing (`/category/:slug`)
 
 Breadcrumb → gradient header (H1 collection name, description, "N lines · from £00.00 · all available to order" — no VAT mention, per §6.1) → facet sidebar (brand, sort, count, plus attribute facets — see §6.3) → 4-up product grid → numbered pagination. Emits `ItemList` structured data.
+
+**Default sort order: lowest price first.** Listings open price-ascending; the buyer can switch to Price ↓, A–Z, or Featured (the collection's own curated order). Shopify exposes no relevance ranking for a collection, so "Featured" is what that option means here — relevance ranking exists only on `/search`. *(amended — §14 A3.)*
 
 Empty state: "No products found" plus a short prompt to contact NCC — never placeholder products presented as real stock.
 
@@ -252,11 +257,11 @@ Global search bar in the header (typeahead: product and collection suggestions) 
 
 ### 6.4 Product detail (`/product/:sku`)
 
-Breadcrumb, gallery, H1 title, collection tag, SKU, price with "Available to order" — no VAT label here either, matching the cards (§6.1) — short description, spec list, quantity + add to basket, and a restatement of the no-payment-yet promise. Where a company account is signed in, price reflects their contract/tier pricing instead of list price (§6.13). `Product` structured data with availability expressed as order-only. No reviews or rating UI.
+Breadcrumb, gallery, H1 title, collection tag, SKU, price with "Available to order" — no VAT label here either, matching the cards (§6.1) — short description, spec list, quantity + add to basket, and a restatement of the no-payment-yet promise. Every customer sees the same list price, signed in or not *(amended — §14 A1)*. `Product` structured data with availability expressed as order-only. No reviews or rating UI.
 
 ### 6.5 Basket
 
-Line list with editable quantities and remove, ex-VAT subtotal, an explicit panel stating delivery and VAT are confirmed later, contact fields, and a single "Submit basket" action. Copy must never read "Pay" or "Checkout" here. Quantity fields accept any positive integer — no minimum or maximum order quantity is enforced on any line or on the basket total. Every signed-in company buyer's basket routes to their company admin for approval before reaching NCC — an inline banner explains this on every submission, regardless of spend limit standing; only a guest basket skips this step.
+Line list with editable quantities and remove, subtotal, an explicit panel stating delivery is confirmed later, contact fields (email, name, and an optional sales rep ID), and a single "Submit basket" action *(amended — §14 A2, A8)*. Copy must never read "Pay" or "Checkout" here. Quantity fields accept any positive integer — no minimum or maximum order quantity is enforced on any line or on the basket total. Every signed-in company buyer's basket routes to their company admin for approval before reaching NCC — an inline banner explains this on every submission, regardless of spend limit standing; only a guest basket skips this step.
 
 ### 6.6 Bulk order (`/bulk-order`)
 
@@ -264,7 +269,7 @@ CSV upload or paste-in SKU + quantity list → server matches against the catalo
 
 ### 6.7 Order view and checkout
 
-Order view shows original vs. confirmed quantity per line, removals called out plainly, delivery, VAT, and the final total. Checkout offers cash on delivery or the invoice payment link, and is unreachable before confirmation.
+Order view shows original vs. confirmed quantity per line, removals called out plainly, delivery, and the final total. Checkout offers cash on delivery or the invoice payment link, and is unreachable before confirmation. *(amended — §14 A2. Note: whether the VAT line and the staff VAT input are removed from the order model entirely is still open — see §13 Q9.)*
 
 ### 6.8 Quote request and quote view (`/quote`, `/quote/:id`)
 
@@ -316,7 +321,7 @@ Timeline view: original message, staff replies, current status (open, awaiting N
 
 ### 6.20 Staff: return/RMA queue (`/staff/returns`)
 
-Mirrors the staff order queue (§6.9): queue sorted by submission time with status chips, detail screen to approve/reject with a reason, and select refund vs. replacement. Refunds run through Shopify's native refund mechanism, since orders live in Shopify as Draft Orders/Orders once confirmed (§7.1) — no separate payment-provider integration is needed for this.
+Mirrors the staff order queue (§6.9): queue sorted by submission time with status chips, detail screen to approve/reject with a reason, and select refund vs. replacement. The return's status in this application is authoritative, and the refund or replacement itself is actioned by NCC outside the app. Returns raised here have no Shopify-side `Return` object to approve, so no Shopify return mutation is called *(amended — §14 A5; see DECISIONS.md ADR-034 for the evidence)*.
 
 ### 6.21 Staff: support/complaints queue (`/staff/support`)
 
@@ -325,6 +330,17 @@ Mirrors the staff return queue: ticket list sorted by submission time and status
 ### 6.22 Staff: team management (`/staff/team`, NCC admin only)
 
 Table of internal NCC accounts: name, email, username, role (NCC admin / sales rep), for sales reps their assigned company accounts and ID number status, active/removed. "Add account" flow: email, username, role; for a sales rep, an ID number field is required before the account can be activated — the form blocks submission without it and shows the verification result inline rather than silently accepting an empty or malformed value (§7.2). This screen owns assigning/reassigning a sales rep's book of company accounts (shown read-only on `/staff/accounts`, §6.15). This is an internal tool: no customer-facing equivalent, and out of reach of both company admins and buyer users.
+
+### 6.23 How ordering works (`/how-to-order`)
+
+*(added — §14 A4. The route was listed in §3 from v3.0 but never given a screen spec, while the header, footer and homepage all linked to it.)*
+
+Public explainer for the confirm-then-pay model, written so a first-time buyer understands why nothing is charged at basket submission. H1 "How ordering works", a lead paragraph stating the full total including delivery is agreed before any money changes hands, then the five-step flow reused from the **OrderSteps** component (§5.2) rather than restated — so this page and the homepage can never drift apart. Two explainer panels follow:
+
+- **Buying on a company account** — states plainly that a company buyer's basket goes to their own company admin for approval before NCC sees it, on every order regardless of value, and that a guest basket skips only that step (§4, rule 6). Without this, a company buyer meets an approval gate the site never warned them about.
+- **What "available to order" means** — no live inventory is published; the fulfillable quantity is confirmed at NCC review, lines may be reduced or removed, and quantities are never silently increased (§4, rules 2 and 15).
+
+Closes with "Start your basket" and "Upload a bulk order" actions. Copy states no policy that is still open in §13 — no return window, SLA, or payment-timing promise beyond what §4 already fixes.
 
 ---
 
@@ -356,6 +372,8 @@ Shopify has no native concept of the following, so they're built and owned by th
 ### 7.3 Frontend and delivery target
 
 The frontend is a headless TanStack Start application, calling Shopify's Storefront, Customer and Admin APIs as above, with its own thin backend for the items in §7.2. Earlier drafts of this document left open whether "not excluding a Shopify theme deployment" should mean building a second, native Shopify theme alongside the headless app — **resolved for this build: no.** The headless application described throughout §3–§6 is the only build target; a Shopify theme is not being built now and isn't precluded later if ever requested.
+
+**Live hosting, as actually deployed** *(amended — §14 A11)*: the application runs on **Vercel** at **https://headlessncc.vercel.app**, with the application database on **Turso** (hosted libSQL, `DATABASE_URL`/`DATABASE_AUTH_TOKEN`). Getting it to boot on Vercel required a series of changes made by a second contributor NCC brought in for deployment — see §14 A11 for what those changed and what they cost. The most consequential: **catalogue content is now fetched by the browser from a `GET /api/catalogue` endpoint rather than server-rendered**, which has a direct SEO consequence recorded in §9.
 
 ### 7.4 Buyer identity across Shopify and the application
 
@@ -391,6 +409,7 @@ Nothing in this table is required to start the build — §7 specifies a day-one
 - Unique title (< 60 chars) and description (< 160 chars) per route, plus Open Graph and Twitter card metadata.
 - One H1 per page; semantic sectioning; descriptive alt text on every image.
 - Structured data: `Organization` and `FAQPage` on home, `ItemList` on collections and search results, `Product` on detail pages, `BreadcrumbList` throughout.
+- ⚠️ **Not currently true of the live site** *(amended — §14 A11)*: because catalogue data moved to a client-side fetch to get Vercel working, the HTML served to a crawler contains no products, no prices and no `ItemList` — verified 18 September 2026 against `https://headlessncc.vercel.app/category/wall-chargers` (11 KB of shell, zero product links). Customers see the catalogue normally; search engines do not. This must be resolved before the SEO goals in §1.1 (G4) mean anything.
 - AEO: FAQ copy written as complete question-and-answer pairs covering stock policy, payment timing, order amendments, invoicing, VAT, company account setup, bulk ordering, the quote process, returns, and support — the questions an answer engine is most likely to be asked about this business.
 - Lazy-loaded imagery, explicit width/height to avoid layout shift, canonical tags, responsive viewport.
 - Faceted `/search` and `/category/:slug` URLs use canonical tags back to the unfiltered collection to avoid duplicate-content dilution at large catalogue scale — filter combinations are not each indexed as a separate page. `noindex` on empty-result facet combinations.
@@ -407,6 +426,8 @@ WCAG 2.2 AA throughout. Visible focus rings on every interactive element, labell
 ## 11. Acceptance Criteria
 
 1. No screen displays live stock numbers or a delivery-date promise.
+1a. No customer-facing screen displays a VAT label, a VAT line, or the words "ex VAT" — displayed prices are VAT-inclusive. *(added — §14 A2.)*
+1b. Category listings open sorted lowest-price-first, and every sort option actually reaches Shopify rather than being cosmetic. *(added — §14 A3.)*
 2. No payment surface is reachable before an order reaches `confirmed`.
 3. Every product string on screen resolves from the data adapter, never a component literal.
 4. All collections render with correct counts, filters, sorting and pagination at catalogue scale.
@@ -416,7 +437,7 @@ WCAG 2.2 AA throughout. Visible focus rings on every interactive element, labell
 8. Zero review, rating or testimonial content anywhere in the product.
 9. Staff routes are inaccessible without an authenticated, approved role.
 10. No company buyer's basket reaches NCC review without recorded company-admin approval — for every submission, not only those exceeding a spend limit.
-11. A company buyer cannot see or use pricing, spend limits, or order data belonging to a different company, under any UI or API path.
+11. A company buyer cannot see or use spend limits or order data belonging to a different company, under any UI or API path. *(amended — §14 A1: pricing is uniform, so there is no company-specific price to leak; tenant isolation of orders, users and spend limits is unchanged and still enforced.)*
 12. Facet/search URLs never produce indexable duplicate-content pages, and a facet combination with no results never presents placeholder products as real stock.
 13. A quote never auto-becomes a paid order; customer acceptance is a distinct, explicit step.
 14. Bulk-order upload never silently drops an unmatched row — every row is either added or explained.
@@ -445,11 +466,135 @@ WCAG 2.2 AA throughout. Visible focus rings on every interactive element, labell
 
 Everything else in this document — every screen, rule, route and component — is specified and ready to build against as written. These are the only items that need real input from the business; each has an adopted default stated elsewhere in this document so the build isn't blocked while they're outstanding.
 
-1. **Target catalogue size** — how many collections and SKUs at launch, and expected growth? Feeds §7.5 (whether native search stays sufficient) and Open Question 2 below.
-2. **Number of companies needing distinct contract pricing** — determines whether the 3-price-list cap on standard Shopify plans is a real constraint (§7.1), which feeds directly into Open Question 8.
-3. **Contract/tier pricing model** — flat percentage off list, per-SKU negotiated price, or volume-based tiers? Shopify price lists (§7.1) support all three; NCC needs to pick one to configure.
+**Resolved during build** (kept here, struck through, so the original question and its answer stay traceable — full reasoning in `DECISIONS.md`):
+
+1. ~~**Target catalogue size**~~ ✅ **Answered in part:** the live store holds **321 SKUs across 12 collections** at time of writing. Expected growth is still unstated, which is what §7.5 actually depends on.
+2. ~~**Number of companies needing distinct contract pricing**~~ ✅ **Resolved: none.** Uniform list pricing for every customer, so the price-list cap is moot (ADR-005, §14 A1).
+3. ~~**Contract/tier pricing model**~~ ✅ **Resolved: not used** (ADR-005, §14 A1).
+7. ~~**Sales rep ID verification depth**~~ ✅ **Resolved:** internal employee ID checked for format and uniqueness, plus first successful login as the activation trigger (ADR-007).
+8. ~~**Shopify plan tier**~~ ✅ **Resolved: Basic is sufficient.** ADR-006 removed the dependency on Shopify's B2B "Companies" objects, so the Plus-only restriction no longer applies.
+
+**Still open:**
 4. **ERP, PIM or accounting system(s), if any, that this build should integrate with** — default is none; §7.6 assumes Shopify's own fields and the application database are sufficient until told otherwise.
 5. **Return window and refund-vs-replacement policy per reason** — needed to configure Shopify's native return rules (§7.1) and the return request reason list (§6.16).
 6. **Support SLA targets and escalation rules** — needed to configure the support queue's escalation action (§6.21); no default assumed.
-7. **Sales rep ID verification depth** — adopted default: an internal employee ID, checked for format and uniqueness only, no third-party identity check (§6.22). Confirm this is sufficient, or specify a formal KYC requirement.
-8. **Shopify plan tier (standard vs. Plus)** — driven by Open Questions 1–2 (price-list cap) and whether deposits/partial payments or a dedicated B2B storefront are ever wanted (§7.1). This is the one item on this list with a direct cost implication, and the one worth deciding before build starts rather than during it.
+9. **Does VAT leave the order model entirely?** *(new — §14 A2.)* All customer-facing VAT wording is gone and prices are VAT-inclusive, but the confirmed-order breakdown still carries a `VAT` money line fed by an amount the NCC admin types during approval (§6.9). If prices already include VAT, that line double-counts and the input should probably go. Removing it changes order totals arithmetic, not just copy, so it is deliberately unresolved rather than assumed. NCC's invoicing/accounting obligations sit outside this application and should drive the answer.
+10. **Screens subcategories — tag mapping.** *(new — §14 A6.)* NCC asked for three subcategories under Screens: **Advance**, **Prime LCD**, **Soft OLED**. The Screens smart collection is driven by four product tags — `NCC prime`, `Colorx LCD`, `NCC SOFT OLED`, `LCD Screen`. `NCC SOFT OLED` → Soft OLED and `NCC prime` → Prime LCD are clear; which of `Colorx LCD` / `LCD Screen` is "Advance", and what becomes of the leftover tag, is not. Unresolved — mislabelling live products is not a guess worth making.
+
+---
+
+## 14. Amendment Log
+
+Every change made to this document since **v3.0 (11 September 2026)**, the version written before any code existed. The purpose of this log is traceability: for each amendment it records what v3.0 originally specified, what the product actually became, why it changed, and who decided. Nothing here is a silent edit — every amended passage in §§1–13 carries an `(amended — §14 A#)` marker pointing back to its entry.
+
+**How to read this:** "Originally specified" is verbatim v3.0 wording. "As built" is the product as it actually is. "Authority" is who made the call — a business decision from NCC, or a technical finding that forced the change.
+
+---
+
+### A1 — Contract and tier pricing removed; pricing is uniform
+
+- **Originally specified (v3.0):** §2 — buyers sign in "for reorder history, contract pricing, and multi-user buying." §4 rule 7 — "Contract/tier pricing is resolved server-side from the signed-in company account, never trusted from client state, and never shown to a user not entitled to it." §6.4 — "Where a company account is signed in, price reflects their contract/tier pricing instead of list price." Plus §6.13, §6.15 and acceptance criterion 11, all of which assumed per-company pricing existed.
+- **As built:** every customer sees the same uniform list price, signed in or not. No contract or tier pricing is configured anywhere. `/account/pricing` exists but states plainly that no separate agreement applies. `/staff/accounts` has no pricing administration.
+- **Why:** NCC confirmed no company requires distinct pricing, which also removed the Shopify price-list cap as a constraint and, via ADR-006, the dependency on Shopify B2B objects that would have forced a Plus plan.
+- **Authority:** NCC business decision, 12 September 2026. See `DECISIONS.md` ADR-005.
+- **Still true:** server-side price resolution and cross-tenant isolation of orders, users and spend limits are unchanged and still enforced — there is simply no per-company price left to leak.
+
+### A2 — VAT is never shown to customers; prices are VAT-inclusive
+
+- **Originally specified (v3.0):** §4 rule 3 — "Delivery and VAT are always shown before any payment is requested." §2 — buyers want "ex-VAT trade pricing." §6.1 — "VAT is shown for the first time on the order request and again on the invoice, only after NCC admin approval." §6.5 — "ex-VAT subtotal, an explicit panel stating delivery and VAT are confirmed later." §6.7 — order view shows "delivery, VAT, and the final total." §4 rule 13 — approval confirms "quantities, delivery and VAT."
+- **As built:** displayed prices are VAT-inclusive. No VAT label, VAT line or "ex VAT" wording appears on any customer-facing surface — removed from the announcement bar, footer, product cards, product pages, basket, order view, order-submitted, account pricing, FAQ, order steps, homepage and `/how-to-order`. Subtotals read "Subtotal", not "Subtotal (ex VAT)".
+- **Why:** NCC stated the prices held in Shopify already include VAT, and that VAT should not be mentioned to customers anywhere.
+- **Authority:** NCC business decision, 17 September 2026.
+- **Not yet resolved:** the confirmed-order breakdown still contains a `VAT` money line fed by the staff VAT input on `/staff/order/:id`. If prices are genuinely VAT-inclusive this double-counts, but removing it changes totals arithmetic rather than copy, so it was left in place pending a decision — tracked as §13 Q9.
+- **Note for whoever revisits this:** this amendment directly reverses a v3.0 rule that existed for a reason (price transparency before payment). The transparency intent is preserved — the customer still agrees a final total including delivery before anything is payable — but anyone reinstating VAT display should read this entry first rather than assuming rule 3 was simply forgotten.
+
+### A3 — Listings default to lowest price first, and sorting actually works
+
+- **Originally specified (v3.0):** §6.2 specified a facet sidebar with a sort control but named no default ordering. §6.3's sort options were assumed to apply equally to collections and search.
+- **As built:** category listings open **price-ascending**. The options are Price ↑ (default), Price ↓, A–Z, and Featured. "Relevance" was renamed "Featured" on category pages because Shopify's `ProductCollectionSortKeys` has no relevance member — relevance ranking exists only on `/search` — so the option maps to the collection's own curated order (`COLLECTION_DEFAULT`).
+- **Why:** NCC asked for cheapest-first listings, on the basis that trade buyers compare on price.
+- **Authority:** NCC business decision, 17 September 2026.
+- **Defect found while implementing this:** `getCollectionLive` never passed a sort key to Shopify at all, so **every sort option on every category page had been cosmetic** — the buttons changed the URL and re-rendered, but Shopify returned the same collection-default order regardless. Search was unaffected; only collections were broken. Fixed as part of this amendment and verified against the live Screens collection (prices returned ascending from £9.00). Acceptance criterion 1b was added so this cannot regress unnoticed.
+
+### A4 — `/how-to-order` given a screen specification
+
+- **Originally specified (v3.0):** §3 listed the route as "Ordering workflow explainer." No §6 screen spec was ever written for it.
+- **As built:** specified as §6.23 and implemented. Reuses the existing `OrderSteps` component rather than restating the flow, and adds two explainer panels — company-account approval, and what "available to order" means.
+- **Why:** the route was linked from the header, the footer and the homepage (twice) but did not exist, so all of those were dead links returning 404.
+- **Authority:** gap closed during build, 17 September 2026.
+- **Worth recording:** the visual reference site's own copy for this page contradicted this PRD in three ways — it claimed goods ship only "once payment clears" (§4 allows cash on delivery), omitted company-admin approval entirely (§4 rule 6 makes it unconditional), and split NCC review into two steps (§4 rule 13 makes it one atomic action). The reference was followed for layout only; all copy derives from §4. This is the reference site being a visual aid, not a source of business rules, working exactly as intended.
+
+### A5 — Returns are app-authoritative; no Shopify return mutation is called
+
+- **Originally specified (v3.0):** §6.20 — "Refunds run through Shopify's native refund mechanism, since orders live in Shopify as Draft Orders/Orders once confirmed (§7.1) — no separate payment-provider integration is needed for this."
+- **As built:** the return's status in this application is authoritative; the refund or replacement is actioned by NCC outside the app. No Shopify return mutation is attempted.
+- **Why:** Shopify's `returnApproveRequest` approves an *existing* Shopify `Return` object, created by Shopify's own native return flow. A return raised through this application has no such object, so the call can never succeed. This was confirmed empirically against the live store, not inferred — the mutation returned a real error rejecting the app's own UUID as an invalid Shopify global ID.
+- **Authority:** technical finding, forced. See `DECISIONS.md` ADR-034.
+- **Open architecture question:** whether NCC wants a real Shopify-side `Return` created at request time (so refunds reconcile inside Shopify) is a business decision nobody has taken. Until then this is a deliberate limitation, not an oversight.
+
+### A6 — Screens subcategories requested (not yet built)
+
+- **Originally specified (v3.0):** no subcategory concept exists anywhere in the document; §3 and §6.2 assume a flat collection list.
+- **Requested:** three subcategories under Screens — **Advance**, **Prime LCD**, **Soft OLED**.
+- **Status:** **not built.** Blocked on a mapping question, tracked as §13 Q10.
+- **What was established:** Screens is a Shopify *smart* collection of 107 products, populated by four tags — `NCC prime`, `Colorx LCD`, `NCC SOFT OLED`, `LCD Screen`. Two names map cleanly (`NCC SOFT OLED` → Soft OLED, `NCC prime` → Prime LCD); which of the remaining two tags is "Advance", and what happens to the leftover, is unknown.
+- **Architectural note for when this proceeds:** subcategories are Shopify collections, not application code. The app renders whatever collections the catalogue adapter exposes (§7.1, and CLAUDE.md rule 20), so this work is creating three smart collections in Shopify — a change to the live store — not a code change here.
+
+### A7 — Quantity can be chosen straight from a product card
+
+- **Originally specified (v3.0):** §5.2 ProductCard — "add control with confirm state." No quantity input; the card added one unit per click. A quantity field existed only on the product detail page (§6.4).
+- **As built:** every product card carries a number input (default 1, any positive integer, no maximum), and "Add" adds that quantity.
+- **Why:** NCC asked that buyers be able to set the quantity when adding, rather than clicking repeatedly or opening each product. Consistent with §4 rule 12 (no min/max quantity).
+- **Authority:** NCC business decision, 17 September 2026.
+- **Verified:** set a card to 4 and added it — the basket line showed quantity 4 at £9.00 each, £36.00.
+
+### A8 — Optional sales rep ID on the basket
+
+- **Originally specified (v3.0):** §6.5 — basket submission has "contact fields." Sales rep referral was captured on `/bulk-order`, `/quote` and `/register`, but not on the basket.
+- **As built:** guest basket submission shows Email, Name, and **Sales rep ID (optional)**. The ID is stored on the basket and copied onto the order request on submit, so it appears as "Referred by sales rep" on the order view and in the staff console.
+- **Why:** NCC asked for it. The data model already supported it (`referringSalesRepId` on baskets and order requests); only the basket form was missing it, making the basket the one ordering path where a referral couldn't be recorded.
+- **Authority:** NCC business decision, 17 September 2026.
+- **Scope note:** shown to guests only. A signed-in company buyer's referring rep is recorded once, at company registration.
+- **Caveat worth knowing:** the ID is self-reported free text. It is *not* checked against real sales rep accounts, so a mistyped or invented ID is stored as-is. Treat it as a referral hint, not a verified attribution.
+
+### A9 — Header category strip: arrows instead of a scrollbar
+
+- **Originally specified (v3.0):** not specified. The implementation used a plain overflowing row, which showed the browser's native horizontal scrollbar.
+- **As built:** the native scrollbar is hidden and replaced by left/right arrow buttons that appear only when there is more to scroll that way (none at all on a screen wide enough to show every category).
+- **Why:** NCC asked for the sliding bar to be removed in favour of a proper horizontal-scroll control.
+- **Authority:** NCC business decision, 17 September 2026.
+- **Accessibility:** hiding the scrollbar removes no way of scrolling. Wheel, trackpad, touch and keyboard (tabbing through the links) all still work; the arrows are a convenience duplicating that, so they are hidden from screen readers.
+
+### A10 — Homepage category tiles: three per row on desktop
+
+- **Originally specified (v3.0):** §5.2 CategoryGrid — tile layout not fixed. The implementation showed five per row on desktop.
+- **As built:** homepage tiles are 1 / 2 / 3 per row at mobile / tablet / desktop (verified at 375px, 768px and 1457px; desktop tiles are ~403px wide).
+- **Why:** NCC wanted larger tiles.
+- **Authority:** NCC business decision, 17 September 2026.
+- **Scope note:** homepage only. `/categories` still shows five per row. Say if that should match.
+
+### A11 — Deployed to Vercel + Turso by a second contributor; catalogue moved client-side
+
+- **Originally specified (v3.0):** §7.3 named the delivery target only as "a headless TanStack Start application" — no host, no database host, and an assumption throughout §9 that pages are server-rendered with structured data.
+- **As deployed:** live on **Vercel** at **https://headlessncc.vercel.app**, application database on **Turso**. NCC brought in a second contributor specifically to get the deployment working after repeated failures; `main` carries roughly twelve of their commits, all deployment fixes — Node runtime selection, keeping the native libSQL driver out of the Linux bundle, Turso client hardening, `NODE_ENV=Preview` handling, Shopify store-domain normalisation, and a new `GET /api/catalogue` endpoint.
+- **Why:** the app would not boot on Vercel otherwise (homepage 500s).
+- **Authority:** NCC engaged the contributor directly; these are technical fixes, not product decisions.
+- **The cost, recorded plainly:** catalogue data is now fetched by the browser instead of rendered on the server. The served HTML has no products, prices or `ItemList` structured data — see §9. This trades away the SEO position §1.1 G4 and §9 were written to win. It is a deployment workaround, not a product decision, and should be revisited rather than accepted as the design.
+- **Also added:** `bootstrapFirstNccAdmin` (`server/staff/bootstrap-admin.ts`) — a one-shot way to create the first NCC admin when the staff table has none, since the seed script isn't run against the production database. Subsequent accounts still go through `/staff/team` (§6.22).
+
+### A12 — Live checkout flow: verified working up to approval, blocked after it
+
+Verified against the live site on 18 September 2026 by placing a real guest order (labelled "TEST ORDER - checkout flow check", order `631e9a2e…`, £2.00).
+
+**Confirmed working:** browse → product → add to basket → submit basket with no payment → order created → private token link issued → status page shows "Awaiting NCC Review". `/checkout/:id` correctly refuses to open before approval (307 back to the order view — §4 rule 4 holds). An invalid or missing token returns the generic "We Couldn't Find That Order" page and leaks no order data (§4 rule 5 holds).
+
+**Blocked:** the flow cannot be completed past that point.
+1. **No Shopify Draft Order or Order has ever been created** — the store contains zero of each. The confirm → Draft Order → payment-link path in §6.7/§7.1 has never produced anything in production.
+2. **The Admin API token was rejected (HTTP 401)** when tested directly against the store, which is consistent with (1).
+3. **Approval could not be exercised at all** — the seeded fixture staff accounts do not exist in the live database, and no live staff credentials were available to the build session.
+
+**Net effect:** no customer can currently reach a payment surface on the live site. Everything up to NCC review works; nothing after it has been shown to.
+
+---
+
+**Amendments still to be reflected here:** none outstanding at 18 September 2026. When the product next diverges from this document, add an entry rather than editing §§1–13 silently.
