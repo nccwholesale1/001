@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useState, type FormEvent } from 'react'
 import { z } from 'zod'
 import { env } from '../../server/env'
+import { isDevOnlySurfaceEnabled } from '../../server/dev/dev-only-server-functions'
 import { mintFixtureIdToken } from '../../server/integrations/shopify/fixture-customer-account-adapter'
 import { Button } from '../../components/ui/Button'
 import { Field } from '../../components/ui/Field'
@@ -47,6 +48,7 @@ const buildFixtureRedirect = createServerFn({ method: 'POST' })
 export const Route = createFileRoute('/dev/fixture-shopify-login')({
   validateSearch: fixtureLoginSearchSchema,
   beforeLoad: async () => {
+    if (!(await isDevOnlySurfaceEnabled())) throw notFound()
     const enabled = await checkFixtureAdapterEnabled()
     if (!enabled) throw notFound()
   },

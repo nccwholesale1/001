@@ -2,6 +2,7 @@ import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
+import { ClientOnly } from '../ClientOnly'
 import { addBasketLine } from '../../server/basket/server-functions'
 import type { ProductSummary } from '../../server/integrations/shopify/types'
 import { Icon } from './Icon'
@@ -33,11 +34,44 @@ function formatPrice(pence: number): string {
  * quantity input accepts any positive integer — no minimum or maximum is
  * enforced anywhere (PRD §4 rule 12).
  */
-export function ProductCard({ product, className }: ProductCardProps) {
-  const href = `/product/${product.sku}`
+function addButtonLabel(product: ProductSummary, status: AddStatus): string {
+  if (status === 'added') return `${product.title} added to basket`
+  if (status === 'error') return `Could not add ${product.title} to basket — try again`
+  return `Add ${product.title} to basket`
+}
+
+function AddButton({
+  product,
+  status,
+  onClick,
+}: {
+  product: ProductSummary
+  status: AddStatus
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={status === 'adding' || !onClick}
+      aria-label={addButtonLabel(product, status)}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
+        status === 'added'
+          ? 'border-primary/40 bg-secondary text-primary'
+          : status === 'error'
+            ? 'border-destructive/40 text-destructive'
+            : 'border-border text-foreground hover:bg-secondary',
+      )}
+    >
+      <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
+      {status === 'added' ? 'Added' : status === 'error' ? 'Retry' : 'Add'}
+    </button>
+  )
+}
+
+function AddToBasketButton({ product, quantity }: { product: ProductSummary; quantity: number }) {
   const [status, setStatus] = useState<AddStatus>('idle')
-  const [imageFailed, setImageFailed] = useState(false)
-  const [quantity, setQuantity] = useState(1)
   const addLine = useServerFn(addBasketLine)
   const router = useRouter()
 
@@ -56,6 +90,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
       setTimeout(() => setStatus('idle'), CONFIRM_DURATION_MS)
     }
   }
+
+  return <AddButton product={product} status={status} onClick={handleAdd} />
+}
+
+export function ProductCard({ product, className }: ProductCardProps) {
+  const href = `/product/${product.sku}`
+  const [imageFailed, setImageFailed] = useState(false)
+  // Quantity lives here rather than inside AddToBasketButton so the input
+  // renders server-side too — inside ClientOnly it would pop in on hydration
+  // and shift the card's footer.
+  const [quantity, setQuantity] = useState(1)
 
   return (
     <div className={cn('surface-card rise-in flex flex-col overflow-hidden rounded-xl p-0', className)}>
@@ -106,29 +151,10 @@ export function ProductCard({ product, className }: ProductCardProps) {
             className="w-16 rounded-lg border border-border bg-background px-2 py-2 text-center text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={status === 'adding'}
-          aria-label={
-            status === 'added'
-              ? `${product.title} added to basket`
-              : status === 'error'
-                ? `Could not add ${product.title} to basket — try again`
-                : `Add ${product.title} to basket`
-          }
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors',
-            status === 'added'
-              ? 'border-primary/40 bg-secondary text-primary'
-              : status === 'error'
-                ? 'border-destructive/40 text-destructive'
-                : 'border-border text-foreground hover:bg-secondary',
-          )}
-        >
-          <Icon icon={status === 'added' ? Check : status === 'error' ? X : Plus} size="sm" />
-          {status === 'added' ? 'Added' : status === 'error' ? 'Retry' : 'Add'}
-        </button>
+        <ClientOnly fallback={<AddButton product={product} status="idle" />}>
+          <AddToBasketButton product={product} quantity={quantity} />
+        </ClientOnly>
+
       </div>
     </div>
   )

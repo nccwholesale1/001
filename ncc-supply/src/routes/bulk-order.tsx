@@ -35,6 +35,7 @@ function downloadUnmatchedCsv(rows: BulkOrderPreview['unmatched']): void {
 }
 
 export const Route = createFileRoute('/bulk-order')({
+  ssr: false,
   head: () => ({
     meta: [{ title: 'Bulk Order · NCC Supply' }],
   }),

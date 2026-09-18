@@ -1,0 +1,145 @@
+import { describe, expect, it } from 'vitest'
+import { parseEnv } from './env'
+
+const hostedBase = {
+  VERCEL: '1',
+  NODE_ENV: 'production',
+  SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+  DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+  DATABASE_AUTH_TOKEN: 'turso-token',
+  CATALOGUE_ADAPTER: 'live',
+  ADMIN_COMMERCE_ADAPTER: 'live',
+  SHOPIFY_STORE_DOMAIN: 'example.myshopify.com',
+  SHOPIFY_STOREFRONT_ACCESS_TOKEN: 'storefront-token',
+  SHOPIFY_ADMIN_ACCESS_TOKEN: 'admin-token',
+}
+
+describe('parseEnv', () => {
+  it('allows local development with the fixture catalogue and no hosted database', () => {
+    const env = parseEnv({ NODE_ENV: 'development' })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+    expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
+    expect(env.DATABASE_URL).toBeUndefined()
+  })
+
+  it('refuses the insecure SESSION_SECRET default when NODE_ENV=production', () => {
+    expect(() => parseEnv({ NODE_ENV: 'production' })).toThrow(/SESSION_SECRET/)
+  })
+
+  it('allows a local production build (no VERCEL) without Turso or Shopify secrets', () => {
+    const env = parseEnv({
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+    expect(env.DATABASE_URL).toBeUndefined()
+  })
+
+  it('accepts a hosted live-catalogue production config', () => {
+    const env = parseEnv(hostedBase)
+    expect(env.CATALOGUE_ADAPTER).toBe('live')
+    expect(env.ADMIN_COMMERCE_ADAPTER).toBe('live')
+    expect(env.DATABASE_URL).toBe('libsql://ncc-supply-staging.turso.io')
+  })
+
+  it('boots on a hosted deploy even when Turso credentials are missing', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+    })
+    expect(env.DATABASE_URL).toBeUndefined()
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
+  it('ignores a local file DATABASE_URL on a hosted deploy instead of crashing boot', () => {
+    const env = parseEnv({ ...hostedBase, DATABASE_URL: 'file:./local.db' })
+    expect(env.DATABASE_URL).toBeUndefined()
+  })
+
+  it('boots on a hosted deploy without DATABASE_AUTH_TOKEN', () => {
+    const env = parseEnv({ ...hostedBase, DATABASE_AUTH_TOKEN: undefined })
+    expect(env.DATABASE_AUTH_TOKEN).toBeUndefined()
+  })
+
+  it('boots on a hosted deploy with Turso even if Shopify adapters are still fixture', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+      DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+      DATABASE_AUTH_TOKEN: 'turso-token',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+    expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
+  })
+
+  it('normalizes admin and protocol-prefixed Shopify domains', () => {
+    const env = parseEnv({
+      ...hostedBase,
+      SHOPIFY_STORE_DOMAIN: 'https://admin.shopify.com/store/9nd0we-wt/settings/domains',
+    })
+    expect(env.SHOPIFY_STORE_DOMAIN).toBe('9nd0we-wt.myshopify.com')
+    expect(env.CATALOGUE_ADAPTER).toBe('live')
+  })
+
+  it('ignores a custom storefront domain so live catalogue does not call the wrong host', () => {
+    const env = parseEnv({
+      ...hostedBase,
+      SHOPIFY_STORE_DOMAIN: 'nccwholesale.org',
+    })
+    expect(env.SHOPIFY_STORE_DOMAIN).toBeUndefined()
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
+  it('promotes the catalogue to live on a hosted deploy when Storefront credentials are present', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+      DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+      DATABASE_AUTH_TOKEN: 'turso-token',
+      SHOPIFY_STORE_DOMAIN: 'example.myshopify.com',
+      SHOPIFY_STOREFRONT_ACCESS_TOKEN: 'storefront-token',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('live')
+    expect(env.ADMIN_COMMERCE_ADAPTER).toBe('fixture')
+  })
+
+  it('falls back to the fixture catalogue when CATALOGUE_ADAPTER=live but Storefront credentials are missing', () => {
+    const env = parseEnv({ ...hostedBase, SHOPIFY_STOREFRONT_ACCESS_TOKEN: undefined })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
+  it('falls back to the fixture customer adapter when CLIENT_ID is missing', () => {
+    const env = parseEnv({
+      ...hostedBase,
+      CUSTOMER_ACCOUNT_ADAPTER: 'live',
+      SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: undefined,
+    })
+    expect(env.CUSTOMER_ACCOUNT_ADAPTER).toBe('fixture')
+  })
+
+  it('treats Vercel NODE_ENV=Preview as production so hosted boot does not 500', () => {
+    const env = parseEnv({
+      VERCEL: '1',
+      NODE_ENV: 'Preview',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+      DATABASE_URL: 'libsql://ncc-supply-staging.turso.io',
+      DATABASE_AUTH_TOKEN: 'turso-token',
+    })
+    expect(env.NODE_ENV).toBe('production')
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+  })
+
+  it('honours NCC_HOSTED=1 the same way as VERCEL=1', () => {
+    const env = parseEnv({
+      VERCEL: undefined,
+      NCC_HOSTED: '1',
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a-real-production-secret-at-least-32ch',
+    })
+    expect(env.CATALOGUE_ADAPTER).toBe('fixture')
+    expect(env.DATABASE_URL).toBeUndefined()
+  })
+})

@@ -1,4 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, notFound } from '@tanstack/react-router'
+import { isDevOnlySurfaceEnabled } from '../../server/dev/dev-only-server-functions'
 import { useState } from 'react'
 import { Info, Mail, Trash2 } from 'lucide-react'
 import { Banner } from '../../components/ui/Banner'
@@ -21,6 +22,9 @@ import { ExternalLink, RouterLink } from '../../components/ui/Link'
  * corresponding *.test.tsx files instead — this page is for human eyes.
  */
 export const Route = createFileRoute('/dev/components')({
+  beforeLoad: async () => {
+    if (!(await isDevOnlySurfaceEnabled())) throw notFound()
+  },
   head: () => ({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] }),
   component: ComponentPreviewRoute,
 })

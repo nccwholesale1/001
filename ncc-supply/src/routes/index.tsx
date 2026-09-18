@@ -1,8 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { PackageCheck, ShieldCheck, Truck } from 'lucide-react'
-import { getCatalogueAdapter } from '../server/integrations/shopify'
-import type { CollectionSummary, ProductSummary } from '../server/integrations/shopify/types'
+import { EMPTY_PUBLIC_CATALOGUE, fetchPublicCatalogue, type PublicCatalogueData } from '../lib/public-catalogue'
 import { Banner } from '../components/ui/Banner'
 import { CategoryGrid } from '../components/ui/CategoryGrid'
 import { FAQ, HOME_FAQ_ITEMS } from '../components/ui/FAQ'
@@ -12,44 +10,20 @@ import { OrderSteps } from '../components/ui/OrderSteps'
 import { ProductCard } from '../components/ui/ProductCard'
 import { Reveal } from '../components/ui/Reveal'
 
-interface HomeData {
-  collections: CollectionSummary[]
-  /** A sample of real catalogue data from the first collection — not a true popularity ranking (no analytics source exists yet). */
-  popularProducts: ProductSummary[]
-  error: string | null
-}
-
 const HOME_FAQ_STRUCTURED_DATA = HOME_FAQ_ITEMS.map((item) => ({
   '@type': 'Question',
   name: item.question,
   acceptedAnswer: { '@type': 'Answer', text: item.answer },
 }))
 
-const getHomeData = createServerFn({ method: 'GET' }).handler(async (): Promise<HomeData> => {
-  const adapter = getCatalogueAdapter()
-  try {
-    const collections = await adapter.listCollections()
-    // Same "first collection that actually has lines" rule the featured-CTA
-    // pick uses below — collections[0] alone can be an empty one (e.g. a
-    // category with 0 real products yet), which would silently make this
-    // whole section empty for no good reason.
-    const firstStockedCollection = collections.find((collection) => collection.lineCount > 0)
-    const popularProducts = firstStockedCollection
-      ? (await adapter.getCollection(firstStockedCollection.slug, { first: 8 })).products
-      : []
-    return { collections, popularProducts, error: null }
-  } catch (error) {
-    console.error('[home] failed to load catalogue data', error)
-    return {
-      collections: [],
-      popularProducts: [],
-      error: 'Could not load catalogue data right now.',
-    }
-  }
-})
-
 export const Route = createFileRoute('/')({
-  loader: () => getHomeData(),
+  ssr: false,
+  loader: async (): Promise<PublicCatalogueData> => {
+    // Never call createServerFn or self-fetch during the document request —
+    // on Vercel that becomes {"message":"HTTPError"} even with try/catch.
+    if (typeof window === 'undefined') return EMPTY_PUBLIC_CATALOGUE
+    return fetchPublicCatalogue()
+  },
   head: () => ({
     meta: [
       {

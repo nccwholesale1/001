@@ -20,6 +20,7 @@ function formatPrice(pence: number): string {
 }
 
 export const Route = createFileRoute('/basket')({
+  ssr: false,
   loader: async () => {
     const [basket, buyer] = await Promise.all([getBasket(), getCurrentBuyerSummary()])
     return { basket, isBuyer: buyer !== null }

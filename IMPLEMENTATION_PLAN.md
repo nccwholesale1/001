@@ -79,8 +79,8 @@ Rule: one phase per session. Before starting the next phase, open a fresh Claude
 
 - **Local:** fixture/mock Shopify adapter, local SQLite file via libSQL (`DATABASE_FILE` env var) — revised from the original Postgres default; see `DECISIONS.md` ADR-004 revision.
 - **Shopify development store:** `nccwholesale.org` (Basic plan) — already holds the real 321-SKU / 12-collection catalogue populated earlier. Confirmed reachable for B2B Admin API resources (`companies` query succeeds) — consistent with dev-store access rules. Used for Phase 3+ read/contract testing.
-- **Staging:** a separate deployed instance introduced in Phase 14 — never the production domain, never the current live NCC site.
-- **Production:** not touched until the gated launch prompt (runbook §18) is explicitly approved with real credentials and a confirmed deployment target.
+- **Staging:** a separate Vercel deployment + Turso database (ADR-038) — never the production domain, never the current live NCC site. Password-gated via `SITE_ACCESS_PASSWORD` until the launch prompt.
+- **Production:** not touched until the gated launch prompt (runbook §18) is explicitly approved with real credentials and a confirmed domain. Hosted deploys (`VERCEL=1`) require live Shopify catalogue + Admin adapters and a hosted `DATABASE_URL`.
 
 ## 7. Open items that can block later phases
 

@@ -1,47 +1,24 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { lazy, Suspense } from 'react'
 import { AppErrorBoundary } from '../components/app-boundaries/ErrorBoundary'
 import { AppNotFound } from '../components/app-boundaries/NotFound'
 import { AppPending } from '../components/app-boundaries/Pending'
+import { ClientOnly } from '../components/ClientOnly'
 import { Footer } from '../components/ui/Footer'
-import { Header, type HeaderBuyer, type HeaderCategory } from '../components/ui/Header'
-import { getBasketCount } from '../server/basket/server-functions'
-import { getCurrentBuyerSummary } from '../server/buyers/server-functions'
-import { getCatalogueAdapter } from '../server/integrations/shopify'
+import { Header } from '../components/ui/Header'
 
 import appCss from '../styles.css?url'
 
-const getHeaderCategories = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<HeaderCategory[]> => {
-    try {
-      const collections = await getCatalogueAdapter().listCollections()
-      return collections.map((collection) => ({ slug: collection.slug, title: collection.title }))
-    } catch (error) {
-      console.error('[root] failed to load header categories', error)
-      return []
-    }
-  },
-)
+const LiveHeader = lazy(async () => {
+  const module = await import('../components/LiveHeader')
+  return { default: module.LiveHeader }
+})
 
-const getHeaderBuyer = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<HeaderBuyer | null> => {
-    const summary = await getCurrentBuyerSummary()
-    if (!summary) return null
-    return { companyName: summary.companyName, role: summary.role }
-  },
-)
+const EMPTY_HEADER = <Header categories={[]} buyer={null} basketCount={0} />
 
 export const Route = createRootRoute({
-  loader: async () => {
-    const [categories, buyer, basketCount] = await Promise.all([
-      getHeaderCategories(),
-      getHeaderBuyer(),
-      getBasketCount(),
-    ])
-    return { categories, buyer, basketCount }
-  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -66,26 +43,42 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { categories, buyer, basketCount } = Route.useLoaderData()
+  // #region agent log
+  try {
+    if (typeof window !== 'undefined' && process.env.VERCEL !== '1') {
+      fetch('http://127.0.0.1:7516/ingest/3bd6d664-9013-4cd7-906e-9686e0886622',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'21cab6'},body:JSON.stringify({sessionId:'21cab6',runId:'post-fix',hypothesisId:'C',location:'src/routes/__root.tsx:RootDocument',message:'RootDocument render started',data:{hasWindow:typeof window!=='undefined'},timestamp:Date.now()})}).catch(()=>{});
+    }
+  } catch {
+    // ignore instrumentation failures
+  }
+  // #endregion
+  console.error('[ncc-debug] RootDocument', { hasWindow: typeof window !== 'undefined' })
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="ncc-debug" content="root-document-render" />
         <HeadContent />
       </head>
       <body>
-        <Header categories={categories} buyer={buyer} basketCount={basketCount} />
+        <ClientOnly fallback={EMPTY_HEADER}>
+          <Suspense fallback={EMPTY_HEADER}>
+            <LiveHeader />
+          </Suspense>
+        </ClientOnly>
         <main>{children}</main>
         <Footer />
-        <TanStackDevtools
-          config={{ position: 'bottom-right' }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+        {import.meta.env.DEV ? (
+          <TanStackDevtools
+            config={{ position: 'bottom-right' }}
+            plugins={[
+              {
+                name: 'Tanstack Router',
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+          />
+        ) : null}
         <Scripts />
       </body>
     </html>
