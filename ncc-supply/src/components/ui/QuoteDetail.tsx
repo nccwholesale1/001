@@ -78,7 +78,7 @@ export function QuoteDetail({ quote, actions, bare = false }: QuoteDetailProps) 
         ))}
         {subtotalPence !== null ? (
           <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">
-            <span>Subtotal (ex VAT)</span>
+            <span>Subtotal</span>
             <span>{formatPrice(subtotalPence)}</span>
           </div>
         ) : null}

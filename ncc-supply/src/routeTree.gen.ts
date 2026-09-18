@@ -16,8 +16,8 @@ import { Route as AuthCallbackRouteImport } from './routes/auth-callback'
 import { Route as BasketRouteImport } from './routes/basket'
 import { Route as BulkOrderRouteImport } from './routes/bulk-order'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as HowToOrderRouteImport } from './routes/how-to-order'
 import { Route as OrderSubmittedRouteImport } from './routes/order-submitted'
-import { Route as PreviewAccessRouteImport } from './routes/preview-access'
 import { Route as QuoteSubmittedRouteImport } from './routes/quote-submitted'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SearchRouteImport } from './routes/search'
@@ -87,14 +87,14 @@ const CategoriesRoute = CategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowToOrderRoute = HowToOrderRouteImport.update({
+  id: '/how-to-order',
+  path: '/how-to-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrderSubmittedRoute = OrderSubmittedRouteImport.update({
   id: '/order-submitted',
   path: '/order-submitted',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PreviewAccessRoute = PreviewAccessRouteImport.update({
-  id: '/preview-access',
-  path: '/preview-access',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuoteSubmittedRoute = QuoteSubmittedRouteImport.update({
@@ -271,8 +271,8 @@ export interface FileRoutesByFullPath {
   '/basket': typeof BasketRoute
   '/bulk-order': typeof BulkOrderRoute
   '/categories': typeof CategoriesRoute
+  '/how-to-order': typeof HowToOrderRoute
   '/order-submitted': typeof OrderSubmittedRoute
-  '/preview-access': typeof PreviewAccessRoute
   '/quote-submitted': typeof QuoteSubmittedRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
@@ -314,8 +314,8 @@ export interface FileRoutesByTo {
   '/basket': typeof BasketRoute
   '/bulk-order': typeof BulkOrderRoute
   '/categories': typeof CategoriesRoute
+  '/how-to-order': typeof HowToOrderRoute
   '/order-submitted': typeof OrderSubmittedRoute
-  '/preview-access': typeof PreviewAccessRoute
   '/quote-submitted': typeof QuoteSubmittedRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
@@ -359,8 +359,8 @@ export interface FileRoutesById {
   '/basket': typeof BasketRoute
   '/bulk-order': typeof BulkOrderRoute
   '/categories': typeof CategoriesRoute
+  '/how-to-order': typeof HowToOrderRoute
   '/order-submitted': typeof OrderSubmittedRoute
-  '/preview-access': typeof PreviewAccessRoute
   '/quote-submitted': typeof QuoteSubmittedRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
@@ -405,8 +405,8 @@ export interface FileRouteTypes {
     | '/basket'
     | '/bulk-order'
     | '/categories'
+    | '/how-to-order'
     | '/order-submitted'
-    | '/preview-access'
     | '/quote-submitted'
     | '/register'
     | '/search'
@@ -448,8 +448,8 @@ export interface FileRouteTypes {
     | '/basket'
     | '/bulk-order'
     | '/categories'
+    | '/how-to-order'
     | '/order-submitted'
-    | '/preview-access'
     | '/quote-submitted'
     | '/register'
     | '/search'
@@ -492,8 +492,8 @@ export interface FileRouteTypes {
     | '/basket'
     | '/bulk-order'
     | '/categories'
+    | '/how-to-order'
     | '/order-submitted'
-    | '/preview-access'
     | '/quote-submitted'
     | '/register'
     | '/search'
@@ -537,8 +537,8 @@ export interface RootRouteChildren {
   BasketRoute: typeof BasketRoute
   BulkOrderRoute: typeof BulkOrderRoute
   CategoriesRoute: typeof CategoriesRoute
+  HowToOrderRoute: typeof HowToOrderRoute
   OrderSubmittedRoute: typeof OrderSubmittedRoute
-  PreviewAccessRoute: typeof PreviewAccessRoute
   QuoteSubmittedRoute: typeof QuoteSubmittedRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
@@ -620,18 +620,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-to-order': {
+      id: '/how-to-order'
+      path: '/how-to-order'
+      fullPath: '/how-to-order'
+      preLoaderRoute: typeof HowToOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/order-submitted': {
       id: '/order-submitted'
       path: '/order-submitted'
       fullPath: '/order-submitted'
       preLoaderRoute: typeof OrderSubmittedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/preview-access': {
-      id: '/preview-access'
-      path: '/preview-access'
-      fullPath: '/preview-access'
-      preLoaderRoute: typeof PreviewAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quote-submitted': {
@@ -896,8 +896,8 @@ const rootRouteChildren: RootRouteChildren = {
   BasketRoute: BasketRoute,
   BulkOrderRoute: BulkOrderRoute,
   CategoriesRoute: CategoriesRoute,
+  HowToOrderRoute: HowToOrderRoute,
   OrderSubmittedRoute: OrderSubmittedRoute,
-  PreviewAccessRoute: PreviewAccessRoute,
   QuoteSubmittedRoute: QuoteSubmittedRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
@@ -930,3 +930,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

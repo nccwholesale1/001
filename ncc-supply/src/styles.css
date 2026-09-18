@@ -209,6 +209,17 @@
 
 /* Animated underline for text nav links — grows from the center on hover
    instead of a plain colour swap. */
+/* Hides the native horizontal scrollbar on a scroll container that supplies
+   its own affordance (the category rail's arrow buttons). Keyboard, wheel and
+   touch scrolling all still work — only the scrollbar chrome is hidden. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility nav-underline {
   position: relative;
   &::after {

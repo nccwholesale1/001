@@ -50,8 +50,7 @@ describe('ncc-approval', () => {
     orderRequestId: 'order-1',
     lines: [{ orderRequestLineId: 'line-1', confirmedQuantity: 3 }],
     deliveryPence: 500,
-    vatPence: 200,
-    finalTotalPence: 3700,
+    finalTotalPence: 3500,
   }
 
   it('confirms the order atomically and syncs a real (fixture) Shopify draft order + invoice', async () => {
@@ -61,7 +60,10 @@ describe('ncc-approval', () => {
     const [order] = await db.select().from(orderRequests).where(eq(orderRequests.id, 'order-1'))
     expect(order?.status).toBe('confirmed')
     expect(order?.deliveryPence).toBe(500)
-    expect(order?.finalTotalPence).toBe(3700)
+    // Subtotal 3000 + delivery 500. No VAT is added on top — prices are
+    // VAT-inclusive (PRD §14 A2).
+    expect(order?.finalTotalPence).toBe(3500)
+    expect(order?.vatPence).toBeNull()
     expect(order?.nccApprovedByStaffUserId).toBe('admin-1')
     expect(order?.shopifyDraftOrderId).toEqual(expect.any(String))
     expect(order?.invoiceUrl).toEqual(expect.any(String))

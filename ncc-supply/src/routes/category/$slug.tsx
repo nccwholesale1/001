@@ -14,11 +14,18 @@ import { Reveal } from '../../components/ui/Reveal'
 import { cn } from '../../lib/cn'
 
 const PAGE_SIZE = 12
+/**
+ * Lowest price first is the default listing order (trade buyers compare on
+ * price). 'relevance' maps to the collection's own curated order on a
+ * collection page — Shopify has no RELEVANCE sort key outside search — so it
+ * is labelled "Featured" rather than implying a text-match ranking.
+ */
+const DEFAULT_SORT = 'price_asc'
 const SORT_OPTIONS = [
-  { value: 'relevance', label: 'Relevance' },
   { value: 'price_asc', label: 'Price ↑' },
   { value: 'price_desc', label: 'Price ↓' },
   { value: 'title_asc', label: 'A–Z' },
+  { value: 'relevance', label: 'Featured' },
 ] as const
 type SortValue = (typeof SORT_OPTIONS)[number]['value']
 
@@ -54,7 +61,7 @@ function stringifyFilters(filters: FacetFilter[]): string | undefined {
 
 function buildHref(slug: string, overrides: CategorySearch): string {
   const params = new URLSearchParams()
-  if (overrides.sort && overrides.sort !== 'relevance') params.set('sort', overrides.sort)
+  if (overrides.sort && overrides.sort !== DEFAULT_SORT) params.set('sort', overrides.sort)
   if (overrides.after) params.set('after', overrides.after)
   if (overrides.filters) params.set('filters', overrides.filters)
   const query = params.toString()
@@ -88,7 +95,7 @@ const getCategoryData = createServerFn({ method: 'GET' })
       const result = await getCatalogueAdapter().getCollection(data.slug, {
         first: PAGE_SIZE,
         after: data.after,
-        sort: data.sort,
+        sort: data.sort ?? DEFAULT_SORT,
         filters: parseFiltersParam(data.filters),
       })
       return { slug: data.slug, result, error: null }
@@ -150,7 +157,7 @@ function CategoryRoute() {
   const { slug, result, error } = Route.useLoaderData()
   const search = Route.useSearch()
   const activeFilters = parseFiltersParam(search.filters)
-  const activeSort: SortValue = search.sort ?? 'relevance'
+  const activeSort: SortValue = search.sort ?? DEFAULT_SORT
 
   if (error || !result) {
     return (

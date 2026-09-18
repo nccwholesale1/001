@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute, useRouterState } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { lazy, Suspense } from 'react'
@@ -53,9 +53,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   }
   // #endregion
   console.error('[ncc-debug] RootDocument', { hasWindow: typeof window !== 'undefined' })
-  const isPreviewAccessGate = useRouterState({
-    select: (state) => state.location.pathname === '/preview-access',
-  })
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -64,15 +61,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {isPreviewAccessGate ? null : (
-          <ClientOnly fallback={EMPTY_HEADER}>
-            <Suspense fallback={EMPTY_HEADER}>
-              <LiveHeader />
-            </Suspense>
-          </ClientOnly>
-        )}
+        <ClientOnly fallback={EMPTY_HEADER}>
+          <Suspense fallback={EMPTY_HEADER}>
+            <LiveHeader />
+          </Suspense>
+        </ClientOnly>
         <main>{children}</main>
-        {isPreviewAccessGate ? null : <Footer />}
+        <Footer />
         {import.meta.env.DEV ? (
           <TanStackDevtools
             config={{ position: 'bottom-right' }}

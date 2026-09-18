@@ -15,3 +15,15 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     dispatchEvent: () => false,
   })
 }
+
+// Same gap: jsdom has no ResizeObserver. CategoryRail observes its own width
+// to decide whether the scroll arrows are needed. The stub never fires, which
+// is the correct default in a zero-width jsdom layout — nothing is scrollable,
+// so no arrows should render.
+if (typeof globalThis !== 'undefined' && !('ResizeObserver' in globalThis)) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}

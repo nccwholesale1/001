@@ -1,5 +1,6 @@
 import { Banknote, CheckCircle2, ClipboardCheck, Search, ShoppingBasket } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { cn } from '../../lib/cn'
 import { Icon } from './Icon'
 
 interface Step {
@@ -32,7 +33,7 @@ const STEPS: Step[] = [
   {
     icon: CheckCircle2,
     label: 'NCC Confirms',
-    description: 'We confirm quantities, delivery and VAT.',
+    description: 'We confirm quantities and delivery.',
   },
   {
     icon: Banknote,
@@ -43,11 +44,22 @@ const STEPS: Step[] = [
 
 export interface OrderStepsProps {
   variant?: 'full' | 'compact'
+  /**
+   * Five-across suits a homepage strip; two-across gives each step room to
+   * breathe on `/how-to-order`, where the steps are the page's main content
+   * rather than a summary band.
+   */
+  columns?: 2 | 5
 }
 
-export function OrderSteps({ variant = 'full' }: OrderStepsProps) {
+export function OrderSteps({ variant = 'full', columns = 5 }: OrderStepsProps) {
   return (
-    <ol className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+    <ol
+      className={cn(
+        'grid grid-cols-1 gap-6 sm:grid-cols-2',
+        columns === 5 && 'lg:grid-cols-5',
+      )}
+    >
       {STEPS.map((step, index) => (
         <li
           key={step.label}

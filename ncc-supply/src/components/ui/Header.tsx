@@ -1,6 +1,7 @@
 import { LifeBuoy, LogOut, Menu, Search, ShoppingBasket, User, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ClientOnly } from '../ClientOnly'
+import { CategoryRail } from './CategoryRail'
 import { Icon } from './Icon'
 import { Container } from './Layout'
 import { Logo } from './Logo'
@@ -65,7 +66,7 @@ export function Header({ categories = [], buyer = null, basketCount = 0 }: Heade
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-xl">
       <div className="sky-gradient py-1.5 text-center text-xs font-medium text-ink-foreground">
-        Every line available to order — NCC confirms stock, VAT and delivery before you pay.
+        Every line available to order — NCC confirms stock and delivery before you pay.
       </div>
 
       <Container className="flex h-16 items-center justify-between gap-4">
@@ -171,17 +172,7 @@ export function Header({ categories = [], buyer = null, basketCount = 0 }: Heade
       {categories.length > 0 ? (
         <div className="hidden border-t border-border/60 md:block">
           <Container>
-            <nav aria-label="Categories" className="flex gap-1 overflow-x-auto py-2">
-              {categories.map((category) => (
-                <a
-                  key={category.slug}
-                  href={`/category/${category.slug}`}
-                  className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-sky-soft hover:text-primary"
-                >
-                  {category.title}
-                </a>
-              ))}
-            </nav>
+            <CategoryRail categories={categories} />
           </Container>
         </div>
       ) : null}

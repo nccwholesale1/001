@@ -26,8 +26,8 @@ function OrderSubmittedRoute() {
           Your Order Request Has Been Submitted
         </h1>
         <p className="text-sm text-muted-foreground">
-          No payment has been taken. NCC will review your order, confirm quantities, delivery and
-          VAT, and you'll be able to pay only once it's confirmed.
+          No payment has been taken. NCC will review your order, confirm quantities and delivery,
+          and you'll be able to pay only once it's confirmed.
         </p>
         <div className="surface-card w-full rounded-xl p-6">
           <p className="text-sm font-semibold text-foreground">Save your private order link</p>

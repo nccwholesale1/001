@@ -52,7 +52,7 @@ export function OrderRequestDetail({ order, placedByLabel, actions, bare = false
       ) : null}
       {order.status === 'awaiting_ncc_review' ? (
         <p className="rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
-          NCC is reviewing your order. Quantities, delivery and VAT will be confirmed here — no
+          NCC is reviewing your order. Quantities and delivery will be confirmed here — no
           payment is needed until then.
         </p>
       ) : null}
@@ -85,26 +85,16 @@ export function OrderRequestDetail({ order, placedByLabel, actions, bare = false
           </div>
         ))}
         <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">
-          <span>Subtotal (ex VAT)</span>
+          <span>Subtotal</span>
           <span>{formatPrice(subtotalPence)}</span>
         </div>
-        {order.deliveryPence !== null || order.vatPence !== null ? (
-          <>
-            {order.deliveryPence !== null ? (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Delivery</span>
-                <span>{formatPrice(order.deliveryPence)}</span>
-              </div>
-            ) : null}
-            {order.vatPence !== null ? (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>VAT</span>
-                <span>{formatPrice(order.vatPence)}</span>
-              </div>
-            ) : null}
-          </>
+        {order.deliveryPence !== null ? (
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Delivery</span>
+            <span>{formatPrice(order.deliveryPence)}</span>
+          </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Delivery and VAT will be confirmed by NCC.</p>
+          <p className="text-xs text-muted-foreground">Delivery will be confirmed by NCC.</p>
         )}
         {order.finalTotalPence !== null ? (
           <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-foreground">

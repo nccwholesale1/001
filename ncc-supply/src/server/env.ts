@@ -60,18 +60,6 @@ const envSchema = z.object({
 
   /** Which AdminCommerceAdapter getAdminCommerceAdapter() returns — see integrations/shopify/index.ts. */
   ADMIN_COMMERCE_ADAPTER: z.enum(['fixture', 'live']).default('fixture'),
-
-  /**
-   * Pre-launch site-wide gate (temporary, operational — not a PRD feature).
-   * When set, every route except /preview-access requires this password
-   * once per browser (server/auth/site-access.ts). Truly optional — no
-   * default — so unsetting it for real turns the gate off entirely, rather
-   * than silently falling back to a known password. Never gated by
-   * NODE_ENV, since a staging/preview deploy still runs a production build
-   * (CLAUDE.md: "production launch... never inferred from phase
-   * completion").
-   */
-  SITE_ACCESS_PASSWORD: optionalString(),
 })
 
 export type Env = z.infer<typeof envSchema>
