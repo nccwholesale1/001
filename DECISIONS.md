@@ -1,5 +1,15 @@
 # NCC Supply — Decisions
 
+## Published to production (2026-09-18)
+
+**PR #1 merged to `main`** (`42f7da5`) and deployed by Vercel. Live and verified at https://headlessncc.vercel.app: `/how-to-order` resolves, no "ex VAT" text remains, cheapest-first sorting, VAT out of the order model, password gate gone, category rail, 3-across tiles, card quantity input, basket sales-rep field.
+
+**Catalogue rule applied:** a listing with no image or no price is not shown. 41 active products with no image were switched ACTIVE → DRAFT (nothing deleted); 0 active products lacked a price, since unpriced lines were already drafts. Live catalogue is now **159 products**. Record: `NCC-Hidden-Listings-2026-09-18.xlsx` on the user's Desktop, unprotected.
+
+**Side effect, not a defect:** Car Chargers, Screen Protectors and Wireless Chargers are now **empty categories** — every product in each lacked an image. Fixed by adding images in Shopify, not in code. See PRD §14 A13.
+
+**Deliberately not touched** (NCC instruction — do not fix what is working or out of scope): the debug instrumentation in `__root.tsx` that logs to the console on every render in production; `ClientOnly.tsx`'s lint warning; the stray `body.txt` / `error.ts` on `main`; the client-side catalogue fetch that leaves crawlers without product HTML; the 401 Shopify Admin token blocking checkout past approval; live staff credentials (parked until the admin dashboard is built).
+
 ## Live deployment status (2026-09-18) — Vercel + Turso, second contributor
 
 **Live:** https://headlessncc.vercel.app on Vercel, application database on Turso. NCC engaged a second contributor to fix deployment; `main` (`ede3647`) carries ~12 of their commits ahead of this build session's branch. See PRD §14 A11.

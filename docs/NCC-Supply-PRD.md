@@ -607,6 +607,30 @@ Verified against the live site on 18 September 2026 by placing a real guest orde
 
 **Net effect:** no customer can currently reach a payment surface on the live site. Everything up to NCC review works; nothing after it has been shown to.
 
+### A13 — Published to production; incomplete listings hidden
+
+**Published (18 September 2026).** PR #1 merged to `main`, which Vercel deploys. Everything in A1–A10 and A12 is now live at https://headlessncc.vercel.app — `/how-to-order` resolves, no "ex VAT" string remains anywhere on the site, listings sort cheapest-first, and VAT is gone from the order model.
+
+**Catalogue rule applied, at NCC's instruction:** *a listing with no image or no price is not shown on the live site.*
+
+- 41 active products had **no image**. All were switched ACTIVE → DRAFT, so the storefront no longer returns them.
+- **0** active products lacked a price — the unpriced lines (121 of them) were already drafts and already hidden.
+- Nothing was deleted. Adding an image and setting the product back to Active restores it.
+- A record of the 41 is on the user's Desktop as `NCC-Hidden-Listings-2026-09-18.xlsx` (no password).
+
+**Live catalogue after the change — 159 products:**
+
+| Category | Live lines | | Category | Live lines |
+|---|---|---|---|---|
+| Screens | 68 | | Car Chargers | **0** |
+| Batteries | 35 | | Screen Protectors | **0** |
+| Charging Cables | 24 | | Wireless Chargers | **0** |
+| Chargers | 13 | | iPad Digitizers | 0 |
+| Power Banks | 10 | | Car Holders | 0 |
+| Headphones & Earphones | 9 | | Repair Parts | 0 |
+
+**Consequence worth stating:** **Car Chargers, Screen Protectors and Wireless Chargers are now empty categories** — every product in them lacked an image. They still appear in navigation with zero lines. iPad Digitizers, Car Holders and Repair Parts were already empty before this change. Restoring any of them is a matter of adding product images in Shopify, not a code change.
+
 ---
 
 **Amendments still to be reflected here:** none outstanding at 18 September 2026. When the product next diverges from this document, add an entry rather than editing §§1–13 silently.
