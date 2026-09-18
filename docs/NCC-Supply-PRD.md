@@ -631,6 +631,30 @@ Verified against the live site on 18 September 2026 by placing a real guest orde
 
 **Consequence worth stating:** **Car Chargers, Screen Protectors and Wireless Chargers are now empty categories** — every product in them lacked an image. They still appear in navigation with zero lines. iPad Digitizers, Car Holders and Repair Parts were already empty before this change. Restoring any of them is a matter of adding product images in Shopify, not a code change.
 
+### A14 — Checkout completed end-to-end; staff dashboard landing page
+
+Closes the gaps A12 recorded. Built on `phase/12-checkout-completion`.
+
+**Root cause of A12's "zero draft orders ever created", now diagnosed.** The `SHOPIFY_ADMIN_ACCESS_TOKEN` in the environment is not a Shopify token. A real Admin API token is `shpat_` followed by 32 lowercase hexadecimal characters (38 characters total). The configured value is 49 characters: `shpat_` followed by 32 **uppercase letters**, a hyphen, and 10 more uppercase letters — no digits, no lowercase. Something unrelated had `shpat_` prefixed to it. A live read-only probe of `POST /admin/api/2026-07/graphql.json` returns **HTTP 401 "Invalid API key or access token"**. The adapter code was never at fault.
+
+**What was verified against the live store** (Storefront/Admin GraphQL, read-only): plan Basic, currency GBP, `taxesIncluded: true`, draft orders supported, `draftOrders` connection empty. `DraftOrderInput` accepts `shippingLine`, `appliedDiscount`, `poNumber`, `tags` and per-line `priceOverride`. Creating a real draft order end-to-end could not be executed in this session and remains unproven until a valid token is configured.
+
+**Three defects in the checkout path, fixed:**
+
+1. **The delivery charge never reached Shopify.** `createDraftOrder` sent only `{email, lines}`, so the amount a customer would have paid excluded the delivery NCC entered at approval. Now sent as an explicit custom `shippingLine`.
+2. **NCC's confirmed prices were not binding.** Shopify re-priced every line from the live catalogue, so a catalogue price change between approval and payment would have charged a total other than the one confirmed (contrary to rules 9 and 14). Each line now carries `priceOverride` set from `orderRequestLines.unitPricePence`.
+3. **A pay link required emailing the customer.** `invoiceUrl` was only read from `draftOrderInvoiceSend`, which mails the customer as a side effect of approval. `draftOrderCreate` returns `invoiceUrl` directly, so it is taken from there; **sending the invoice email is now a separate, deliberate NCC-admin action** (`sendInvoiceEmail`) with its own audit event, and it throws on failure rather than being swallowed.
+
+**Sync failures are now visible.** A failed Shopify sync is recorded on the new `order_requests.shopify_sync_error` column (migration `0006`) and rendered on `/staff/order/:id`, instead of only reaching a server log. It is deliberately **not** added to `OrderRequestView`, because that type is also serialised to customers on `/order/:id` and `/checkout/:id`. Approval still never depends on Shopify succeeding (rule 13).
+
+**Admin dashboard — no Shopify app.** An embedded Shopify app was evaluated and rejected: it would add an OAuth install flow, App Bridge, session-token storage and a second hosting surface, confine staff to working inside Shopify admin, and duplicate the console that already exists. The staff console (`/staff-login` plus orders, quotes, returns, support, accounts, team) was already built and deployed, with `ncc_admin`/`sales_rep` roles enforced server-side. The one missing piece was a landing page: signing in led nowhere. **`/staff` now exists** — per-queue counts of what is waiting, derived from the same role-filtered queue functions each section already uses, so a sales rep's figures never reveal totals outside their assigned companies (rule 17).
+
+**Tooling repaired.** `pnpm db:migrate` and `pnpm db:bootstrap-admin` were both broken: they run under `node --experimental-strip-types`, which cannot resolve extensionless specifiers, and `env.ts`/`db/client.ts` imported the newly added `debug-session-log` without an extension. Eight import lines across three files now carry the explicit `.ts` extension those CLI scripts already used. Without this, **no first admin account could be created at all** — which blocked the admin dashboard entirely.
+
+**Verification:** typecheck clean; 618 tests pass (up from 613 — two adapter tests proving prices and delivery are transmitted, two approval tests proving the sync error is recorded and that approval never emails, one colour-token check for the new route); production build clean under the Vercel/nitro preset; client bundle swept for secrets; `/staff` returns 307 to `/staff-login` when signed out. **Not verified:** the dashboard rendering against real data, because local dev cannot reach a database on this branch's base (see below), and any live Shopify mutation, which needs a valid token.
+
+**Left untouched, per instruction:** the production debug instrumentation in `__root.tsx` and its two lint errors, the `ClientOnly` lint warning, and `db/client.ts`'s fallback to an inert client at `https://127.0.0.1` — which is why `pnpm dev` cannot reach the local SQLite file. These predate this work and the live site is unaffected.
+
 ---
 
 **Amendments still to be reflected here:** none outstanding at 18 September 2026. When the product next diverges from this document, add an entry rather than editing §§1–13 silently.

@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { debugSessionLog } from './debug-session-log'
-import { normalizeShopifyStoreDomain } from './shopify-store-domain'
+import { debugSessionLog } from './debug-session-log.ts'
+import { normalizeShopifyStoreDomain } from './shopify-store-domain.ts'
 
 /**
  * A `.env` line like `KEY=` sets `process.env.KEY` to `''`, not undefined —

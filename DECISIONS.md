@@ -1,5 +1,27 @@
 # NCC Supply — Decisions
 
+## ADR-038: Checkout completion and the staff dashboard — no Shopify app (2026-09-18)
+
+**Context.** NCC asked for the checkout flow to be finished and an admin/sales-rep dashboard built, and asked specifically whether a Shopify app plus Vercel was the right shape. Checkout was blocked past NCC approval (PRD §14 A12).
+
+**Decision 1 — the Shopify Admin token, not the code, was the blocker.** A live read-only probe returns HTTP 401. The configured value is 49 characters of the wrong alphabet entirely (32 uppercase letters, a hyphen, 10 more) where a real token is `shpat_` + 32 lowercase hex. No code change can fix this; a valid token must be set in `.env` and in the Vercel environment. Scopes required: `write_draft_orders`, `read_draft_orders`, `write_orders`, `read_products`.
+
+**Decision 2 — the app stays authoritative on price; Shopify is told, not asked.** Every draft-order line now carries `priceOverride` from `orderRequestLines.unitPricePence`, and the delivery charge is sent as an explicit `shippingLine`. Previously Shopify re-derived prices from the live catalogue and never saw delivery at all, so the amount charged could differ from the total NCC confirmed. This is rule 9 and rule 14 applied to the payment surface, not only to our own database.
+
+**Decision 3 — creating a draft order and emailing the customer are separate actions.** `draftOrderCreate` returns `invoiceUrl`, so approval yields a working pay link without contacting anyone. Emailing the invoice is a distinct NCC-admin action that throws on failure and writes its own audit event. Approving an order must never mail a customer as a side effect.
+
+**Decision 4 — a failed Shopify sync is recorded, not just logged.** New column `order_requests.shopify_sync_error` (migration `0006`), surfaced on `/staff/order/:id`. Kept off `OrderRequestView`, which is serialised to customers on `/order/:id` and `/checkout/:id`. Approval remains valid regardless of Shopify (rule 13).
+
+**Decision 5 — no embedded Shopify app.** Rejected: it would add an OAuth install flow, App Bridge, session-token storage and a second hosting surface; tie staff to working inside Shopify admin; and duplicate the console already built and deployed. The existing `/staff/*` console keeps its server-side `ncc_admin`/`sales_rep` enforcement and needed only a landing page. **Consequence:** nothing new to host, no change to the Vercel build, no new repository, no Shopify review.
+
+**Decision 6 — `/staff` dashboard counts come from the role-filtered queue functions.** Reusing `listStaffOrders`/`Quotes`/`Returns`/`SupportTickets` rather than a privileged aggregate means a sales rep's numbers cannot reveal volume outside their assigned companies (rule 17).
+
+**Also repaired.** `pnpm db:migrate` and `pnpm db:bootstrap-admin` were both failing — they run under `node --experimental-strip-types`, which cannot resolve extensionless imports, and `env.ts`/`db/client.ts` imported `debug-session-log` without an extension. Eight import lines in three files now use the explicit `.ts` extension those scripts already used. This was blocking creation of the first admin account, so the dashboard would have had nobody able to sign in.
+
+**Evidence.** Typecheck clean; 618 tests pass (613 before); production build clean under the Vercel/nitro preset; no secrets in the client bundle; `/staff` 307s to `/staff-login` when signed out. **Unproven:** any live Shopify mutation (needs a valid token) and the dashboard rendering against real data (local dev cannot reach a database — see below).
+
+**Deliberately not touched:** the `__root.tsx` debug instrumentation and its two lint errors, the `ClientOnly` warning, and `db/client.ts` falling back to an inert client at `https://127.0.0.1`, which is why `pnpm dev` cannot open the local SQLite file. All predate this work; the live site is unaffected.
+
 ## Published to production (2026-09-18)
 
 **PR #1 merged to `main`** (`42f7da5`) and deployed by Vercel. Live and verified at https://headlessncc.vercel.app: `/how-to-order` resolves, no "ex VAT" text remains, cheapest-first sorting, VAT out of the order model, password gate gone, category rail, 3-across tiles, card quantity input, basket sales-rep field.

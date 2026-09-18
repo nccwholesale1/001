@@ -207,6 +207,13 @@ export const orderRequests = sqliteTable('order_requests', {
   internalNotes: text('internal_notes'),
   /** Set only after NCC approval creates the Shopify Draft Order (PRD §7.1). */
   shopifyDraftOrderId: text('shopify_draft_order_id'),
+  /**
+   * Why the last Shopify sync attempt failed, or null if it succeeded or has
+   * never run. A failed sync deliberately does not block confirmation, so
+   * without this the only record of it was a server log nobody reads — and a
+   * confirmed order silently stuck without a pay link (PRD §14 A12).
+   */
+  shopifySyncError: text('shopify_sync_error'),
   /** Copied from the submitting basket, if named — see baskets.referringSalesRepId. */
   referringSalesRepId: text('referring_sales_rep_id'),
   ...timestamps,

@@ -1,0 +1,1 @@
+ALTER TABLE `order_requests` ADD `shopify_sync_error` text;

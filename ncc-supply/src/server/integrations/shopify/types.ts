@@ -139,6 +139,25 @@ export interface DraftOrderLineInput {
   /** Shopify variant GID. */
   variantId: string
   quantity: number
+  /**
+   * The unit price the app confirmed at NCC approval, forced onto the draft
+   * order as Shopify's `priceOverride`. Without it Shopify re-prices every
+   * line from the live catalogue, so a catalogue price change between
+   * approval and payment would silently charge a different total than the
+   * one NCC confirmed and the customer agreed to (rule 9, rule 14).
+   */
+  unitPricePence: number
+}
+
+/**
+ * The delivery charge NCC entered at approval. Shopify never derives it —
+ * the app has no shipping rates configured and PRD §6.7 makes delivery a
+ * staff decision per order — so it is sent as an explicit custom shipping
+ * line or the draft order total would omit it entirely.
+ */
+export interface ShippingLineInput {
+  title: string
+  pricePence: number
 }
 
 export interface ShippingAddressInput {
@@ -154,6 +173,9 @@ export interface ConfirmedOrderRequest {
   email: string
   shippingAddress?: ShippingAddressInput
   note?: string
+  shippingLine?: ShippingLineInput
+  /** The app's own order request id, tagged on the draft order so staff can find it from Shopify admin. */
+  reference?: string
 }
 
 export interface DraftOrder {

@@ -19,20 +19,28 @@ export function createFixtureAdminCommerceAdapter(): AdminCommerceAdapter {
 }
 
 /**
- * `DraftOrderLineInput` carries no price (Shopify prices lines from its own
- * real variant data) — `totalPrice` here is a meaningless placeholder, same
- * as the rest of this fixture. The app's own `orderRequests.finalTotalPence`
- * (already server-recalculated at approval time) stays the one authoritative
- * total; this field is never read for anything real.
+ * Mirrors the live adapter's contract closely enough to be worth trusting in
+ * dev: the total is summed from the same app-authoritative unit prices and
+ * delivery charge the live adapter forces onto Shopify, and `invoiceUrl` is
+ * populated at creation — real `draftOrderCreate` returns it too, so a
+ * fixture that returned `null` here would hide the fact that no separate
+ * invoice-send call is needed before a customer can pay.
  */
 async function createDraftOrder(orderRequest: ConfirmedOrderRequest): Promise<DraftOrder> {
   const id = `gid://shopify/DraftOrder/fixture-${randomUUID()}`
+  const linesPence = orderRequest.lines.reduce(
+    (total, line) => total + line.unitPricePence * line.quantity,
+    0,
+  )
   return {
     id,
     name: `#FIXTURE-D${Math.floor(Math.random() * 9000 + 1000)}`,
     status: 'OPEN',
-    invoiceUrl: null,
-    totalPrice: { amountPence: orderRequest.lines.length, currencyCode: 'GBP' },
+    invoiceUrl: `https://fixture-shopify.example/invoices/${encodeURIComponent(id)}`,
+    totalPrice: {
+      amountPence: linesPence + (orderRequest.shippingLine?.pricePence ?? 0),
+      currencyCode: 'GBP',
+    },
   }
 }
 
