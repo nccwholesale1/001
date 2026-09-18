@@ -3,7 +3,7 @@ import { env } from '../env'
 
 /**
  * In-memory fixed-window rate limiter for public, unauthenticated-writable
- * endpoints (staff/site-access sign-in, guest order/quote/return/support
+ * endpoints (staff sign-in, guest order/quote/return/support
  * submission) — the runbook's Phase 12 security list names "rate limiting
  * and abuse handling for public submissions" explicitly.
  *
