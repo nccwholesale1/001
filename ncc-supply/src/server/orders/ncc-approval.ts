@@ -110,7 +110,6 @@ export async function confirmOrder(db: Db, actor: Actor, input: NccApprovalInput
       .set({
         status: nextStatus,
         deliveryPence: input.deliveryPence,
-        vatPence: input.vatPence,
         finalTotalPence: input.finalTotalPence,
         internalNotes: input.internalNotes ?? null,
         nccApprovedByStaffUserId: actor.staffUserId,
@@ -125,7 +124,7 @@ export async function confirmOrder(db: Db, actor: Actor, input: NccApprovalInput
     action: 'ncc_approve_order',
     resourceType: 'order_request',
     resourceId: order.id,
-    detail: { deliveryPence: input.deliveryPence, vatPence: input.vatPence, finalTotalPence: input.finalTotalPence },
+    detail: { deliveryPence: input.deliveryPence, finalTotalPence: input.finalTotalPence },
   })
 
   await syncToShopify(db, order.id)

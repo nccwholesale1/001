@@ -56,7 +56,6 @@ function StaffOrderDetailRoute() {
     Object.fromEntries(order.lines.map((line) => [line.id, line.confirmedQuantity ?? line.requestedQuantity])),
   )
   const [deliveryInput, setDeliveryInput] = useState(order.deliveryPence !== null ? String(order.deliveryPence / 100) : '0')
-  const [vatInput, setVatInput] = useState(order.vatPence !== null ? String(order.vatPence / 100) : '0')
   const [internalNotes, setInternalNotes] = useState(order.internalNotes ?? '')
   const [cancelReason, setCancelReason] = useState('')
   const [busy, setBusy] = useState(false)
@@ -74,8 +73,8 @@ function StaffOrderDetailRoute() {
     [order.lines, confirmedQuantities],
   )
   const deliveryPence = poundsToPence(deliveryInput)
-  const vatPence = poundsToPence(vatInput)
-  const finalTotalPence = subtotalPence + deliveryPence + vatPence
+  // Prices are VAT-inclusive, so VAT is never added on top (PRD §14 A2).
+  const finalTotalPence = subtotalPence + deliveryPence
 
   const canDecide = isNccAdmin && order.status === 'awaiting_ncc_review'
   const needsShopifySync = order.status === 'confirmed' && (!order.shopifyDraftOrderId || !order.invoiceUrl)
@@ -97,7 +96,6 @@ function StaffOrderDetailRoute() {
             confirmedQuantity: confirmedQuantities[line.id] ?? 0,
           })),
           deliveryPence,
-          vatPence,
           finalTotalPence,
           internalNotes: internalNotes.trim() || undefined,
         },
@@ -243,7 +241,6 @@ function StaffOrderDetailRoute() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Confirm Order</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Delivery (£)" inputMode="decimal" value={deliveryInput} onChange={(e) => setDeliveryInput(e.target.value)} />
-              <Field label="VAT (£)" inputMode="decimal" value={vatInput} onChange={(e) => setVatInput(e.target.value)} />
             </div>
             <TextareaField
               label="Internal notes"
@@ -274,10 +271,6 @@ function StaffOrderDetailRoute() {
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Delivery</span>
               <span>{formatPrice(order.deliveryPence ?? 0)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>VAT</span>
-              <span>{formatPrice(order.vatPence ?? 0)}</span>
             </div>
             <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-foreground">
               <span>Final total</span>

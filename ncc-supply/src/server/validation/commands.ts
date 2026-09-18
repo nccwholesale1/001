@@ -170,7 +170,6 @@ export const nccApprovalSchema = z
       )
       .min(1),
     deliveryPence: z.number().int().nonnegative(),
-    vatPence: z.number().int().nonnegative(),
     finalTotalPence: z.number().int().nonnegative(),
     internalNotes: z.string().max(5000).optional(),
   })

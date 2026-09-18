@@ -88,21 +88,11 @@ export function OrderRequestDetail({ order, placedByLabel, actions, bare = false
           <span>Subtotal</span>
           <span>{formatPrice(subtotalPence)}</span>
         </div>
-        {order.deliveryPence !== null || order.vatPence !== null ? (
-          <>
-            {order.deliveryPence !== null ? (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Delivery</span>
-                <span>{formatPrice(order.deliveryPence)}</span>
-              </div>
-            ) : null}
-            {order.vatPence !== null ? (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>VAT</span>
-                <span>{formatPrice(order.vatPence)}</span>
-              </div>
-            ) : null}
-          </>
+        {order.deliveryPence !== null ? (
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Delivery</span>
+            <span>{formatPrice(order.deliveryPence)}</span>
+          </div>
         ) : (
           <p className="text-xs text-muted-foreground">Delivery will be confirmed by NCC.</p>
         )}

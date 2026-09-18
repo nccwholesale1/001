@@ -23,7 +23,6 @@ export interface OrderRequestView {
   guestContactName: string | null
   cancelledReason: string | null
   deliveryPence: number | null
-  vatPence: number | null
   finalTotalPence: number | null
   /** Staff-only in practice (never rendered on the guest/buyer views) — real once ADMIN_COMMERCE_ADAPTER=live. */
   invoiceUrl: string | null
@@ -77,7 +76,6 @@ export async function buildOrderRequestView(db: Db, orderRequestId: string): Pro
     guestContactName: orderRequest.guestContactName,
     cancelledReason: orderRequest.cancelledReason,
     deliveryPence: orderRequest.deliveryPence,
-    vatPence: orderRequest.vatPence,
     finalTotalPence: orderRequest.finalTotalPence,
     invoiceUrl: orderRequest.invoiceUrl,
     shopifyDraftOrderId: orderRequest.shopifyDraftOrderId,
