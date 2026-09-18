@@ -49,8 +49,17 @@ const envSchema = z.object({
   }, z.string().min(1).optional()),
   /** Storefront API access token (public or private) — only required when CATALOGUE_ADAPTER=live. */
   SHOPIFY_STOREFRONT_ACCESS_TOKEN: optionalString(),
-  /** Admin API access token — only required when ADMIN_COMMERCE_ADAPTER=live. */
+  /**
+   * Legacy Admin API access token from an admin-created custom app. Shopify
+   * no longer allows creating those, so new setups use the client
+   * credentials pair below instead. Kept working for existing apps, and
+   * takes precedence when both are configured.
+   */
   SHOPIFY_ADMIN_ACCESS_TOKEN: optionalString(),
+  /** Dev Dashboard app client id — with the secret, mints Admin API tokens (see integrations/shopify/admin-token.ts). */
+  SHOPIFY_CLIENT_ID: optionalString(),
+  /** Dev Dashboard app client secret. Server-only — never exposed to browser code (rule 8). */
+  SHOPIFY_CLIENT_SECRET: optionalString(),
   SHOPIFY_API_VERSION: z.string().min(1).default('2026-07'),
   /** Customer Account API client id from the Headless channel — required when CUSTOMER_ACCOUNT_ADAPTER=live. */
   SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID: optionalString(),
@@ -104,7 +113,8 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     if (
       data.ADMIN_COMMERCE_ADAPTER === 'fixture' &&
       data.SHOPIFY_STORE_DOMAIN &&
-      data.SHOPIFY_ADMIN_ACCESS_TOKEN
+      (data.SHOPIFY_ADMIN_ACCESS_TOKEN ||
+        (data.SHOPIFY_CLIENT_ID && data.SHOPIFY_CLIENT_SECRET))
     ) {
       data.ADMIN_COMMERCE_ADAPTER = 'live'
     }
@@ -126,7 +136,11 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   }
   if (
     data.ADMIN_COMMERCE_ADAPTER === 'live' &&
-    (!data.SHOPIFY_STORE_DOMAIN || !data.SHOPIFY_ADMIN_ACCESS_TOKEN)
+    (!data.SHOPIFY_STORE_DOMAIN ||
+      !(
+        data.SHOPIFY_ADMIN_ACCESS_TOKEN ||
+        (data.SHOPIFY_CLIENT_ID && data.SHOPIFY_CLIENT_SECRET)
+      ))
   ) {
     data.ADMIN_COMMERCE_ADAPTER = 'fixture'
   }
