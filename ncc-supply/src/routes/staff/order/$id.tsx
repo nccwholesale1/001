@@ -8,6 +8,7 @@ import {
   getOrderCustomerLink,
   getStaffOrderDetail,
   retryOrderShopifySync,
+  sendOrderInvoiceEmail,
 } from '../../../server/staff/order-console-server-functions'
 import { Button } from '../../../components/ui/Button'
 import { Field, TextareaField } from '../../../components/ui/Field'
@@ -61,10 +62,12 @@ function StaffOrderDetailRoute() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [invoiceEmailSent, setInvoiceEmailSent] = useState(false)
 
   const approve = useServerFn(approveOrder)
   const cancel = useServerFn(cancelStaffOrder)
   const retrySync = useServerFn(retryOrderShopifySync)
+  const sendInvoice = useServerFn(sendOrderInvoiceEmail)
   const fetchCustomerLink = useServerFn(getOrderCustomerLink)
   const refreshDetail = useServerFn(getStaffOrderDetail)
 
@@ -77,7 +80,10 @@ function StaffOrderDetailRoute() {
   const finalTotalPence = subtotalPence + deliveryPence
 
   const canDecide = isNccAdmin && order.status === 'awaiting_ncc_review'
-  const needsShopifySync = order.status === 'confirmed' && (!order.shopifyDraftOrderId || !order.invoiceUrl)
+  // Keyed on the draft order alone: the pay link now comes back from
+  // `draftOrderCreate` itself, so a draft order existing means the sync
+  // succeeded and retrying it would be a no-op.
+  const needsShopifySync = order.status === 'confirmed' && !order.shopifyDraftOrderId
 
   async function refresh() {
     const fresh = await refreshDetail({ data: { orderRequestId: order.id } })
@@ -133,6 +139,20 @@ function StaffOrderDetailRoute() {
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not sync to Shopify.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSendInvoiceEmail() {
+    setBusy(true)
+    setError(null)
+    try {
+      await sendInvoice({ data: { orderRequestId: order.id } })
+      setInvoiceEmailSent(true)
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not email the invoice.')
     } finally {
       setBusy(false)
     }
@@ -282,7 +302,14 @@ function StaffOrderDetailRoute() {
 
             {needsShopifySync ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                <p className="text-sm text-destructive">Shopify sync incomplete — no draft order/invoice yet.</p>
+                <p className="text-sm text-destructive">
+                  Shopify sync incomplete — no draft order yet, so the customer has no way to pay.
+                </p>
+                {order.shopifySyncError ? (
+                  <p className="mt-2 break-words rounded bg-destructive/10 p-2 font-mono text-xs text-destructive">
+                    {order.shopifySyncError}
+                  </p>
+                ) : null}
                 {isNccAdmin ? (
                   <Button variant="secondary" className="mt-2" onClick={handleRetrySync} disabled={busy}>
                     {busy ? 'Retrying…' : 'Retry Shopify sync'}
@@ -290,12 +317,24 @@ function StaffOrderDetailRoute() {
                 ) : null}
               </div>
             ) : (
-              <p className="text-sm text-foreground">
-                Invoice link:{' '}
-                <a href={order.invoiceUrl ?? '#'} className="text-primary hover:underline" target="_blank" rel="noreferrer">
-                  {order.invoiceUrl}
-                </a>
-              </p>
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-foreground">
+                  Invoice link:{' '}
+                  <a href={order.invoiceUrl ?? '#'} className="text-primary hover:underline" target="_blank" rel="noreferrer">
+                    {order.invoiceUrl}
+                  </a>
+                </p>
+                {isNccAdmin ? (
+                  <div>
+                    <Button variant="secondary" onClick={handleSendInvoiceEmail} disabled={busy}>
+                      {busy ? 'Sending…' : invoiceEmailSent ? 'Invoice email sent' : 'Email invoice to customer'}
+                    </Button>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      The customer can already pay using the link above — this emails it to them as well.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             )}
           </div>
         ) : null}

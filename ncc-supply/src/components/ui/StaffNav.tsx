@@ -1,4 +1,5 @@
 const LINKS = [
+  { label: 'Dashboard', href: '/staff' },
   { label: 'Orders', href: '/staff/orders' },
   { label: 'Quotes', href: '/staff/quotes' },
   { label: 'Returns', href: '/staff/returns' },

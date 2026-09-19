@@ -39,6 +39,7 @@ import { Route as QuoteIndexRouteImport } from './routes/quote/index'
 import { Route as QuoteIdRouteImport } from './routes/quote/$id'
 import { Route as ReturnsIndexRouteImport } from './routes/returns/index'
 import { Route as ReturnsIdRouteImport } from './routes/returns/$id'
+import { Route as StaffIndexRouteImport } from './routes/staff/index'
 import { Route as StaffAccountsRouteImport } from './routes/staff/accounts'
 import { Route as StaffOrdersRouteImport } from './routes/staff/orders'
 import { Route as StaffQuotesRouteImport } from './routes/staff/quotes'
@@ -202,6 +203,11 @@ const ReturnsIdRoute = ReturnsIdRouteImport.update({
   path: '/returns/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffIndexRoute = StaffIndexRouteImport.update({
+  id: '/staff/',
+  path: '/staff/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffAccountsRoute = StaffAccountsRouteImport.update({
   id: '/staff/accounts',
   path: '/staff/accounts',
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/account/': typeof AccountIndexRoute
   '/quote/': typeof QuoteIndexRoute
   '/returns/': typeof ReturnsIndexRoute
+  '/staff/': typeof StaffIndexRoute
   '/support/': typeof SupportIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
   '/staff/quote/$id': typeof StaffQuoteIdRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountIndexRoute
   '/quote': typeof QuoteIndexRoute
   '/returns': typeof ReturnsIndexRoute
+  '/staff': typeof StaffIndexRoute
   '/support': typeof SupportIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
   '/staff/quote/$id': typeof StaffQuoteIdRoute
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/account/': typeof AccountIndexRoute
   '/quote/': typeof QuoteIndexRoute
   '/returns/': typeof ReturnsIndexRoute
+  '/staff/': typeof StaffIndexRoute
   '/support/': typeof SupportIndexRoute
   '/staff/order/$id': typeof StaffOrderIdRoute
   '/staff/quote/$id': typeof StaffQuoteIdRoute
@@ -434,6 +443,7 @@ export interface FileRouteTypes {
     | '/account/'
     | '/quote/'
     | '/returns/'
+    | '/staff/'
     | '/support/'
     | '/staff/order/$id'
     | '/staff/quote/$id'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/quote'
     | '/returns'
+    | '/staff'
     | '/support'
     | '/staff/order/$id'
     | '/staff/quote/$id'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/account/'
     | '/quote/'
     | '/returns/'
+    | '/staff/'
     | '/support/'
     | '/staff/order/$id'
     | '/staff/quote/$id'
@@ -561,6 +573,7 @@ export interface RootRouteChildren {
   SupportIdRoute: typeof SupportIdRoute
   QuoteIndexRoute: typeof QuoteIndexRoute
   ReturnsIndexRoute: typeof ReturnsIndexRoute
+  StaffIndexRoute: typeof StaffIndexRoute
   SupportIndexRoute: typeof SupportIndexRoute
   StaffOrderIdRoute: typeof StaffOrderIdRoute
   StaffQuoteIdRoute: typeof StaffQuoteIdRoute
@@ -781,6 +794,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReturnsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/': {
+      id: '/staff/'
+      path: '/staff'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff/accounts': {
       id: '/staff/accounts'
       path: '/staff/accounts'
@@ -920,6 +940,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupportIdRoute: SupportIdRoute,
   QuoteIndexRoute: QuoteIndexRoute,
   ReturnsIndexRoute: ReturnsIndexRoute,
+  StaffIndexRoute: StaffIndexRoute,
   SupportIndexRoute: SupportIndexRoute,
   StaffOrderIdRoute: StaffOrderIdRoute,
   StaffQuoteIdRoute: StaffQuoteIdRoute,

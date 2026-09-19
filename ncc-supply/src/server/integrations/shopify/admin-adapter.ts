@@ -32,6 +32,15 @@ const DRAFT_ORDER_FIELDS = `
   totalPriceSet { shopMoney { amount currencyCode } }
 `
 
+/**
+ * Shopify money is a decimal string in the shop's currency; the app stores
+ * pence. Kept in one place so every amount crossing this boundary converts
+ * identically.
+ */
+function toShopifyMoney(pence: number): { amount: string; currencyCode: 'GBP' } {
+  return { amount: (pence / 100).toFixed(2), currencyCode: 'GBP' }
+}
+
 function toDraftOrder(node: DraftOrderNode): DraftOrder {
   return {
     id: node.id,
@@ -68,9 +77,19 @@ async function createDraftOrder(orderRequest: ConfirmedOrderRequest): Promise<Dr
       email: orderRequest.email,
       note: orderRequest.note,
       shippingAddress: orderRequest.shippingAddress,
+      ...(orderRequest.reference ? { tags: [`ncc-order-${orderRequest.reference}`] } : {}),
+      ...(orderRequest.shippingLine
+        ? {
+            shippingLine: {
+              title: orderRequest.shippingLine.title,
+              price: toShopifyMoney(orderRequest.shippingLine.pricePence).amount,
+            },
+          }
+        : {}),
       lineItems: orderRequest.lines.map((line) => ({
         variantId: line.variantId,
         quantity: line.quantity,
+        priceOverride: toShopifyMoney(line.unitPricePence),
       })),
     },
   })

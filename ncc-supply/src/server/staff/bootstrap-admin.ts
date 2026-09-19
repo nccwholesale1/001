@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
-import { hashPassword } from '../auth/password'
-import type { Db } from '../db/client'
-import { staffUsers } from '../db/schema'
+import { hashPassword } from '../auth/password.ts'
+import type { Db } from '../db/client.ts'
+import { staffUsers } from '../db/schema.ts'
 
 export class BootstrapAdminExistsError extends Error {
   constructor() {

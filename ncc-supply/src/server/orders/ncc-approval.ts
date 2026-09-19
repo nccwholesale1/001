@@ -32,45 +32,62 @@ async function resolveOrderEmail(db: Db, order: { guestContactEmail: string | nu
 }
 
 /**
- * Attempts whichever Shopify step hasn't succeeded yet for this order —
- * called both right after confirmation and from the explicit "Retry Shopify
- * sync" action. Idempotent by construction: never re-creates a draft order
- * that already exists, never re-sends an invoice that's already been sent.
- * A failure here is deliberately swallowed (logged, not thrown) — the order
- * is already validly `confirmed` in our own system (rule 13 is satisfied
- * regardless), and `shopifyDraftOrderId`/`invoiceUrl` staying `null` *is*
- * the explicit, visible "needs Shopify sync" state the staff console shows.
+ * Creates the Shopify Draft Order for a confirmed order, if one doesn't
+ * exist yet — called both right after confirmation and from the explicit
+ * "Retry Shopify sync" action. Idempotent by construction: never re-creates
+ * a draft order that already exists.
+ *
+ * `draftOrderCreate` returns `invoiceUrl` itself, so the customer's pay link
+ * is available without emailing anyone. Sending the invoice email is a
+ * separate, deliberate staff action (`sendInvoiceEmail`) — syncing must
+ * never mail a customer as a side effect.
+ *
+ * A failure here is deliberately not thrown: the order is already validly
+ * `confirmed` in our own system (rule 13 is satisfied regardless). It is
+ * recorded on `shopifySyncError` instead of only logged, so the staff
+ * console can show *why* an order has no pay link rather than leaving it
+ * silently stuck.
  */
 async function syncToShopify(db: Db, orderRequestId: string): Promise<void> {
   const [order] = await db.select().from(orderRequests).where(eq(orderRequests.id, orderRequestId)).limit(1)
   if (!order) return
+  if (order.shopifyDraftOrderId) return
 
   const adapter = getAdminCommerceAdapter()
 
   try {
-    let draftOrderId = order.shopifyDraftOrderId
-    if (!draftOrderId) {
-      const lines = await db.select().from(orderRequestLines).where(eq(orderRequestLines.orderRequestId, orderRequestId))
-      const email = await resolveOrderEmail(db, order)
-      const draftOrder = await adapter.createDraftOrder({
-        email,
-        lines: lines
-          .filter((line) => (line.confirmedQuantity ?? 0) > 0)
-          .map((line) => ({ variantId: line.shopifyVariantId, quantity: line.confirmedQuantity! })),
-      })
-      draftOrderId = draftOrder.id
-      await db.update(orderRequests).set({ shopifyDraftOrderId: draftOrderId }).where(eq(orderRequests.id, orderRequestId))
-    }
+    const lines = await db.select().from(orderRequestLines).where(eq(orderRequestLines.orderRequestId, orderRequestId))
+    const email = await resolveOrderEmail(db, order)
+    const draftOrder = await adapter.createDraftOrder({
+      email,
+      reference: order.id,
+      lines: lines
+        .filter((line) => (line.confirmedQuantity ?? 0) > 0)
+        .map((line) => ({
+          variantId: line.shopifyVariantId,
+          quantity: line.confirmedQuantity!,
+          unitPricePence: line.unitPricePence,
+        })),
+      ...(order.deliveryPence
+        ? { shippingLine: { title: 'Delivery', pricePence: order.deliveryPence } }
+        : {}),
+    })
 
-    if (!order.invoiceUrl) {
-      const email = await resolveOrderEmail(db, order)
-      const invoiced = await adapter.sendDraftOrderInvoice(draftOrderId, { to: email })
-      if (invoiced.invoiceUrl) {
-        await db.update(orderRequests).set({ invoiceUrl: invoiced.invoiceUrl }).where(eq(orderRequests.id, orderRequestId))
-      }
-    }
+    await db
+      .update(orderRequests)
+      .set({
+        shopifyDraftOrderId: draftOrder.id,
+        invoiceUrl: draftOrder.invoiceUrl,
+        shopifySyncError: null,
+      })
+      .where(eq(orderRequests.id, orderRequestId))
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     console.error(`[ncc-approval] Shopify sync failed for order ${orderRequestId}`, error)
+    await db
+      .update(orderRequests)
+      .set({ shopifySyncError: message })
+      .where(eq(orderRequests.id, orderRequestId))
   }
 }
 
@@ -136,6 +153,45 @@ export async function retryShopifySync(db: Db, actor: Actor, orderRequestId: str
   if (!order) throw new OrderRequestNotFoundError()
   if (order.status !== 'confirmed') throw new ForbiddenError('Only a confirmed order can sync to Shopify')
   await syncToShopify(db, orderRequestId)
+}
+
+/**
+ * Emails the Shopify invoice to the customer. Split out of `syncToShopify`
+ * deliberately: creating the draft order already yields a usable pay link,
+ * so mailing the customer is a decision staff make, never a side effect of
+ * approving or retrying. Unlike sync, a failure here *is* thrown — staff
+ * pressed a button and must be told it didn't work, or they'll assume the
+ * customer was contacted when they weren't.
+ */
+export async function sendInvoiceEmail(db: Db, actor: Actor, orderRequestId: string): Promise<void> {
+  if (!isNccAdmin(actor)) throw new ForbiddenError()
+
+  const [order] = await db.select().from(orderRequests).where(eq(orderRequests.id, orderRequestId)).limit(1)
+  if (!order) throw new OrderRequestNotFoundError()
+  if (order.status !== 'confirmed') throw new ForbiddenError('Only a confirmed order can be invoiced')
+  if (!order.shopifyDraftOrderId) {
+    throw new ForbiddenError('This order has no Shopify draft order yet — sync it first')
+  }
+
+  const email = await resolveOrderEmail(db, order)
+  const invoiced = await getAdminCommerceAdapter().sendDraftOrderInvoice(order.shopifyDraftOrderId, {
+    to: email,
+  })
+  if (invoiced.invoiceUrl) {
+    await db
+      .update(orderRequests)
+      .set({ invoiceUrl: invoiced.invoiceUrl })
+      .where(eq(orderRequests.id, orderRequestId))
+  }
+
+  await recordAuditEvent(db, {
+    actorType: 'staff',
+    actorId: actor.staffUserId,
+    action: 'ncc_send_invoice_email',
+    resourceType: 'order_request',
+    resourceId: orderRequestId,
+    detail: { to: email },
+  })
 }
 
 /**

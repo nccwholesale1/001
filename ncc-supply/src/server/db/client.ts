@@ -1,9 +1,9 @@
 import { createRequire } from 'node:module'
 import { createClient as createRemoteClient } from '@libsql/client/web'
 import { drizzle } from 'drizzle-orm/libsql'
-import * as schema from './schema'
-import { env } from '../env'
-import { debugSessionLog } from '../debug-session-log'
+import * as schema from './schema.ts'
+import { env } from '../env.ts'
+import { debugSessionLog } from '../debug-session-log.ts'
 
 /**
  * Server-only. Never import this module from client code — CLAUDE.md rule 8.

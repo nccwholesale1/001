@@ -607,6 +607,74 @@ Verified against the live site on 18 September 2026 by placing a real guest orde
 
 **Net effect:** no customer can currently reach a payment surface on the live site. Everything up to NCC review works; nothing after it has been shown to.
 
+### A13 — Published to production; incomplete listings hidden
+
+**Published (18 September 2026).** PR #1 merged to `main`, which Vercel deploys. Everything in A1–A10 and A12 is now live at https://headlessncc.vercel.app — `/how-to-order` resolves, no "ex VAT" string remains anywhere on the site, listings sort cheapest-first, and VAT is gone from the order model.
+
+**Catalogue rule applied, at NCC's instruction:** *a listing with no image or no price is not shown on the live site.*
+
+- 41 active products had **no image**. All were switched ACTIVE → DRAFT, so the storefront no longer returns them.
+- **0** active products lacked a price — the unpriced lines (121 of them) were already drafts and already hidden.
+- Nothing was deleted. Adding an image and setting the product back to Active restores it.
+- A record of the 41 is on the user's Desktop as `NCC-Hidden-Listings-2026-09-18.xlsx` (no password).
+
+**Live catalogue after the change — 159 products:**
+
+| Category | Live lines | | Category | Live lines |
+|---|---|---|---|---|
+| Screens | 68 | | Car Chargers | **0** |
+| Batteries | 35 | | Screen Protectors | **0** |
+| Charging Cables | 24 | | Wireless Chargers | **0** |
+| Chargers | 13 | | iPad Digitizers | 0 |
+| Power Banks | 10 | | Car Holders | 0 |
+| Headphones & Earphones | 9 | | Repair Parts | 0 |
+
+**Consequence worth stating:** **Car Chargers, Screen Protectors and Wireless Chargers are now empty categories** — every product in them lacked an image. They still appear in navigation with zero lines. iPad Digitizers, Car Holders and Repair Parts were already empty before this change. Restoring any of them is a matter of adding product images in Shopify, not a code change.
+
+### A14 — Checkout completed end-to-end; staff dashboard landing page
+
+Closes the gaps A12 recorded. Built on `phase/12-checkout-completion`.
+
+**Root cause of A12's "zero draft orders ever created".** The configured `SHOPIFY_ADMIN_ACCESS_TOKEN` was simply invalid — a live probe of `POST /admin/api/2026-07/graphql.json` returned **HTTP 401 "Invalid API key or access token"**, both with and without its trailing `-<timestamp>` suffix. The adapter code was never at fault. Replacing it with a working token was the entire fix.
+
+*(An earlier draft of this entry claimed the value was "not a Shopify token at all — uppercase letters, no digits". That was wrong: it came from a faulty character-fingerprint script whose substitutions cascaded into each other. The value was structurally a normal token with a suffix appended. The conclusion — invalid, must be replaced — was right; the stated reasoning was not.)*
+
+**Obtaining a token has changed.** Shopify no longer permits creating admin-created custom apps, which were the only source of a permanent token. A Dev Dashboard app acting on its own organization's store uses the **client credentials grant**, whose tokens last exactly 24 hours (`expires_in` 86399) with no non-expiring option. The app therefore mints and refreshes its own (see ADR-039); a statically configured token still takes precedence for existing apps.
+
+**Verified against the live store** (read-only): plan Basic, currency GBP, `taxesIncluded: true`, draft orders supported. `DraftOrderInput` accepts `shippingLine`, `appliedDiscount`, `poNumber`, `tags` and per-line `priceOverride`.
+
+**Three defects in the checkout path, fixed:**
+
+1. **The delivery charge never reached Shopify.** `createDraftOrder` sent only `{email, lines}`, so the amount a customer would have paid excluded the delivery NCC entered at approval. Now sent as an explicit custom `shippingLine`.
+2. **NCC's confirmed prices were not binding.** Shopify re-priced every line from the live catalogue, so a catalogue price change between approval and payment would have charged a total other than the one confirmed (contrary to rules 9 and 14). Each line now carries `priceOverride` set from `orderRequestLines.unitPricePence`.
+3. **A pay link required emailing the customer.** `invoiceUrl` was only read from `draftOrderInvoiceSend`, which mails the customer as a side effect of approval. `draftOrderCreate` returns `invoiceUrl` directly, so it is taken from there; **sending the invoice email is now a separate, deliberate NCC-admin action** (`sendInvoiceEmail`) with its own audit event, and it throws on failure rather than being swallowed.
+
+**Sync failures are now visible.** A failed Shopify sync is recorded on the new `order_requests.shopify_sync_error` column (migration `0006`) and rendered on `/staff/order/:id`, instead of only reaching a server log. It is deliberately **not** added to `OrderRequestView`, because that type is also serialised to customers on `/order/:id` and `/checkout/:id`. Approval still never depends on Shopify succeeding (rule 13).
+
+**Admin dashboard — no Shopify app.** An embedded Shopify app was evaluated and rejected: it would add an OAuth install flow, App Bridge, session-token storage and a second hosting surface, confine staff to working inside Shopify admin, and duplicate the console that already exists. The staff console (`/staff-login` plus orders, quotes, returns, support, accounts, team) was already built and deployed, with `ncc_admin`/`sales_rep` roles enforced server-side. The one missing piece was a landing page: signing in led nowhere. **`/staff` now exists** — per-queue counts of what is waiting, derived from the same role-filtered queue functions each section already uses, so a sales rep's figures never reveal totals outside their assigned companies (rule 17).
+
+**Tooling repaired.** `pnpm db:migrate` and `pnpm db:bootstrap-admin` were both broken: they run under `node --experimental-strip-types`, which cannot resolve extensionless specifiers, and `env.ts`/`db/client.ts` imported the newly added `debug-session-log` without an extension. Eight import lines across three files now carry the explicit `.ts` extension those CLI scripts already used. Without this, **no first admin account could be created at all** — which blocked the admin dashboard entirely.
+
+**Verification:** typecheck clean; 627 tests pass (up from 613); production build clean under the Vercel/nitro preset; client bundle swept for secrets; `/staff` returns 307 to `/staff-login` when signed out.
+
+**Checkout proven end-to-end against the live store (19 September 2026).** With a working Admin API token configured, a real draft order was created exactly as the adapter builds one, then deleted:
+
+| Sent | Shopify recorded |
+|---|---|
+| 2 × NCC Prime Screen iPhone 16 Pro Max, catalogue £25.00, **NCC-confirmed £22.50** | `@ £22.50` — the override held, the catalogue price was not used |
+| 1 × Colorx LCD Screen iPhone X @ £9.00 | `@ £9.00` |
+| Delivery £4.95 as a custom shipping line | `Delivery £4.95` |
+| Tag `ncc-order-<id>` | applied |
+| — | `invoiceUrl` returned by `draftOrderCreate`, with no invoice email sent |
+
+**Shopify's total came to £58.95 against NCC's £58.95 — an exact match.** This is the first draft order ever created on this store, closing A12. It was deleted immediately; the store holds zero draft orders and zero orders.
+
+Granted scopes confirmed on the live token: `write_draft_orders`, `read_draft_orders`, `write_returns`, `read_returns`.
+
+**Still not verified:** the dashboard rendering against real data, because local dev cannot reach a database on this branch's base (see below).
+
+**Left untouched, per instruction:** the production debug instrumentation in `__root.tsx` and its two lint errors, the `ClientOnly` lint warning, and `db/client.ts`'s fallback to an inert client at `https://127.0.0.1` — which is why `pnpm dev` cannot reach the local SQLite file. These predate this work and the live site is unaffected.
+
 ---
 
 **Amendments still to be reflected here:** none outstanding at 18 September 2026. When the product next diverges from this document, add an entry rather than editing §§1–13 silently.

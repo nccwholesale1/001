@@ -4,7 +4,14 @@ import { ForbiddenError, type Actor } from '../auth/authorization'
 import { InvalidTransitionError } from '../domain/status'
 import { createTestDb } from '../db/test-helpers'
 import { auditEvents, buyerUsers, companies, orderRequestLines, orderRequests, staffUsers } from '../db/schema'
-import { cancelOrder, confirmOrder, getGuestOrderLink, OrderRequestNotFoundError, retryShopifySync } from './ncc-approval'
+import {
+  cancelOrder,
+  confirmOrder,
+  getGuestOrderLink,
+  OrderRequestNotFoundError,
+  retryShopifySync,
+  sendInvoiceEmail,
+} from './ncc-approval'
 
 const ncc: Actor = { kind: 'ncc_admin', staffUserId: 'admin-1' }
 const rep: Actor = { kind: 'sales_rep', staffUserId: 'rep-1', assignedCompanyIds: [] }
@@ -121,6 +128,9 @@ describe('ncc-approval', () => {
     expect(afterFailure?.status).toBe('confirmed') // rule 13 already satisfied — never contingent on Shopify
     expect(afterFailure?.shopifyDraftOrderId).toBeNull()
     expect(afterFailure?.invoiceUrl).toBeNull()
+    // Recorded, not just logged — otherwise staff see an order with no pay
+    // link and no way to find out why (PRD §14 A12).
+    expect(afterFailure?.shopifySyncError).toContain('simulated Shopify outage')
 
     vi.doUnmock('../integrations/shopify')
     vi.resetModules()
@@ -129,7 +139,64 @@ describe('ncc-approval', () => {
 
     const [afterRetry] = await db.select().from(orderRequests).where(eq(orderRequests.id, 'order-1'))
     expect(afterRetry?.shopifyDraftOrderId).toEqual(expect.any(String))
+    // The pay link exists without anyone having been emailed — creating the
+    // draft order yields it directly.
     expect(afterRetry?.invoiceUrl).toEqual(expect.any(String))
+    expect(afterRetry?.shopifySyncError).toBeNull()
+  })
+
+  it('never emails the customer as a side effect of approval — invoicing is its own deliberate action', async () => {
+    vi.resetModules()
+    const sendDraftOrderInvoice = vi.fn()
+    vi.doMock('../integrations/shopify', () => ({
+      getAdminCommerceAdapter: () => ({
+        createDraftOrder: vi.fn().mockResolvedValue({
+          id: 'gid://shopify/DraftOrder/1',
+          name: '#D1',
+          status: 'OPEN',
+          invoiceUrl: 'https://example.test/invoices/1',
+          totalPrice: { amountPence: 1000, currencyCode: 'GBP' },
+        }),
+        sendDraftOrderInvoice,
+        approveReturn: vi.fn(),
+      }),
+    }))
+    const { confirmOrder: confirmWithSpy, sendInvoiceEmail } = await import('./ncc-approval')
+    const db = await seed()
+
+    await confirmWithSpy(db, ncc, approvalInput)
+    expect(sendDraftOrderInvoice).not.toHaveBeenCalled()
+
+    const [confirmed] = await db.select().from(orderRequests).where(eq(orderRequests.id, 'order-1'))
+    expect(confirmed?.invoiceUrl).toBe('https://example.test/invoices/1')
+
+    sendDraftOrderInvoice.mockResolvedValue({
+      id: 'gid://shopify/DraftOrder/1',
+      name: '#D1',
+      status: 'INVOICE_SENT',
+      invoiceUrl: 'https://example.test/invoices/1',
+      totalPrice: { amountPence: 1000, currencyCode: 'GBP' },
+    })
+    await sendInvoiceEmail(db, ncc, 'order-1')
+    expect(sendDraftOrderInvoice).toHaveBeenCalledTimes(1)
+
+    vi.doUnmock('../integrations/shopify')
+  })
+
+  it('refuses to email an invoice before there is a draft order to invoice', async () => {
+    const db = await seed()
+
+    // Not yet reviewed at all.
+    await expect(sendInvoiceEmail(db, ncc, 'order-1')).rejects.toThrow('Only a confirmed order')
+    // A sales rep never invoices, whatever the order's state.
+    await expect(sendInvoiceEmail(db, rep, 'order-1')).rejects.toThrow(ForbiddenError)
+
+    // Confirmed, but the Shopify sync hasn't produced a draft order.
+    await db
+      .update(orderRequests)
+      .set({ status: 'confirmed', shopifyDraftOrderId: null })
+      .where(eq(orderRequests.id, 'order-1'))
+    await expect(sendInvoiceEmail(db, ncc, 'order-1')).rejects.toThrow('sync it first')
   })
 
   it('cancels with a required reason and an audit record', async () => {
