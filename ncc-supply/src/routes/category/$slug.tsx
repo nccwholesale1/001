@@ -10,11 +10,14 @@ import { Container, Section } from '../../components/ui/Layout'
 import { FacetLayout } from '../../components/ui/FacetLayout'
 import type { AppliedChipView, FacetGroupView, SortOptionView } from '../../components/ui/FacetSidebar'
 import { InfiniteProductGrid } from '../../components/ui/InfiniteProductGrid'
+import { SubcategoryTabs } from '../../components/ui/SubcategoryTabs'
+import { subcategoriesFor, subcategoryTag } from '../../lib/subcategories'
 import { cn } from '../../lib/cn'
 
 // Eight cards fill roughly one screen on desktop; the next page starts
 // loading before the buyer reaches the bottom of them.
 const PAGE_SIZE = 8
+
 /**
  * Lowest price first is the default listing order (trade buyers compare on
  * price). 'relevance' maps to the collection's own curated order on a
@@ -35,6 +38,8 @@ const categorySearchSchema = z.object({
   after: z.string().optional(),
   /** "Attribute:Value,Attribute:Value2" — a single string param, not an array, so it round-trips through the URL unambiguously (see DECISIONS.md ADR-015). */
   filters: z.string().optional(),
+  /** Selected subcategory tab (PRD §6.20) — a slug from lib/subcategories.ts. */
+  sub: z.string().optional(),
 })
 type CategorySearch = z.infer<typeof categorySearchSchema>
 
@@ -65,6 +70,7 @@ function buildHref(slug: string, overrides: CategorySearch): string {
   if (overrides.sort && overrides.sort !== DEFAULT_SORT) params.set('sort', overrides.sort)
   if (overrides.after) params.set('after', overrides.after)
   if (overrides.filters) params.set('filters', overrides.filters)
+  if (overrides.sub) params.set('sub', overrides.sub)
   const query = params.toString()
   return `/category/${slug}${query ? `?${query}` : ''}`
 }
@@ -93,7 +99,35 @@ const getCategoryData = createServerFn({ method: 'GET' })
   .validator(categoryDataQuerySchema.parse)
   .handler(async ({ data }): Promise<CategoryData> => {
     try {
-      const result = await getCatalogueAdapter().getCollection(data.slug, {
+      const adapter = getCatalogueAdapter()
+      // An unknown `sub` yields no tag, so the whole category is returned
+      // rather than an empty page.
+      const tag = subcategoryTag(data.slug, data.sub)
+
+      if (tag) {
+        const collection = await adapter.getCollection(data.slug, { first: 1 })
+        const found = await adapter.search(`tag:'${tag}'`, {
+          first: PAGE_SIZE,
+          after: data.after,
+          sort: data.sort ?? DEFAULT_SORT,
+          filters: parseFiltersParam(data.filters),
+        })
+        return {
+          slug: data.slug,
+          // Presented as the parent category throughout — the tab narrows
+          // what is listed, it is not a different page with its own banner.
+          result: {
+            ...collection,
+            products: found.products,
+            pageInfo: found.pageInfo,
+            availableFacets: found.availableFacets,
+            lineCount: found.totalCount,
+          },
+          error: null,
+        }
+      }
+
+      const result = await adapter.getCollection(data.slug, {
         first: PAGE_SIZE,
         after: data.after,
         sort: data.sort ?? DEFAULT_SORT,
@@ -159,6 +193,10 @@ function CategoryRoute() {
   const search = Route.useSearch()
   const activeFilters = parseFiltersParam(search.filters)
   const activeSort: SortValue = search.sort ?? DEFAULT_SORT
+  const subcategories = subcategoriesFor(slug)
+  // A `sub` the category doesn't define falls back to All, matching what
+  // the loader did with it.
+  const activeSub = subcategoryTag(slug, search.sub) ? (search.sub ?? null) : null
   const fetchPage = useServerFn(getCategoryData)
 
   /**
@@ -169,12 +207,12 @@ function CategoryRoute() {
   const loadMorePage = useCallback(
     async (after: string) => {
       const next = await fetchPage({
-        data: { slug, sort: search.sort, filters: search.filters, after },
+        data: { slug, sort: search.sort, filters: search.filters, sub: search.sub, after },
       })
       if (!next.result) return null
       return { products: next.result.products, pageInfo: next.result.pageInfo }
     },
-    [fetchPage, slug, search.sort, search.filters],
+    [fetchPage, slug, search.sort, search.filters, search.sub],
   )
 
   if (error || !result) {
@@ -270,6 +308,21 @@ function CategoryRoute() {
 
       <Section className="pt-0">
         <Container className="flex flex-col gap-6">
+          {/*
+            Rendered outside the no-results branch: a tab that happens to be
+            empty must still let the buyer switch back to another one.
+          */}
+          <SubcategoryTabs
+            subcategories={subcategories}
+            active={activeSub}
+            hrefFor={(sub) =>
+              buildHref(slug, {
+                sort: search.sort,
+                filters: search.filters,
+                sub: sub ?? undefined,
+              })
+            }
+          />
           {noResults ? (
             <div className="rounded-xl border border-border bg-card p-8 text-center">
               <p className="font-semibold text-foreground">No products found</p>
@@ -290,7 +343,7 @@ function CategoryRoute() {
               resultCount={result.lineCount}
             >
               <InfiniteProductGrid
-                key={`${slug}:${activeSort}:${search.filters ?? ''}`}
+                key={`${slug}:${activeSort}:${search.filters ?? ''}:${activeSub ?? 'all'}`}
                 initialProducts={result.products}
                 initialPageInfo={result.pageInfo}
                 loadMore={loadMorePage}
