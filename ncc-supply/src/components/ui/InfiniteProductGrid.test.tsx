@@ -91,6 +91,65 @@ describe('InfiniteProductGrid', () => {
     expect(screen.getByText(/that's everything in this category/i)).toBeInTheDocument()
   })
 
+  /**
+   * Regression: this broke on the production build. The sentinel does not
+   * move when a page is appended, so it emits no new intersection event.
+   * Starting the load straight from the observer callback meant an event
+   * arriving while a page was already in flight got dropped by the
+   * in-flight guard, and scrolling then loaded nothing ever again.
+   */
+  it('keeps loading after an intersection arrives mid-flight', async () => {
+    const callbacks: Array<(entries: Array<{ isIntersecting: boolean }>) => void> = []
+    const original = global.IntersectionObserver
+    global.IntersectionObserver = class {
+      constructor(cb: (entries: Array<{ isIntersecting: boolean }>) => void) {
+        callbacks.push(cb)
+      }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return []
+      }
+      root = null
+      rootMargin = ''
+      thresholds = []
+    } as unknown as typeof IntersectionObserver
+
+    try {
+      const loadMore = vi
+        .fn()
+        .mockResolvedValueOnce({
+          products: [product('B1')],
+          pageInfo: { hasNextPage: true, endCursor: 'cursor-2' },
+        })
+        .mockResolvedValueOnce({
+          products: [product('C1')],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        })
+
+      render(
+        <InfiniteProductGrid
+          initialProducts={PAGE_ONE}
+          initialPageInfo={{ hasNextPage: true, endCursor: 'cursor-1' }}
+          loadMore={loadMore}
+        />,
+      )
+
+      // The sentinel comes into view and stays there, exactly as it does
+      // when the buyer scrolls to the bottom and waits. It is signalled
+      // once and never again.
+      callbacks.forEach((cb) => cb([{ isIntersecting: true }]))
+
+      // Both pages must still arrive off that single signal.
+      await waitFor(() => expect(screen.getByText('Product C1')).toBeInTheDocument())
+      expect(screen.getByText('Product B1')).toBeInTheDocument()
+      expect(loadMore).toHaveBeenCalledTimes(2)
+    } finally {
+      global.IntersectionObserver = original
+    }
+  })
+
   it('offers a retry when a page fails, rather than silently stopping', async () => {
     const loadMore = vi.fn().mockRejectedValue(new Error('network'))
     render(

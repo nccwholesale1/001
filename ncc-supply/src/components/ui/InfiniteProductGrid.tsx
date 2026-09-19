@@ -64,22 +64,42 @@ export function InfiniteProductGrid({
     }
   }, [loading, pageInfo, loadMore])
 
+  /**
+   * Whether the sentinel is currently near the viewport — tracked as state
+   * rather than starting the load from the observer callback directly.
+   *
+   * The sentinel sits at the end of the list and does not move when a page
+   * is appended, so it emits no new intersection event. Loading straight
+   * from the callback therefore broke on the production build: an event
+   * arriving while a page was already in flight hit the in-flight guard and
+   * was dropped, and nothing fired again — scrolling silently stopped
+   * loading. Holding the state means the effect below re-runs when
+   * `loading` returns to false and carries on by itself.
+   */
+  const [atSentinel, setAtSentinel] = useState(false)
+
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel || typeof IntersectionObserver === 'undefined') return
-    if (!pageInfo.hasNextPage || error) return
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) void handleLoadMore()
-      },
+      (entries) => setAtSentinel(entries.some((entry) => entry.isIntersecting)),
       // Start fetching slightly before the sentinel is reached so the next
       // cards are usually in place by the time the buyer scrolls to them.
       { rootMargin: '400px 0px' },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [handleLoadMore, pageInfo.hasNextPage, error])
+  }, [])
+
+  useEffect(() => {
+    if (!atSentinel || loading || error || !pageInfo.hasNextPage) return
+    // Scheduled rather than called straight from the effect: the load sets
+    // state on its first line, and the cleanup cancels a pending start if
+    // the sentinel leaves view or the query changes first.
+    const timer = setTimeout(() => void handleLoadMore(), 0)
+    return () => clearTimeout(timer)
+  }, [atSentinel, loading, error, pageInfo.hasNextPage, handleLoadMore])
 
   return (
     <>
