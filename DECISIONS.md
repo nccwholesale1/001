@@ -1,5 +1,17 @@
 # NCC Supply — Decisions
 
+## ADR-039: The app mints its own Admin API tokens (2026-09-19)
+
+**Context.** Shopify no longer allows creating admin-created custom apps, the only source of a permanent Admin API token. A Dev Dashboard app acting on a store in its own organization uses the client credentials grant, and those tokens are valid for exactly 24 hours — `expires_in` is always 86399 and the grant has no non-expiring option. A token pasted into configuration is therefore no longer viable for new setups.
+
+**Decision.** `integrations/shopify/admin-token.ts` mints tokens from `SHOPIFY_CLIENT_ID`/`SHOPIFY_CLIENT_SECRET` and caches them in memory with a five-minute refresh margin. Concurrent callers share one in-flight grant request. A token whose lifetime Shopify did not state is never cached — minting twice is a safer failure than trusting an unstated lifetime. `adminRequest` retries once on a 401 with a freshly minted token, because a token can die before its stated expiry when the secret is rotated or the app reinstalled.
+
+**A statically configured `SHOPIFY_ADMIN_ACCESS_TOKEN` still takes precedence**, so an existing admin-created custom app keeps working untouched. That is the configuration currently in use.
+
+**Secret handling.** The client secret is read only by this module, which no route component imports. The built client bundle contains neither the secret's env name, the grant type, nor the token endpoint — verified by sweeping `.vercel/output/static`.
+
+**Checkout is now proven end-to-end (19 September 2026).** A real draft order was created against the live store exactly as the adapter builds one, and deleted immediately. NCC's confirmed unit price of £22.50 overrode the catalogue's £25.00; delivery arrived as a £4.95 shipping line; the order tag was applied; `invoiceUrl` came back from `draftOrderCreate` with no invoice email sent. **Shopify's total of £58.95 matched NCC's £58.95 exactly.** This was the first draft order ever created on the store, closing PRD §14 A12. The store again holds zero draft orders and zero orders. Scopes confirmed on the live token: `write_draft_orders`, `read_draft_orders`, `write_returns`, `read_returns`.
+
 ## ADR-038: Checkout completion and the staff dashboard — no Shopify app (2026-09-18)
 
 **Context.** NCC asked for the checkout flow to be finished and an admin/sales-rep dashboard built, and asked specifically whether a Shopify app plus Vercel was the right shape. Checkout was blocked past NCC approval (PRD §14 A12).

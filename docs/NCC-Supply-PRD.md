@@ -635,9 +635,13 @@ Verified against the live site on 18 September 2026 by placing a real guest orde
 
 Closes the gaps A12 recorded. Built on `phase/12-checkout-completion`.
 
-**Root cause of A12's "zero draft orders ever created", now diagnosed.** The `SHOPIFY_ADMIN_ACCESS_TOKEN` in the environment is not a Shopify token. A real Admin API token is `shpat_` followed by 32 lowercase hexadecimal characters (38 characters total). The configured value is 49 characters: `shpat_` followed by 32 **uppercase letters**, a hyphen, and 10 more uppercase letters — no digits, no lowercase. Something unrelated had `shpat_` prefixed to it. A live read-only probe of `POST /admin/api/2026-07/graphql.json` returns **HTTP 401 "Invalid API key or access token"**. The adapter code was never at fault.
+**Root cause of A12's "zero draft orders ever created".** The configured `SHOPIFY_ADMIN_ACCESS_TOKEN` was simply invalid — a live probe of `POST /admin/api/2026-07/graphql.json` returned **HTTP 401 "Invalid API key or access token"**, both with and without its trailing `-<timestamp>` suffix. The adapter code was never at fault. Replacing it with a working token was the entire fix.
 
-**What was verified against the live store** (Storefront/Admin GraphQL, read-only): plan Basic, currency GBP, `taxesIncluded: true`, draft orders supported, `draftOrders` connection empty. `DraftOrderInput` accepts `shippingLine`, `appliedDiscount`, `poNumber`, `tags` and per-line `priceOverride`. Creating a real draft order end-to-end could not be executed in this session and remains unproven until a valid token is configured.
+*(An earlier draft of this entry claimed the value was "not a Shopify token at all — uppercase letters, no digits". That was wrong: it came from a faulty character-fingerprint script whose substitutions cascaded into each other. The value was structurally a normal token with a suffix appended. The conclusion — invalid, must be replaced — was right; the stated reasoning was not.)*
+
+**Obtaining a token has changed.** Shopify no longer permits creating admin-created custom apps, which were the only source of a permanent token. A Dev Dashboard app acting on its own organization's store uses the **client credentials grant**, whose tokens last exactly 24 hours (`expires_in` 86399) with no non-expiring option. The app therefore mints and refreshes its own (see ADR-039); a statically configured token still takes precedence for existing apps.
+
+**Verified against the live store** (read-only): plan Basic, currency GBP, `taxesIncluded: true`, draft orders supported. `DraftOrderInput` accepts `shippingLine`, `appliedDiscount`, `poNumber`, `tags` and per-line `priceOverride`.
 
 **Three defects in the checkout path, fixed:**
 
@@ -651,7 +655,23 @@ Closes the gaps A12 recorded. Built on `phase/12-checkout-completion`.
 
 **Tooling repaired.** `pnpm db:migrate` and `pnpm db:bootstrap-admin` were both broken: they run under `node --experimental-strip-types`, which cannot resolve extensionless specifiers, and `env.ts`/`db/client.ts` imported the newly added `debug-session-log` without an extension. Eight import lines across three files now carry the explicit `.ts` extension those CLI scripts already used. Without this, **no first admin account could be created at all** — which blocked the admin dashboard entirely.
 
-**Verification:** typecheck clean; 618 tests pass (up from 613 — two adapter tests proving prices and delivery are transmitted, two approval tests proving the sync error is recorded and that approval never emails, one colour-token check for the new route); production build clean under the Vercel/nitro preset; client bundle swept for secrets; `/staff` returns 307 to `/staff-login` when signed out. **Not verified:** the dashboard rendering against real data, because local dev cannot reach a database on this branch's base (see below), and any live Shopify mutation, which needs a valid token.
+**Verification:** typecheck clean; 627 tests pass (up from 613); production build clean under the Vercel/nitro preset; client bundle swept for secrets; `/staff` returns 307 to `/staff-login` when signed out.
+
+**Checkout proven end-to-end against the live store (19 September 2026).** With a working Admin API token configured, a real draft order was created exactly as the adapter builds one, then deleted:
+
+| Sent | Shopify recorded |
+|---|---|
+| 2 × NCC Prime Screen iPhone 16 Pro Max, catalogue £25.00, **NCC-confirmed £22.50** | `@ £22.50` — the override held, the catalogue price was not used |
+| 1 × Colorx LCD Screen iPhone X @ £9.00 | `@ £9.00` |
+| Delivery £4.95 as a custom shipping line | `Delivery £4.95` |
+| Tag `ncc-order-<id>` | applied |
+| — | `invoiceUrl` returned by `draftOrderCreate`, with no invoice email sent |
+
+**Shopify's total came to £58.95 against NCC's £58.95 — an exact match.** This is the first draft order ever created on this store, closing A12. It was deleted immediately; the store holds zero draft orders and zero orders.
+
+Granted scopes confirmed on the live token: `write_draft_orders`, `read_draft_orders`, `write_returns`, `read_returns`.
+
+**Still not verified:** the dashboard rendering against real data, because local dev cannot reach a database on this branch's base (see below).
 
 **Left untouched, per instruction:** the production debug instrumentation in `__root.tsx` and its two lint errors, the `ClientOnly` lint warning, and `db/client.ts`'s fallback to an inert client at `https://127.0.0.1` — which is why `pnpm dev` cannot reach the local SQLite file. These predate this work and the live site is unaffected.
 
