@@ -235,7 +235,7 @@ function SearchRoute() {
             <p className="font-semibold text-foreground">No results for "{q}"</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Try a different term, clear any filters, or{' '}
-              <a href="/contact" className="text-primary hover:underline">
+              <a href="/support" className="text-primary hover:underline">
                 contact NCC
               </a>{' '}
               for help finding what you need.

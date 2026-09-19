@@ -253,7 +253,7 @@ function IndexRoute() {
                   </p>
                 </div>
                 <a
-                  href="/contact"
+                  href="/support"
                   className="sky-gradient shimmer-sweep inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0 motion-reduce:hover:translate-y-0"
                 >
                   Contact Us

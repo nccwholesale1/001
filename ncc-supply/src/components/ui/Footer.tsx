@@ -27,7 +27,6 @@ const FOOTER_COLUMNS = [
   {
     heading: 'Company',
     links: [
-      { label: 'Contact', href: '/contact' },
       { label: 'Help / Report an Issue', href: '/support' },
       { label: 'Company Sign In', href: '/auth' },
     ],

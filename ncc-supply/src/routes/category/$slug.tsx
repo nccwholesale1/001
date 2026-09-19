@@ -328,7 +328,7 @@ function CategoryRoute() {
               <p className="font-semibold text-foreground">No products found</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Try clearing some filters, or{' '}
-                <a href="/contact" className="text-primary hover:underline">
+                <a href="/support" className="text-primary hover:underline">
                   contact NCC
                 </a>{' '}
                 for help finding what you need.

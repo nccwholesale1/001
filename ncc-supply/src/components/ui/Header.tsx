@@ -41,7 +41,9 @@ const PRIMARY_NAV = [
   { label: 'Bulk Order', href: '/bulk-order' },
   { label: 'Request a Quote', href: '/quote' },
   { label: 'How to Order', href: '/how-to-order' },
-  { label: 'Contact', href: '/contact' },
+  // Contact is deliberately absent: no /contact route exists, so the link
+  // 404'd. It returns when the admin dashboard ships. /support covers
+  // customer queries in the meantime.
 ]
 
 const iconLinkClasses =
