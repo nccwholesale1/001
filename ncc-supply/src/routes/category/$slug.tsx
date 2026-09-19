@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { useCallback } from 'react'
 import { z } from 'zod'
 import { getCatalogueAdapter } from '../../server/integrations/shopify'
 import type { CollectionResult, FacetFilter } from '../../server/integrations/shopify/types'
@@ -8,12 +9,12 @@ import { Breadcrumbs } from '../../components/ui/Breadcrumbs'
 import { Container, Section } from '../../components/ui/Layout'
 import { FacetLayout } from '../../components/ui/FacetLayout'
 import type { AppliedChipView, FacetGroupView, SortOptionView } from '../../components/ui/FacetSidebar'
-import { Pagination } from '../../components/ui/Pagination'
-import { ProductCard } from '../../components/ui/ProductCard'
-import { Reveal } from '../../components/ui/Reveal'
+import { InfiniteProductGrid } from '../../components/ui/InfiniteProductGrid'
 import { cn } from '../../lib/cn'
 
-const PAGE_SIZE = 12
+// Eight cards fill roughly one screen on desktop; the next page starts
+// loading before the buyer reaches the bottom of them.
+const PAGE_SIZE = 8
 /**
  * Lowest price first is the default listing order (trade buyers compare on
  * price). 'relevance' maps to the collection's own curated order on a
@@ -158,6 +159,23 @@ function CategoryRoute() {
   const search = Route.useSearch()
   const activeFilters = parseFiltersParam(search.filters)
   const activeSort: SortValue = search.sort ?? DEFAULT_SORT
+  const fetchPage = useServerFn(getCategoryData)
+
+  /**
+   * Fetches the next page through the same server function the route loader
+   * uses, so pages appended by scrolling are resolved exactly like the
+   * first one — same adapter, same sort, same filters.
+   */
+  const loadMorePage = useCallback(
+    async (after: string) => {
+      const next = await fetchPage({
+        data: { slug, sort: search.sort, filters: search.filters, after },
+      })
+      if (!next.result) return null
+      return { products: next.result.products, pageInfo: next.result.pageInfo }
+    },
+    [fetchPage, slug, search.sort, search.filters],
+  )
 
   if (error || !result) {
     return (
@@ -271,28 +289,11 @@ function CategoryRoute() {
               sortOptions={sortOptions}
               resultCount={result.lineCount}
             >
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                {result.products.map((product, index) => (
-                  <Reveal key={product.sku} delayMs={(index % 6) * 70}>
-                    <ProductCard product={product} />
-                  </Reveal>
-                ))}
-              </div>
-              <Pagination
-                previousHref={
-                  search.after
-                    ? buildHref(slug, { sort: activeSort, filters: search.filters })
-                    : null
-                }
-                nextHref={
-                  result.pageInfo.hasNextPage
-                    ? buildHref(slug, {
-                        sort: activeSort,
-                        filters: search.filters,
-                        after: result.pageInfo.endCursor ?? undefined,
-                      })
-                    : null
-                }
+              <InfiniteProductGrid
+                key={`${slug}:${activeSort}:${search.filters ?? ''}`}
+                initialProducts={result.products}
+                initialPageInfo={result.pageInfo}
+                loadMore={loadMorePage}
               />
             </FacetLayout>
           )}

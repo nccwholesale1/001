@@ -10,6 +10,7 @@ import {
   updateBasketLine,
 } from '../server/basket/server-functions'
 import type { BasketView } from '../server/basket/basket'
+import { parseQuantityInput } from '../lib/quantity'
 import { getCurrentBuyerSummary } from '../server/buyers/server-functions'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
@@ -40,6 +41,8 @@ function BasketRoute() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [busyLineId, setBusyLineId] = useState<string | null>(null)
+  /** Quantity text being typed, per line id — see the input's own comment. */
+  const [draftQuantities, setDraftQuantities] = useState<Record<string, string>>({})
 
   const updateLine = useServerFn(updateBasketLine)
   const removeLine = useServerFn(removeBasketLine)
@@ -58,6 +61,27 @@ function BasketRoute() {
     } finally {
       setBusyLineId(null)
     }
+  }
+
+  /**
+   * Applies a typed quantity when the field is left. An empty or nonsensical
+   * entry reverts to what the basket already holds rather than silently
+   * becoming 1 — a buyer who clears the box to retype has not asked for a
+   * quantity of one. Removing a line stays an explicit action.
+   */
+  async function commitQuantity(lineId: string, currentQuantity: number) {
+    const draft = draftQuantities[lineId]
+    setDraftQuantities((current) => {
+      const next = { ...current }
+      delete next[lineId]
+      return next
+    })
+    if (draft === undefined) return
+
+    const quantity = parseQuantityInput(draft, currentQuantity)
+    if (quantity === null) return
+
+    await handleQuantityChange(lineId, quantity)
   }
 
   async function handleRemove(lineId: string) {
@@ -156,9 +180,47 @@ function BasketRoute() {
                         >
                           <Minus className="h-4 w-4" aria-hidden="true" />
                         </button>
-                        <span aria-live="polite" className="w-8 text-center text-sm font-medium">
-                          {line.quantity}
-                        </span>
+                        {/*
+                          Typed directly as well as stepped: trade buyers
+                          order in dozens and hundreds, so reaching 250 by
+                          clicking + is not a real option. The draft value is
+                          held locally while typing and only committed on
+                          blur or Enter — committing per keystroke would fire
+                          a server round-trip for every digit and fight the
+                          cursor as the basket re-rendered.
+                        */}
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          step={1}
+                          aria-label={`Quantity of ${line.title}`}
+                          disabled={busyLineId === line.id}
+                          value={draftQuantities[line.id] ?? String(line.quantity)}
+                          onChange={(event) =>
+                            setDraftQuantities((current) => ({
+                              ...current,
+                              [line.id]: event.target.value,
+                            }))
+                          }
+                          onFocus={(event) => event.currentTarget.select()}
+                          onBlur={() => commitQuantity(line.id, line.quantity)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault()
+                              event.currentTarget.blur()
+                            }
+                            if (event.key === 'Escape') {
+                              setDraftQuantities((current) => {
+                                const next = { ...current }
+                                delete next[line.id]
+                                return next
+                              })
+                              event.currentTarget.blur()
+                            }
+                          }}
+                          className="w-14 border-x border-border bg-transparent py-2 text-center text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-40"
+                        />
                         <button
                           type="button"
                           aria-label={`Increase quantity of ${line.title}`}
